@@ -6,10 +6,11 @@ mod prices;
 mod scheduling;
 mod plugs;
 mod shelly_client;
+mod firestore;
 
 
-fn main() {
-
+#[tokio::main]
+async fn main() {
 
     loop {
         println!("\n-STARTING NEW RUN-\n");
@@ -42,7 +43,7 @@ fn main() {
             println!("\n");
         }
 
-        let sleep_duration: u64= 5*60;
+        let sleep_duration: u64= 1*60;
 
         println!("\n-RUN FINISHED, SLEEPING FOR {} MINUTES-\n", {&sleep_duration/60});
 

@@ -9,10 +9,12 @@ publish = false
 [dependencies]
 chrono = "0.4.22"
 chrono-tz = "0.6.3"
+firestore = "0.10.3"
 reqwest = "0.11.11"
 serde = { version = "1.0.144", features = ["derive"] }
 serde_json = "1.0.85"
 strum = "0.24.1"
 strum_macros = "0.24.3"
 tibber = "0.4.0"
+tokio = "1.21.1"
 
