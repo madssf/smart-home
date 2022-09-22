@@ -1,0 +1,1 @@
+gcloud builds submit --tag gcr.io/smart-home-3d61e/smart-home-frontend
