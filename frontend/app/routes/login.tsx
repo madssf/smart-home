@@ -44,7 +44,7 @@ export const action: ActionFunction = async ({request}) => {
             // Create a new CSRF token to avoid session fixation attacks
             // https://owasp.org/www-community/attacks/Session_fixation
             createAuthenticityToken(session);
-            return redirect("/", {
+            return redirect("/home", {
                 headers: {"Set-Cookie": await commitSession(session)},
             });
         }
