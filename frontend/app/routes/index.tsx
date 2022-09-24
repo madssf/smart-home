@@ -21,7 +21,7 @@ export default function Index() {
 
     return (
         <div>
-            <h1>Smart Home</h1>
+            <h1 className="text-4xl">Smart Home</h1>
             {
                 data.idToken ?
                     <Link to={"/home"}>

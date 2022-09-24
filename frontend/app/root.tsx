@@ -21,6 +21,7 @@ import {
 } from "remix-utils";
 import { commitSession } from "~/utils/sessions.server";
 import { getSessionData } from "./utils/auth.server";
+import styles from "./styles/app.css"
 
 interface LoaderData {
   csrf?: string;
@@ -29,6 +30,10 @@ interface LoaderData {
       FIREBASE_CONFIG?: string
   }
 
+}
+
+export function links() {
+    return [{ rel: "stylesheet", href: styles }]
 }
 
 // Setup CSRF token only if they are heading to the login page.
