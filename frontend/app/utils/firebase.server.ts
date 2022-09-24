@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { initializeApp } from "firebase-admin/app";
+import {initializeApp} from "firebase-admin/app";
 
 if (admin.apps.length === 0) {
     initializeApp({
@@ -12,4 +12,4 @@ if (admin.apps.length === 0) {
 const db = admin.firestore()
 
 
-export { admin, db };
+export {admin, db};

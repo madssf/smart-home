@@ -1,5 +1,5 @@
-import { verifyAuthenticityToken } from "remix-utils";
-import { getSession } from "./sessions.server";
+import {verifyAuthenticityToken} from "remix-utils";
+import {getSession} from "./sessions.server";
 
 export const getSessionData = async (
     request: Request,
