@@ -35,7 +35,7 @@ async fn main() {
         let plugs = plugs::get_plugs_from_env();
 
         for plug in plugs {
-            println!("Proccesing plug: {}", &plug.name);
+            println!("Processing plug: {}", &plug.name);
             let power_usage = shelly_client::get_status(&plug).unwrap();
             println!("Current power usage: {} W", power_usage);
             println!("Equals hourly price of: {:.3} {}", price.amount / 1000.0 * power_usage, price.currency);
