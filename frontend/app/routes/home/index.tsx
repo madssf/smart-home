@@ -1,59 +1,42 @@
-import {json, LoaderFunction, redirect, useLoaderData} from "remix";
+import {json, Link, LoaderFunction, redirect, useLoaderData} from "remix";
 import {getSessionData} from "~/utils/auth.server";
 import {db} from "~/utils/firebase.server";
-import {Schedule} from "~/routes/home/types";
+import {NaiveTime, Schedule, TimeWindow} from "~/routes/home/types";
+import jwt_decode from "jwt-decode";
+import ScheduleForm from "~/routes/schedules/scheduleForm";
+import {requireUserId} from "~/utils/sessions.server";
 
-export interface ScheduleData {
-    schedules: Schedule[];
+interface ResponseData {
+    name: string;
 }
 
 
 export const loader: LoaderFunction = async ({request}) => {
-    const {idToken} = await getSessionData(request);
 
-    if (!idToken) {
-        throw redirect("/")
-    }
+    const { name } = await requireUserId(request)
 
-    const schedulesRef = await db.collection('schedules')
-    const schedules = await schedulesRef.get()
-    const docs = schedules.docs.map((a) => {
-        return a.data()
-    })
-    return json<ScheduleData>({
-        schedules: docs as Schedule[],
+    return json<ResponseData>({
+        name: name,
     });
-
 
 };
 
 export default function Index() {
 
-    const data = useLoaderData<ScheduleData>()
+    const data = useLoaderData<ResponseData>()
 
     return (
         <div>
             <h1 className="text-3xl font-bold underline">
                 Smart Home
             </h1>
-            {
-                data.schedules.map((schedule) => {
-                    return (
-                        <div>
-                            <b>{schedule.id}</b>
-                            <p>{schedule.level}</p>
-                            <ul>{schedule.days.map((day) => {
-                                return <li key={schedule.id + day}>{day}</li>
-                            })}
-                            </ul>
-                            <ul>{schedule.hours.map((window) => {
-                                return <li key={schedule.id + window.from + window.to}>{`From ${window.from.slice(0, 5)} to ${window.to.slice(0, 5)}`}</li>
-                            })}
-                            </ul>
-                        </div>
-                    )
-                })
-            }
+            <p>{data.name}</p>
+            <div>
+                <Link to={'/plugs'}>Plugs</Link>
+                <Link to={'/schedules'}>Schedules</Link>
+            </div>
+
+
         </div>
     );
 }
