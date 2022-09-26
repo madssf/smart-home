@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Form, useActionData} from "remix";
+import {Form, useActionData, useTransition} from "remix";
 import {routes} from "~/routes";
 import {Plug} from "~/routes/plugs/types/types";
 import {PlugFormErrors} from "~/routes/plugs";
@@ -10,11 +10,11 @@ export interface PlugFormProps {
 
 const PlugForm = ({plug}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
+    const transition = useTransition()
 
     const [errors, setErrors] = useState<PlugFormErrors | null>(null);
 
     useEffect(() => {
-        console.log(actionData)
         if (actionData && !plug && !actionData.id) {
             setErrors(actionData)
         } else if (actionData && plug?.id === actionData.id) {
@@ -23,6 +23,10 @@ const PlugForm = ({plug}: PlugFormProps) => {
             setErrors(null)
         }
     }, [actionData])
+
+    useEffect(() => {
+        console.log(transition)
+    }, [transition])
 
     const renderErrors = (errors: PlugFormErrors) => {
         const { id, ...rest} = errors
@@ -49,7 +53,7 @@ const PlugForm = ({plug}: PlugFormProps) => {
                 <input name="ip" defaultValue={plug?.ip}/>
             </div>
 
-            <button type="submit">{plug ? "Edit" : "Create"}</button>
+            <button className="border-4 rounded-md" type="submit" disabled>{plug ? "Edit" : "Create"}</button>
             {
                 errors &&
                 renderErrors(errors)

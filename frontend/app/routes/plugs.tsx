@@ -1,5 +1,5 @@
-import React from 'react';
-import {json, Link, LoaderFunction, Outlet, redirect, useLoaderData, useLocation} from "remix";
+import React, {useState} from 'react';
+import {json, LoaderFunction, Outlet, redirect, useLoaderData} from "remix";
 import {routes} from "~/routes";
 import {Plug} from "~/routes/plugs/types/types";
 import {FormErrors} from "~/utils/types";
@@ -15,6 +15,8 @@ interface ResponseData {
 }
 
 export type PlugFormErrors = FormErrors<Plug>;
+
+export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
 
@@ -77,8 +79,9 @@ export const loader: LoaderFunction = async ({request}) => {
 
 const Plugs = () => {
 
-    const location = useLocation()
     const loaderData = useLoaderData<ResponseData>()
+
+    const [showNew, setShowNew] = useState(false)
 
     const renderPlugs = (plugs: Plug[]) => {
         return plugs.map((plug) => {
@@ -91,11 +94,10 @@ const Plugs = () => {
     return (
         <div>
             {renderPlugs(loaderData.plugs)}
+            <button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</button>
             {
-                location.pathname !== routes.PLUGS.NEW ?
-                    <Link to={routes.PLUGS.NEW}>Add plug</Link>
-                    :
-                    <Link to={routes.PLUGS.ROOT}>Cancel</Link>
+                showNew &&
+                <PlugForm />
             }
             <Outlet />
         </div>
