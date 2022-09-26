@@ -7,8 +7,9 @@ import {routes} from "~/routes";
 import {collections} from "~/utils/firestoreUtils.server";
 import {validateDays, validateHours, validatePriceLevel} from "~/routes/schedules/utils/utils";
 import {FormErrors} from "~/utils/types";
-import {useLocation} from "react-router";
-import {Link, Outlet, useLoaderData} from "@remix-run/react";
+import {useLoaderData} from "@remix-run/react";
+import React, {useState} from "react";
+import {Button} from "@chakra-ui/react";
 
 interface ResponseData {
     schedules: Schedule[];
@@ -27,7 +28,12 @@ export async function action({request}: ActionArgs) {
     const days = body.getAll("days").map((day) => day.toString());
     const from = body.getAll("from").map((naiveTime) => naiveTime.toString());
     const to = body.getAll("to").map((naiveTime) => naiveTime.toString());
+    const intent = body.get("intent")?.toString();
 
+    if (intent === 'delete') {
+        await db.doc(`${collections.schedules(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        return redirect(routes.SCHEDULES.ROOT)
+    }
 
     const validated = {
         priceLevel: validatePriceLevel(priceLevel),
@@ -80,8 +86,8 @@ export const loader: LoaderFunction = async ({request}) => {
 
 const Schedules = () => {
 
-    const location = useLocation()
     const loaderData = useLoaderData<ResponseData>()
+    const [showNew, setShowNew] = useState(false)
 
     const renderSchedules = (schedules: Schedule[]) => {
         return schedules.map((schedule) => {
@@ -94,13 +100,11 @@ const Schedules = () => {
     return (
         <div>
             {renderSchedules(loaderData.schedules)}
+            <Button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
             {
-                location.pathname !== routes.SCHEDULES.NEW ?
-                    <Link to={routes.SCHEDULES.NEW}>Add schedule</Link>
-                    :
-                    <Link to={routes.SCHEDULES.ROOT}>Cancel</Link>
+                showNew &&
+                <ScheduleForm />
             }
-            <Outlet />
         </div>
     );
 };

@@ -1,5 +1,7 @@
 import React from 'react';
 import {TimeWindow} from "~/routes/schedules/types/types";
+import {Input} from "@chakra-ui/input";
+import {Button} from "@chakra-ui/react";
 
 export interface TimeFormProps {
     window?: TimeWindow;
@@ -9,11 +11,11 @@ export interface TimeFormProps {
 const TimeForm = ({window, handleRemove}: TimeFormProps) => {
     return (
         <div>
-            <label className="font-bold mr-2">From</label><input name="from" defaultValue={window?.from}/>
-            <label className="font-bold mr-2">To</label><input name="to" defaultValue={window?.to}/>
-            <button type="button" onClick={() => {
+            <label className="font-bold mr-2">From</label><Input name="from" defaultValue={window?.from}/>
+            <label className="font-bold mr-2">To</label><Input name="to" defaultValue={window?.to}/>
+            <Button size="sm" variant="outline" type="button" onClick={() => {
                 handleRemove()
-            }}>Remove</button>
+            }}>Remove</Button>
         </div>
     );
 };

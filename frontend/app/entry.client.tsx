@@ -3,6 +3,7 @@ import {CacheProvider} from '@emotion/react'
 import {RemixBrowser} from '@remix-run/react'
 import {ClientStyleContext} from './context'
 import createEmotionCache from './createEmotionCache'
+// @ts-ignore
 import * as ReactDOMClient from 'react-dom/client'
 
 interface ClientCacheProviderProps {

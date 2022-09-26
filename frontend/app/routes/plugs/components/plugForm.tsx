@@ -13,7 +13,10 @@ export interface PlugFormProps {
 const PlugForm = ({plug}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
     const transition = useTransition()
-    const isAdding = transition.state == "submitting" && (transition.submission.formData.get('id') ?? null) === plug?.id
+    const isCreating = transition.submission?.formData.get("intent") === "create" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
+    const isUpdating = transition.submission?.formData.get("intent") === "update" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
+    const isDeleting = transition.submission?.formData.get("intent") === "delete" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
+    const isNew = !plug
     const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<PlugFormErrors | null>(null);
@@ -29,14 +32,10 @@ const PlugForm = ({plug}: PlugFormProps) => {
     }, [actionData])
 
     useEffect(() => {
-        if (!isAdding) {
+        if (!isCreating || !isUpdating) {
             formRef.current?.reset();
         }
     }, [transition])
-
-    const isDisabled = (): boolean => {
-        return false
-    }
 
     return (
         <Box p={2}>
@@ -58,8 +57,17 @@ const PlugForm = ({plug}: PlugFormProps) => {
                         <Text color="tomato">{errors.ip}</Text>
                     }
                 </div>
+                <div>
+                    <Button type="submit" name="intent" value={isNew ? 'create' : 'update'}
+                            disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
+                    {
+                        !isNew &&
+                        <Button variant="outline" type="submit" name="intent" value="delete"
+                                disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
 
-                <Button variant='solid' type="submit" disabled={isDisabled()}>{plug ? "Edit" : "Create"}</Button>
+                    }
+                </div>
+
             </Form>
         </Box>
     );

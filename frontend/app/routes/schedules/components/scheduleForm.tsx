@@ -1,9 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {PRICE_LEVELS, Schedule, TimeWindow, WEEKDAYS} from "~/routes/schedules/types/types";
 import TimeForm from "~/routes/schedules/components/timeForm";
 import {routes} from "~/routes";
 import {ScheduleFormErrors} from "~/routes/schedules";
-import {Form, useActionData} from "@remix-run/react";
+import {Form, useActionData, useTransition} from "@remix-run/react";
+import {Button, Text} from "@chakra-ui/react";
 
 export interface ScheduleFormProps {
     schedule?: Schedule
@@ -11,6 +12,12 @@ export interface ScheduleFormProps {
 
 const ScheduleForm = ({schedule}: ScheduleFormProps) => {
     const actionData = useActionData<ScheduleFormErrors>();
+    const transition = useTransition()
+    const isCreating = transition.submission?.formData.get("intent") === "create" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
+    const isUpdating = transition.submission?.formData.get("intent") === "update" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
+    const isDeleting = transition.submission?.formData.get("intent") === "delete" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
+    const isNew = !schedule
+    const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<ScheduleFormErrors | null>(null);
 
@@ -23,6 +30,12 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
             setErrors(null)
         }
     }, [actionData])
+
+    useEffect(() => {
+        if (!isCreating || !isUpdating) {
+            formRef.current?.reset();
+        }
+    }, [transition])
 
     const [hoursList, setHoursList] = useState(schedule?.hours ?? []);
 
@@ -56,7 +69,7 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
 
 
     return (
-        <Form className="border-4 my-2 p-2" method="post" action={routes.SCHEDULES.ROOT}>
+        <Form ref={formRef} method="post" action={routes.SCHEDULES.ROOT}>
             <input hidden readOnly name="id" value={schedule?.id}/>
             <div>
                 <label className="font-bold">Price level</label>
@@ -65,6 +78,10 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                         return <option key={priceLevel} value={priceLevel} label={priceLevel}/>
                     })}
                 </select>
+                {
+                    !!errors?.priceLevel &&
+                    <Text color="tomato">{errors.priceLevel}</Text>
+                }
             </div>
             <div>
                 <label className="font-bold">Weekdays</label>
@@ -72,6 +89,10 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                     return <label key={day}><input type="checkbox" id={day} name="days" value={day}
                                                    defaultChecked={schedule?.days.includes(day)}/>{day}</label>
                 })}
+                {
+                    !!errors?.days &&
+                    <Text color="tomato">{errors.days}</Text>
+                }
             </div>
             <div>
                 <label className="font-bold">Time windows</label>
@@ -82,16 +103,30 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                             return <TimeForm key={i} window={window} handleRemove={() => handleRemoveTimeWindow(window)}/>
                         })
                     }
-                    <button type="button" onClick={() => addTimeWindow()}>Add</button>
+                    <Button size="sm" type="button" onClick={() => addTimeWindow()}>Add</Button>
                 </div>
             }
+                {
+                    !!errors?.hours &&
+                    <Text color="tomato">{errors.hours}</Text>
+                }
             </div>
 
-            <button type="submit">{schedule ? "Edit" : "Create"}</button>
             {
-                errors &&
-                    renderErrors(errors)
+                !!errors?.other &&
+                <Text color="tomato">{errors.other}</Text>
             }
+
+            <div>
+                <Button type="submit" name="intent" value={isNew ? 'create' : 'update'}
+                        disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
+                {
+                    !isNew &&
+                    <Button variant="outline" type="submit" name="intent" value="delete"
+                            disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
+
+                }
+            </div>
         </Form>
     );
 };

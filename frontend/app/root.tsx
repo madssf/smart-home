@@ -13,7 +13,7 @@ import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useFetcher,
 import {ClientStyleContext, ServerStyleContext} from './context'
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
-import {ChakraProvider} from "@chakra-ui/react";
+import {ChakraProvider, ColorModeScript, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
 
 interface LoaderData {
     csrf?: string;
@@ -21,8 +21,11 @@ interface LoaderData {
     ENV: {
         FIREBASE_CONFIG?: string
     }
-
 }
+
+export const theme = extendTheme(
+    withDefaultColorScheme({ colorScheme: 'teal' })
+);
 
 export function links() {
     return [{rel: "stylesheet", href: styles}]
@@ -158,7 +161,8 @@ const Document = withEmotionCache(
 export default function App() {
     return (
         <Document>
-            <ChakraProvider>
+            <ColorModeScript />
+            <ChakraProvider theme={theme}>
                 <Outlet />
             </ChakraProvider>
         </Document>

@@ -8,7 +8,7 @@ import {db} from "~/utils/firebase.server";
 import {collections} from "~/utils/firestoreUtils.server";
 import {validateIpAddress, validateName} from "~/routes/plugs/utils/utils";
 import PlugForm from "~/routes/plugs/components/plugForm";
-import {Outlet, useLoaderData} from "@remix-run/react";
+import {useLoaderData} from "@remix-run/react";
 import {Button} from "@chakra-ui/react";
 
 interface ResponseData {
@@ -28,7 +28,12 @@ export async function action({request}: ActionArgs) {
     const id = body.get("id")?.toString();
     const name = body.get("name")?.toString();
     const ip = body.get("ip")?.toString();
+    const intent = body.get("intent")?.toString();
 
+    if (intent === 'delete') {
+        await db.doc(`${collections.plugs(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        return redirect(routes.PLUGS.ROOT)
+    }
 
     const validated = {
         name: validateName(name),
@@ -81,7 +86,6 @@ export const loader: LoaderFunction = async ({request}) => {
 const Plugs = () => {
 
     const loaderData = useLoaderData<ResponseData>()
-
     const [showNew, setShowNew] = useState(false)
 
     const renderPlugs = (plugs: Plug[]) => {
@@ -100,7 +104,6 @@ const Plugs = () => {
                 showNew &&
                 <PlugForm />
             }
-            <Outlet />
         </div>
     );
 };
