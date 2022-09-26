@@ -1,14 +1,15 @@
 import React, {useState} from 'react';
-import {json, LoaderFunction, Outlet, redirect, useLoaderData} from "remix";
 import {routes} from "~/routes";
 import {Plug} from "~/routes/plugs/types/types";
 import {FormErrors} from "~/utils/types";
-import {ActionArgs} from "@remix-run/server-runtime";
+import {ActionArgs, json, LoaderFunction, redirect} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
 import {collections} from "~/utils/firestoreUtils.server";
 import {validateIpAddress, validateName} from "~/routes/plugs/utils/utils";
 import PlugForm from "~/routes/plugs/components/plugForm";
+import {Outlet, useLoaderData} from "@remix-run/react";
+import {Button} from "@chakra-ui/react";
 
 interface ResponseData {
     plugs: Plug[];
@@ -94,7 +95,7 @@ const Plugs = () => {
     return (
         <div>
             {renderPlugs(loaderData.plugs)}
-            <button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</button>
+            <Button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
             {
                 showNew &&
                 <PlugForm />

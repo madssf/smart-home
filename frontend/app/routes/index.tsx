@@ -1,5 +1,6 @@
-import {json, Link, LoaderFunction, useLoaderData} from "remix";
 import {getSessionData} from "~/utils/auth.server";
+import {json, LoaderFunction} from "@remix-run/node";
+import {Link, useLoaderData} from "@remix-run/react";
 
 export interface IndexData {
     csrf?: string;

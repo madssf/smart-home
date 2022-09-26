@@ -1,6 +1,6 @@
-import {createCookieSessionStorage, redirect} from "remix";
 import {getSessionData} from "~/utils/auth.server";
 import jwt_decode from "jwt-decode";
+import {createCookieSessionStorage, redirect} from "@remix-run/node";
 
 
 // Learn more about cookies at MDN https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies
