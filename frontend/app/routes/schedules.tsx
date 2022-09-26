@@ -1,5 +1,4 @@
-import {ActionArgs} from "@remix-run/server-runtime";
-import {json, Link, LoaderFunction, Outlet, redirect, useLoaderData, useLocation} from "remix";
+import {ActionArgs, json, LoaderFunction, redirect} from "@remix-run/node";
 import {Schedule} from "~/routes/schedules/types/types";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
@@ -8,6 +7,8 @@ import {routes} from "~/routes";
 import {collections} from "~/utils/firestoreUtils.server";
 import {validateDays, validateHours, validatePriceLevel} from "~/routes/schedules/utils/utils";
 import {FormErrors} from "~/utils/types";
+import {useLocation} from "react-router";
+import {Link, Outlet, useLoaderData} from "@remix-run/react";
 
 interface ResponseData {
     schedules: Schedule[];

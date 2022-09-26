@@ -1,4 +1,31 @@
-import {hydrate} from "react-dom";
-import {RemixBrowser} from "remix";
+import React, {useState} from 'react'
+import {CacheProvider} from '@emotion/react'
+import {RemixBrowser} from '@remix-run/react'
+import {ClientStyleContext} from './context'
+import createEmotionCache from './createEmotionCache'
+import * as ReactDOMClient from 'react-dom/client'
 
-hydrate(<RemixBrowser/>, document);
+interface ClientCacheProviderProps {
+    children: React.ReactNode;
+}
+
+function ClientCacheProvider({ children }: ClientCacheProviderProps) {
+    const [cache, setCache] = useState(createEmotionCache())
+
+    function reset() {
+        setCache(createEmotionCache())
+    }
+
+    return (
+        <ClientStyleContext.Provider value={{ reset }}>
+            <CacheProvider value={cache}>{children}</CacheProvider>
+        </ClientStyleContext.Provider>
+    )
+}
+
+ReactDOMClient.hydrateRoot(
+    document,
+    <ClientCacheProvider>
+        <RemixBrowser />
+    </ClientCacheProvider>,
+)

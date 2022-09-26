@@ -1,5 +1,7 @@
-import {json, Link, LoaderFunction, useLoaderData} from "remix";
 import {requireUserId} from "~/utils/sessions.server";
+import {json, LoaderFunction} from "@remix-run/node";
+import {Link, useLoaderData} from "@remix-run/react";
+import {Heading} from "@chakra-ui/react";
 
 interface ResponseData {
     name: string;
@@ -22,9 +24,9 @@ export default function Index() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold underline">
+            <Heading>
                 Smart Home
-            </h1>
+            </Heading>
             <p>{data.name}</p>
             <div>
                 <Link to={'/plugs'}>Plugs</Link>

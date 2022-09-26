@@ -1,18 +1,13 @@
 import {useEffect} from "react";
-import {ActionFunction, redirect, useSubmit} from "remix";
-import {
-    ClientOnly,
-    createAuthenticityToken,
-    unauthorized,
-    useAuthenticityToken,
-    useHydrated,
-} from "remix-utils";
+import {ClientOnly, createAuthenticityToken, unauthorized, useAuthenticityToken, useHydrated,} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {admin} from "~/utils/firebase.server";
 import {getSessionData} from "~/utils/auth.server";
-import StyledFirebaseAuth from "react-firebaseui/StyledFirebaseAuth";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
+import StyledFirebaseAuth from "~/components/styledFirebaseAuth";
+import {ActionFunction, redirect} from "@remix-run/node";
+import {useSubmit} from "@remix-run/react";
 
 // Extend window
 
@@ -72,41 +67,40 @@ export default function Login() {
 
     return (
         <ClientOnly>
-            {hydrated && (
-                <StyledFirebaseAuth
-                    uiConfig={{
-                        // Popup signin flow rather than redirect flow.
-                        signInFlow: "redirect",
-                        callbacks: {
-                            // On sign in we POST our server with the JWT token
-                            signInSuccessWithAuthResult: (
-                                authResult: firebase.auth.UserCredential
-                            ) => {
-                                authResult.user?.getIdToken().then((idToken) => {
-                                    const formData = new FormData();
-                                    formData.append("idToken", idToken);
-                                    formData.append("csrf", csrf);
-                                    submit(formData, {
-                                        method: "post",
-                                        action: "/login",
-                                        // Don't create entry on browser history stack
-                                        replace: true,
-                                    });
+            {() => (<StyledFirebaseAuth
+                uiConfig={{
+                    // Popup signin flow rather than redirect flow.
+                    signInFlow: "redirect",
+                    callbacks: {
+                        // On sign in we POST our server with the JWT token
+                        signInSuccessWithAuthResult: (
+                            authResult: firebase.auth.UserCredential
+                        ) => {
+                            authResult.user?.getIdToken().then((idToken) => {
+                                const formData = new FormData();
+                                formData.append("idToken", idToken);
+                                formData.append("csrf", csrf);
+                                submit(formData, {
+                                    method: "post",
+                                    action: "/login",
+                                    // Don't create entry on browser history stack
+                                    replace: true,
                                 });
-                                return false;
-                            },
+                            });
+                            return false;
                         },
-                        signInOptions: [
-                            firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-                            {
-                                provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
-                                requireDisplayName: false,
-                            },
-                        ],
-                    }}
-                    firebaseAuth={firebase.auth()}
-                ></StyledFirebaseAuth>
-            )}
+                    },
+                    signInOptions: [
+                        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+                        {
+                            provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+                            requireDisplayName: false,
+                        },
+                    ],
+                }}
+                firebaseAuth={firebase.auth()}
+            ></StyledFirebaseAuth>)}
+
         </ClientOnly>
     );
 }

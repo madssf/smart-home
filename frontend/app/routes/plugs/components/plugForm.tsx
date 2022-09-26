@@ -1,8 +1,10 @@
-import React, {useEffect, useState} from 'react';
-import {Form, useActionData, useTransition} from "remix";
+import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import {Plug} from "~/routes/plugs/types/types";
 import {PlugFormErrors} from "~/routes/plugs";
+import {Form, useActionData, useTransition} from "@remix-run/react";
+import {Input} from "@chakra-ui/input";
+import {Box, Button, Text} from "@chakra-ui/react";
 
 export interface PlugFormProps {
     plug?: Plug
@@ -11,6 +13,8 @@ export interface PlugFormProps {
 const PlugForm = ({plug}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
     const transition = useTransition()
+    const isAdding = transition.state == "submitting" && (transition.submission.formData.get('id') ?? null) === plug?.id
+    const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<PlugFormErrors | null>(null);
 
@@ -25,40 +29,39 @@ const PlugForm = ({plug}: PlugFormProps) => {
     }, [actionData])
 
     useEffect(() => {
-        console.log(transition)
+        if (!isAdding) {
+            formRef.current?.reset();
+        }
     }, [transition])
 
-    const renderErrors = (errors: PlugFormErrors) => {
-        const { id, ...rest} = errors
-        return (
-            <ul>
-                {
-                    Object.values(rest).filter((value) => value).map((error) => {
-                        return <li>{error}</li>
-                    })
-                }
-            </ul>
-        )
+    const isDisabled = (): boolean => {
+        return false
     }
 
     return (
-        <Form className="border-4 my-2 p-2" method="post" action={routes.PLUGS.ROOT}>
-            <input hidden readOnly name="id" value={plug?.id}/>
-            <div>
-                <label className="font-bold">Name</label>
-                <input name="name" defaultValue={plug?.name}/>
-            </div>
-            <div>
-                <label className="font-bold">IP address</label>
-                <input name="ip" defaultValue={plug?.ip}/>
-            </div>
+        <Box p={2}>
+            <Form ref={formRef} method="post" action={routes.PLUGS.ROOT}>
+                <input hidden readOnly name="id" value={plug?.id}/>
+                <div>
+                    <label className="font-bold">Name</label>
+                    <Input name="name" defaultValue={plug?.name}/>
+                    {
+                        !!errors?.name &&
+                        <Text color="tomato">{errors.name}</Text>
+                    }
+                </div>
+                <div>
+                    <label className="font-bold">IP address</label>
+                    <Input name="ip" defaultValue={plug?.ip}/>
+                    {
+                        !!errors?.ip &&
+                        <Text color="tomato">{errors.ip}</Text>
+                    }
+                </div>
 
-            <button className="border-4 rounded-md" type="submit" disabled>{plug ? "Edit" : "Create"}</button>
-            {
-                errors &&
-                renderErrors(errors)
-            }
-        </Form>
+                <Button variant='solid' type="submit" disabled={isDisabled()}>{plug ? "Edit" : "Create"}</Button>
+            </Form>
+        </Box>
     );
 };
 

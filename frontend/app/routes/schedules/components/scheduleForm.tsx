@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from 'react';
 import {PRICE_LEVELS, Schedule, TimeWindow, WEEKDAYS} from "~/routes/schedules/types/types";
 import TimeForm from "~/routes/schedules/components/timeForm";
-import {Form, useActionData} from "remix";
 import {routes} from "~/routes";
 import {ScheduleFormErrors} from "~/routes/schedules";
+import {Form, useActionData} from "@remix-run/react";
 
 export interface ScheduleFormProps {
     schedule?: Schedule
