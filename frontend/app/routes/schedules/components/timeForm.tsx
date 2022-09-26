@@ -1,5 +1,5 @@
 import React from 'react';
-import {NaiveTime, TimeWindow} from "~/routes/home/types";
+import {TimeWindow} from "~/routes/schedules/types/types";
 
 export interface TimeFormProps {
     window?: TimeWindow;

@@ -1,9 +1,4 @@
-import {json, Link, LoaderFunction, redirect, useLoaderData} from "remix";
-import {getSessionData} from "~/utils/auth.server";
-import {db} from "~/utils/firebase.server";
-import {NaiveTime, Schedule, TimeWindow} from "~/routes/home/types";
-import jwt_decode from "jwt-decode";
-import ScheduleForm from "~/routes/schedules/scheduleForm";
+import {json, Link, LoaderFunction, useLoaderData} from "remix";
 import {requireUserId} from "~/utils/sessions.server";
 
 interface ResponseData {

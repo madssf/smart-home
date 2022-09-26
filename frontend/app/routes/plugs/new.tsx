@@ -1,10 +1,9 @@
 import React from 'react';
+import PlugForm from "~/routes/plugs/components/plugForm";
 
 const New = () => {
     return (
-        <div>
-         <p>Add a new plug</p>
-        </div>
+        <PlugForm />
     );
 };
 

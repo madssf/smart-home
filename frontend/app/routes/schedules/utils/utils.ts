@@ -1,12 +1,5 @@
-import {NaiveTime, PRICE_LEVELS, PriceLevel, TimeWindow, Weekday, WEEKDAYS} from "~/routes/home/types";
-
-export type Validate<T> = {
-    valid: true
-    data: T
-} | {
-    valid: false
-    error: string
-}
+import {NaiveTime, PRICE_LEVELS, PriceLevel, TimeWindow, Weekday, WEEKDAYS} from "~/routes/schedules/types/types";
+import {Validate} from "~/utils/types";
 
 export const validatePriceLevel = (priceLevel?: string): Validate<PriceLevel> => {
     if (!priceLevel) {

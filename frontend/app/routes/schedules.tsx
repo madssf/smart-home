@@ -1,23 +1,18 @@
 import {ActionArgs} from "@remix-run/server-runtime";
-import {json, Link, LoaderFunction, Outlet, redirect, useActionData, useLoaderData, useLocation} from "remix";
-import {NaiveTime, PRICE_LEVELS, PriceLevel, Schedule, TimeWindow, Weekday, WEEKDAYS} from "~/routes/home/types";
+import {json, Link, LoaderFunction, Outlet, redirect, useLoaderData, useLocation} from "remix";
+import {Schedule} from "~/routes/schedules/types/types";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
-import ScheduleForm from "~/routes/schedules/scheduleForm";
+import ScheduleForm from "~/routes/schedules/components/scheduleForm";
 import {routes} from "~/routes";
 import {collections} from "~/utils/firestoreUtils.server";
-import {validateDays, validateHours, validatePriceLevel} from "~/routes/schedules/utils";
+import {validateDays, validateHours, validatePriceLevel} from "~/routes/schedules/utils/utils";
+import {FormErrors} from "~/utils/types";
 
 interface ResponseData {
     schedules: Schedule[];
 }
-
-export type ScheduleFormErrors = {
-    [k in keyof Schedule]?: string;
-} & {
-    other?: string
-};
-
+export type ScheduleFormErrors = FormErrors<Schedule>
 
 export const handle = {hydrate: true};
 

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {PRICE_LEVELS, WEEKDAYS, Schedule, TimeWindow} from "~/routes/home/types";
-import TimeForm from "~/routes/home/timeForm";
+import {PRICE_LEVELS, Schedule, TimeWindow, WEEKDAYS} from "~/routes/schedules/types/types";
+import TimeForm from "~/routes/schedules/components/timeForm";
 import {Form, useActionData} from "remix";
 import {routes} from "~/routes";
 import {ScheduleFormErrors} from "~/routes/schedules";
