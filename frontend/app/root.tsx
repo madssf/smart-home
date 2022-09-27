@@ -13,7 +13,7 @@ import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useFetcher,
 import {ClientStyleContext, ServerStyleContext} from './context'
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
-import {ChakraProvider, ColorModeScript, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
+import {Button, ChakraProvider, ColorModeScript, extendTheme, Link, withDefaultColorScheme} from "@chakra-ui/react";
 
 interface LoaderData {
     csrf?: string;
@@ -71,11 +71,6 @@ const Document = withEmotionCache(
         // Control if page loads JS https://github.com/sergiodxa/remix-utils#useshouldhydrate
         const shouldHydrate = useShouldHydrate();
 
-        const fetcher = useFetcher();
-
-        const {csrf, isLoggedIn, ENV} = useLoaderData<LoaderData>();
-
-
         // Only executed on client
         useEffect(() => {
             // re-link sheet container
@@ -110,44 +105,8 @@ const Document = withEmotionCache(
                 ))}
 
             </head>
-            <body
-                className="mx-1"
-            >
-            <AuthenticityTokenProvider token={csrf || ""}>
-                <nav
-                    className="flex align-middle justify-between mx-2"
-                >
-                    {/* We use fetcher.Form instead of Form because we dont want navigation events */}
-                    {isLoggedIn ? (
-                        <>
-                            <div>
-                                <a href={routes.HOME}>Home</a>
-                                <a href={routes.PLUGS.ROOT}>Plugs</a>
-                                <a href={routes.SCHEDULES.ROOT}>Schedules</a>
-                            </div>
-                            <fetcher.Form action="/logout" method="post" replace>
-                                <AuthenticityTokenInput/>
-                                <button type="submit">Logout</button>
-                            </fetcher.Form>
-                        </>
-                    ) : (
-                        <>
-                            <a href="/">Front page</a>
-                            <fetcher.Form action="/" method="post" replace>
-                                <button type="submit">Login</button>
-                            </fetcher.Form>
-                        </>
-                    )}
-                </nav>
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `window.ENV = ${JSON.stringify(
-                            ENV
-                        )}`,
-                    }}
-                />
-                {children}
-            </AuthenticityTokenProvider>
+            <body>
+            {children}
             <ScrollRestoration/>
             {shouldHydrate && <Scripts/>}
             {process.env.NODE_ENV === "development" && <LiveReload/>}
@@ -159,11 +118,50 @@ const Document = withEmotionCache(
 
 
 export default function App() {
+    const fetcher = useFetcher();
+
+    const {csrf, isLoggedIn, ENV} = useLoaderData<LoaderData>();
     return (
         <Document>
             <ColorModeScript />
             <ChakraProvider theme={theme}>
-                <Outlet />
+                <AuthenticityTokenProvider token={csrf || ""}>
+                    <nav
+                        className="flex align-middle justify-between m-2"
+                    >
+                        {/* We use fetcher.Form instead of Form because we dont want navigation events */}
+                        {isLoggedIn ? (
+                            <>
+                                <div>
+                                    <Link className="mr-2" href={routes.HOME}>Home</Link>
+                                    <Link className="mr-2" href={routes.PLUGS.ROOT}>Plugs</Link>
+                                    <Link href={routes.SCHEDULES.ROOT}>Schedules</Link>
+                                </div>
+                                <fetcher.Form action="/logout" method="post" replace>
+                                    <AuthenticityTokenInput/>
+                                    <Button variant="outline" size="sm" type="submit">Logout</Button>
+                                </fetcher.Form>
+                            </>
+                        ) : (
+                            <>
+                                <a href="/">Front page</a>
+                                <fetcher.Form action="/" method="post" replace>
+                                    <Button variant="outline" size="sm" type="submit">Login</Button>
+                                </fetcher.Form>
+                            </>
+                        )}
+                    </nav>
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `window.ENV = ${JSON.stringify(
+                                ENV
+                            )}`,
+                        }}
+                    />
+                    <div className="mx-1">
+                        <Outlet />
+                    </div>
+                </AuthenticityTokenProvider>
             </ChakraProvider>
         </Document>
     )

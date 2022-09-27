@@ -4,7 +4,7 @@ import {Plug} from "~/routes/plugs/types/types";
 import {PlugFormErrors} from "~/routes/plugs";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Input} from "@chakra-ui/input";
-import {Box, Button, Text} from "@chakra-ui/react";
+import {Button, Text} from "@chakra-ui/react";
 
 export interface PlugFormProps {
     plug?: Plug
@@ -38,38 +38,36 @@ const PlugForm = ({plug}: PlugFormProps) => {
     }, [transition])
 
     return (
-        <Box p={2}>
-            <Form ref={formRef} method="post" action={routes.PLUGS.ROOT}>
-                <input hidden readOnly name="id" value={plug?.id}/>
-                <div>
-                    <label className="font-bold">Name</label>
-                    <Input name="name" defaultValue={plug?.name}/>
-                    {
-                        !!errors?.name &&
-                        <Text color="tomato">{errors.name}</Text>
-                    }
-                </div>
-                <div>
-                    <label className="font-bold">IP address</label>
-                    <Input name="ip" defaultValue={plug?.ip}/>
-                    {
-                        !!errors?.ip &&
-                        <Text color="tomato">{errors.ip}</Text>
-                    }
-                </div>
-                <div>
-                    <Button type="submit" name="intent" value={isNew ? 'create' : 'update'}
-                            disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
-                    {
-                        !isNew &&
-                        <Button variant="outline" type="submit" name="intent" value="delete"
-                                disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
+        <Form className="mb-2" ref={formRef} method="post" action={routes.PLUGS.ROOT}>
+            <input hidden readOnly name="id" value={plug?.id}/>
+            <div>
+                <label className="font-bold">Name</label>
+                <Input name="name" defaultValue={plug?.name}/>
+                {
+                    !!errors?.name &&
+                    <Text color="tomato">{errors.name}</Text>
+                }
+            </div>
+            <div>
+                <label className="font-bold">IP address</label>
+                <Input name="ip" defaultValue={plug?.ip}/>
+                {
+                    !!errors?.ip &&
+                    <Text color="tomato">{errors.ip}</Text>
+                }
+            </div>
+            <div className="mt-1">
+                <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
+                        disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
+                {
+                    !isNew &&
+                    <Button variant="outline" type="submit" name="intent" value="delete"
+                            disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
 
-                    }
-                </div>
+                }
+            </div>
 
-            </Form>
-        </Box>
+        </Form>
     );
 };
 

@@ -99,7 +99,7 @@ const Plugs = () => {
     return (
         <div>
             {renderPlugs(loaderData.plugs)}
-            <Button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
+            <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
             {
                 showNew &&
                 <PlugForm />

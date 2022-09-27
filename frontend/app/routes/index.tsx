@@ -1,6 +1,7 @@
 import {getSessionData} from "~/utils/auth.server";
 import {json, LoaderFunction} from "@remix-run/node";
 import {Link, useLoaderData} from "@remix-run/react";
+import React from "react";
 
 export interface IndexData {
     csrf?: string;
@@ -22,14 +23,16 @@ export default function Index() {
 
     return (
         <div>
-            <h1 className="text-4xl">Smart Home</h1>
+            <h1 className="text-4xl mb-5">
+                Smart Home
+            </h1>
             {
                 data.idToken ?
                     <Link to={"/home"}>
                         Home
                     </Link>
                     :
-                    <p>Log in dude!</p>
+                    <p>Please log in!</p>
             }
         </div>
     );

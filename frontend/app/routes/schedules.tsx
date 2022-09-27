@@ -74,7 +74,7 @@ export const loader: LoaderFunction = async ({request}) => {
         const data = doc.data()
         // TODO: Validate
         const schedule: Schedule = {
-            days: data.days, hours: data.hours, id: doc.id, priceLevel: data.level
+            days: data.days, hours: data.hours, id: doc.id, priceLevel: data.priceLevel
         }
         return schedule
     })
@@ -100,7 +100,7 @@ const Schedules = () => {
     return (
         <div>
             {renderSchedules(loaderData.schedules)}
-            <Button onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
+            <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
             {
                 showNew &&
                 <ScheduleForm />
