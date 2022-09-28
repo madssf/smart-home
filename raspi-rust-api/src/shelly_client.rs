@@ -16,16 +16,28 @@ pub struct PlugStatus {
      */
 }
 
-pub fn get_status(plug: &Plug) -> Result<f64, Box<dyn Error>>  {
-    let url = format!("http://{}:{}@{}/meter/0", plug.username, plug.password, plug.ip);
-    let resp = reqwest::blocking::get(url)?.json::<PlugStatus>().unwrap();
+pub async fn get_status(client: &reqwest::Client, plug: &Plug) -> Result<f64, Box<dyn Error>> {
+    let url = format!(
+        "http://{}:{}@{}/meter/0",
+        plug.username, plug.password, plug.ip
+    );
+    let resp = client.get(url).send().await?.json::<PlugStatus>().await?;
     Ok(resp.power)
-
 }
 
-pub fn execute_action(plug: &Plug, action: &ActionType) -> Result<(), Box<dyn Error>> {
-    let url = format!("http://{}:{}@{}/relay/0/command?turn={}", plug.username, plug.password, plug.ip, action.to_string());
-    reqwest::blocking::get(url)?.text()?;
-    println!("Turned {} {}", action.to_string(), plug.name);
+pub async fn execute_action(
+    client: &reqwest::Client,
+    plug: &Plug,
+    action: &ActionType,
+) -> Result<(), Box<dyn Error>> {
+    let url = format!(
+        "http://{}:{}@{}/relay/0/command?turn={}",
+        plug.username,
+        plug.password,
+        plug.ip,
+        action.to_string()
+    );
+
+    client.get(url).send().await?.text().await?;
     Ok(())
 }

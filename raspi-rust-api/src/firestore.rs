@@ -1,8 +1,7 @@
-use chrono::{DateTime, Utc};
 use firestore::*;
 use serde::{Deserialize, Serialize};
 
-use crate::prices::PriceLevel;
+use crate::PriceLevel;
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
     std::env::var(name).map_err(|e| format!("{}: {}", name, e))
@@ -23,7 +22,6 @@ struct HoursEntity {
 }
 
 pub async fn get() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     // Create an instance
     let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
 
@@ -33,7 +31,10 @@ pub async fn get() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         id: "test-id".to_string(),
         level: PriceLevel::CHEAP.to_string(),
         days: vec!["MON".to_string()],
-        hours: vec![HoursEntity {from: "17:00:00".to_string(), to: "20:00:00".to_string()}],
+        hours: vec![HoursEntity {
+            from: "17:00:00".to_string(),
+            to: "20:00:00".to_string(),
+        }],
     };
 
     // Remove if it already exist
@@ -60,8 +61,7 @@ pub async fn get() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Updated object: {:?}", updated_obj);
 
     // Get object by id
-    let find_it_again: ScheduleEntity =
-        db.get_obj(TEST_COLLECTION_NAME, &test_schedule.id).await?;
+    let find_it_again: ScheduleEntity = db.get_obj(TEST_COLLECTION_NAME, &test_schedule.id).await?;
 
     println!("Should be the same: {:?}", find_it_again);
 
