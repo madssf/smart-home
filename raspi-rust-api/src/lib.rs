@@ -1,6 +1,6 @@
 use strum_macros::{Display, EnumString};
 
-pub mod firestore;
+pub mod db;
 pub mod plugs;
 pub mod prices;
 pub mod scheduling;

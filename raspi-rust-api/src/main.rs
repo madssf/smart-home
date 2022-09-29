@@ -37,7 +37,7 @@ async fn main() {
         } else {
             println!("Failed to get price, sleeping for 10 seconds");
             sleep(Duration::from_secs(10)).await;
-            break;
+            continue;
         };
 
         let action = scheduling::get_action(&price.level, &time);

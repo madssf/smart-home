@@ -1,7 +1,7 @@
 .idea
 
 .envrc
-.envrc
+.env
 schedule.json
 
 /target/
