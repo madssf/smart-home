@@ -5,11 +5,17 @@ use chrono_tz::Tz;
 use tokio::time::sleep;
 
 use rust_home::prices::PriceInfo;
-use rust_home::{plugs, prices, scheduling, shelly_client};
+use rust_home::scheduling::{ActionType, SchedulingError};
+use rust_home::{db, plugs, prices, scheduling, shelly_client};
 
 #[tokio::main]
 async fn main() {
-    let client = reqwest::Client::builder()
+    let firestore_http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .expect("Failed to create client");
+
+    let shelly_http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
         .expect("Failed to create client");
@@ -40,15 +46,24 @@ async fn main() {
             continue;
         };
 
-        let action = scheduling::get_action(&price.level, &time);
-
-        println!("Got action: {}", action.to_string());
+        let action: ActionType =
+            match scheduling::get_action(&firestore_http_client, &price.level, &time).await {
+                Ok(action) => {
+                    println!("Got action: {}", action.to_string());
+                    action
+                }
+                Err(e) => {
+                    println!("Failed to get action, sleeping for 10 seconds");
+                    sleep(Duration::from_secs(10)).await;
+                    continue;
+                }
+            };
 
         let plugs = plugs::get_plugs_from_env();
 
         for plug in plugs {
             println!("Processing plug: {}", &plug.name);
-            if let Ok(power_usage) = shelly_client::get_status(&client, &plug).await {
+            if let Ok(power_usage) = shelly_client::get_status(&shelly_http_client, &plug).await {
                 println!("Current power usage: {} W", power_usage);
                 println!(
                     "Equals hourly price of: {:.3} {}",
@@ -57,7 +72,7 @@ async fn main() {
                 );
             };
 
-            match shelly_client::execute_action(&client, &plug, &action).await {
+            match shelly_client::execute_action(&shelly_http_client, &plug, &action).await {
                 Ok(_) => println!(
                     "Action executed on plug {}: {}",
                     &plug.name,
