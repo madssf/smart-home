@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
 
+use crate::clients::FirestoreClient;
 use crate::scheduling::ScheduleData;
 use crate::{config_env_var, Plug, PriceLevel};
 
@@ -63,10 +64,9 @@ pub enum DbError {
 }
 
 pub async fn get_schedules(
-    client: &Client,
-    auth_manager: &AuthenticationManager,
+    firestore_client: &FirestoreClient,
 ) -> Result<Vec<ScheduleData>, DbError> {
-    match get_schedule_entities(client, auth_manager).await {
+    match get_schedule_entities(firestore_client).await {
         Ok(entities) => Ok(entities
             .iter()
             .map(ScheduleEntity::to_domain)
@@ -76,23 +76,19 @@ pub async fn get_schedules(
 }
 
 async fn get_schedule_entities(
-    client: &Client,
-    auth_manager: &AuthenticationManager,
+    firestore_client: &FirestoreClient,
 ) -> Result<Vec<ScheduleEntity>, DbError> {
     let schedules: Result<Vec<ScheduleEntity>, DbError> =
-        match get_documents(client, auth_manager, SCHEDULES_COLLECTION_NAME).await {
+        match get_documents(firestore_client, SCHEDULES_COLLECTION_NAME).await {
             Err(e) => return Err(e),
             Ok(documents) => documents.iter().map(parse_as_schedule).collect(),
         };
     schedules
 }
 
-pub async fn get_plugs(
-    client: &Client,
-    auth_manager: &AuthenticationManager,
-) -> Result<Vec<Plug>, DbError> {
+pub async fn get_plugs(firestore_client: &FirestoreClient) -> Result<Vec<Plug>, DbError> {
     let plugs: Result<Vec<Plug>, DbError> =
-        match get_documents(client, auth_manager, PLUGS_COLLECTION_NAME).await {
+        match get_documents(firestore_client, PLUGS_COLLECTION_NAME).await {
             Err(e) => return Err(e),
             Ok(documents) => documents.iter().map(parse_as_plug).collect(),
         };
@@ -100,22 +96,22 @@ pub async fn get_plugs(
 }
 
 async fn get_documents(
-    client: &Client,
-    auth_manager: &AuthenticationManager,
+    firestore_client: &FirestoreClient,
     collection_name: &str,
 ) -> Result<Vec<Value>, DbError> {
     let project_id = config_env_var("PROJECT_ID");
     let user_id = config_env_var("USER_ID");
 
     let scopes = &["https://www.googleapis.com/auth/datastore"];
-    let token = auth_manager.get_token(scopes).await?;
+    let token = firestore_client.auth_manager.get_token(scopes).await?;
 
     let url = format!(
         "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/{}",
         project_id, user_id, collection_name
     );
 
-    let res: Value = client
+    let res: Value = firestore_client
+        .client
         .get(url)
         .header("Authorization", format!("Bearer {}", token.as_str()))
         .send()

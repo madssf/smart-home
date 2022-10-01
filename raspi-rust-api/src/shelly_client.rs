@@ -2,6 +2,7 @@ use std::error::Error;
 
 use serde::Deserialize;
 
+use crate::clients::ShellyClient;
 use crate::scheduling::ActionType;
 use crate::Plug;
 
@@ -17,17 +18,23 @@ pub struct PlugStatus {
      */
 }
 
-pub async fn get_status(client: &reqwest::Client, plug: &Plug) -> Result<f64, Box<dyn Error>> {
+pub async fn get_status(shelly_client: &ShellyClient, plug: &Plug) -> Result<f64, Box<dyn Error>> {
     let url = format!(
         "http://{}:{}@{}/meter/0",
         plug.username, plug.password, plug.ip
     );
-    let resp = client.get(url).send().await?.json::<PlugStatus>().await?;
+    let resp = shelly_client
+        .client
+        .get(url)
+        .send()
+        .await?
+        .json::<PlugStatus>()
+        .await?;
     Ok(resp.power)
 }
 
 pub async fn execute_action(
-    client: &reqwest::Client,
+    shelly_client: &ShellyClient,
     plug: &Plug,
     action: &ActionType,
 ) -> Result<(), Box<dyn Error>> {
@@ -39,6 +46,6 @@ pub async fn execute_action(
         action.to_string()
     );
 
-    client.get(url).send().await?.text().await?;
+    shelly_client.client.get(url).send().await?.text().await?;
     Ok(())
 }

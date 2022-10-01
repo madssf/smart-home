@@ -3,6 +3,7 @@ use gcp_auth::AuthenticationManager;
 use reqwest::Client;
 use thiserror::Error;
 
+use crate::clients::FirestoreClient;
 use crate::db::{get_schedules, DbError};
 use crate::PriceLevel;
 
@@ -34,12 +35,11 @@ pub enum SchedulingError {
 }
 
 pub async fn get_action(
-    client: &Client,
-    auth_manager: &AuthenticationManager,
+    firestore_client: &FirestoreClient,
     price_level: &PriceLevel,
     time: &NaiveDateTime,
 ) -> Result<ActionType, SchedulingError> {
-    let schedules: Vec<ScheduleData> = get_schedules(client, auth_manager).await?;
+    let schedules: Vec<ScheduleData> = get_schedules(firestore_client).await?;
 
     for schedule in schedules {
         let result = matching_schedule(&schedule, price_level, time);

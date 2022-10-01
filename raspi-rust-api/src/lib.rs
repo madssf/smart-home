@@ -1,5 +1,6 @@
 use strum_macros::{Display, EnumString};
 
+pub mod clients;
 pub mod db;
 pub mod prices;
 pub mod scheduling;
