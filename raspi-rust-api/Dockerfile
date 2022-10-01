@@ -17,8 +17,6 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian11 as runtime
 WORKDIR app
 
-COPY --from=builder /app/.env .env
-COPY --from=builder /app/schedule.json .
 COPY --from=builder /app/target/release/rust_home ./target/release/rust_home
 
 CMD ["/app/target/release/rust_home"]

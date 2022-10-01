@@ -2,6 +2,7 @@
 
 .envrc
 .env
+copy_env_files.sh
 
 /target/
 /target
