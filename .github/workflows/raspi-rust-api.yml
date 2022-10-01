@@ -31,5 +31,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: "{{defaultContext}}:raspi-rust-api"
+          platforms: linux/arm64/v8
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/smart-home:latest
