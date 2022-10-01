@@ -5,6 +5,7 @@ pub mod db;
 pub mod prices;
 pub mod scheduling;
 pub mod shelly_client;
+pub mod looper;
 
 #[derive(Debug, EnumString, Display, Eq, PartialEq)]
 pub enum PriceLevel {

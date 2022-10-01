@@ -1,6 +1,4 @@
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime, Weekday};
-use gcp_auth::AuthenticationManager;
-use reqwest::Client;
 use thiserror::Error;
 
 use crate::clients::FirestoreClient;
