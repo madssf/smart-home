@@ -2,7 +2,6 @@
 
 .envrc
 .env
-schedule.json
 
 /target/
 /target
