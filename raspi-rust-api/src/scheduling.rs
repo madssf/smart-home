@@ -1,4 +1,5 @@
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime, Weekday};
+use gcp_auth::AuthenticationManager;
 use reqwest::Client;
 use thiserror::Error;
 
@@ -34,10 +35,11 @@ pub enum SchedulingError {
 
 pub async fn get_action(
     client: &Client,
+    auth_manager: &AuthenticationManager,
     price_level: &PriceLevel,
     time: &NaiveDateTime,
 ) -> Result<ActionType, SchedulingError> {
-    let schedules: Vec<ScheduleData> = get_schedules(client).await?;
+    let schedules: Vec<ScheduleData> = get_schedules(client, auth_manager).await?;
 
     for schedule in schedules {
         let result = matching_schedule(&schedule, price_level, time);

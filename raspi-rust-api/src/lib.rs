@@ -19,3 +19,9 @@ pub struct Plug {
     pub username: String,
     pub password: String,
 }
+
+pub fn config_env_var(name: &str) -> String {
+    std::env::var(name)
+        .map_err(|e| format!("{}: {}", name, e))
+        .expect(&*format!("Missing config env var: {}", name))
+}

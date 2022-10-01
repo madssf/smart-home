@@ -8,16 +8,10 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::scheduling::ScheduleData;
-use crate::{Plug, PriceLevel};
+use crate::{config_env_var, Plug, PriceLevel};
 
-const SCHEDULES_COLLECTION_NAME: &'static str = "schedules";
-const PLUGS_COLLECTION_NAME: &'static str = "plugs";
-
-pub fn config_env_var(name: &str) -> String {
-    std::env::var(name)
-        .map_err(|e| format!("{}: {}", name, e))
-        .expect(&*format!("Missing config env var: {}", name))
-}
+const SCHEDULES_COLLECTION_NAME: &str = "schedules";
+const PLUGS_COLLECTION_NAME: &str = "plugs";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ScheduleEntity {
@@ -68,8 +62,11 @@ pub enum DbError {
     RequestError(#[from] reqwest::Error),
 }
 
-pub async fn get_schedules(client: &Client) -> Result<Vec<ScheduleData>, DbError> {
-    match get_schedule_entities(client).await {
+pub async fn get_schedules(
+    client: &Client,
+    auth_manager: &AuthenticationManager,
+) -> Result<Vec<ScheduleData>, DbError> {
+    match get_schedule_entities(client, auth_manager).await {
         Ok(entities) => Ok(entities
             .iter()
             .map(ScheduleEntity::to_domain)
@@ -78,30 +75,37 @@ pub async fn get_schedules(client: &Client) -> Result<Vec<ScheduleData>, DbError
     }
 }
 
-async fn get_schedule_entities(client: &Client) -> Result<Vec<ScheduleEntity>, DbError> {
+async fn get_schedule_entities(
+    client: &Client,
+    auth_manager: &AuthenticationManager,
+) -> Result<Vec<ScheduleEntity>, DbError> {
     let schedules: Result<Vec<ScheduleEntity>, DbError> =
-        match get_documents(client, SCHEDULES_COLLECTION_NAME).await {
+        match get_documents(client, auth_manager, SCHEDULES_COLLECTION_NAME).await {
             Err(e) => return Err(e),
             Ok(documents) => documents.iter().map(parse_as_schedule).collect(),
         };
     schedules
 }
 
-pub async fn get_plugs(client: &Client) -> Result<Vec<Plug>, DbError> {
-    let plugs: Result<Vec<Plug>, DbError> = match get_documents(client, PLUGS_COLLECTION_NAME).await
-    {
-        Err(e) => return Err(e),
-        Ok(documents) => documents.iter().map(parse_as_plug).collect(),
-    };
+pub async fn get_plugs(
+    client: &Client,
+    auth_manager: &AuthenticationManager,
+) -> Result<Vec<Plug>, DbError> {
+    let plugs: Result<Vec<Plug>, DbError> =
+        match get_documents(client, auth_manager, PLUGS_COLLECTION_NAME).await {
+            Err(e) => return Err(e),
+            Ok(documents) => documents.iter().map(parse_as_plug).collect(),
+        };
     plugs
 }
 
-async fn get_documents(client: &Client, collection_name: &str) -> Result<Vec<Value>, DbError> {
+async fn get_documents(
+    client: &Client,
+    auth_manager: &AuthenticationManager,
+    collection_name: &str,
+) -> Result<Vec<Value>, DbError> {
     let project_id = config_env_var("PROJECT_ID");
     let user_id = config_env_var("USER_ID");
-
-    // Create an instance
-    let auth_manager = AuthenticationManager::new().await?;
 
     let scopes = &["https://www.googleapis.com/auth/datastore"];
     let token = auth_manager.get_token(scopes).await?;

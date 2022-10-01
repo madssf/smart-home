@@ -2,14 +2,27 @@ use std::{env, time::Duration};
 
 use chrono::{TimeZone, Utc};
 use chrono_tz::Tz;
+use gcp_auth::{AuthenticationManager, CustomServiceAccount};
 use tokio::time::sleep;
 
 use rust_home::prices::PriceInfo;
 use rust_home::scheduling::ActionType;
-use rust_home::{db, prices, scheduling, shelly_client};
+use rust_home::{config_env_var, db, prices, scheduling, shelly_client};
 
 #[tokio::main]
 async fn main() {
+    let base64_key = config_env_var("FB_SA_KEY");
+    let decoded_vec = base64::decode(base64_key).expect("Failed to decode FB_SA_KEY");
+
+    let key = match String::from_utf8(decoded_vec) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    };
+
+    let custom_service_account =
+        CustomServiceAccount::from_json(&key).expect("Failed to created custom service account");
+    let auth_manager = AuthenticationManager::from(custom_service_account);
+
     let firestore_http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
@@ -46,23 +59,29 @@ async fn main() {
             continue;
         };
 
-        let action: ActionType =
-            match scheduling::get_action(&firestore_http_client, &price.level, &time).await {
-                Ok(action) => {
-                    println!("Got action: {}", action.to_string());
-                    action
-                }
-                Err(e) => {
-                    println!(
-                        "Failed to get action, sleeping for 10 seconds, error: {}",
-                        e
-                    );
-                    sleep(Duration::from_secs(10)).await;
-                    continue;
-                }
-            };
+        let action: ActionType = match scheduling::get_action(
+            &firestore_http_client,
+            &auth_manager,
+            &price.level,
+            &time,
+        )
+        .await
+        {
+            Ok(action) => {
+                println!("Got action: {}", action.to_string());
+                action
+            }
+            Err(e) => {
+                println!(
+                    "Failed to get action, sleeping for 10 seconds, error: {}",
+                    e
+                );
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+        };
 
-        let plugs = match db::get_plugs(&firestore_http_client).await {
+        let plugs = match db::get_plugs(&firestore_http_client, &auth_manager).await {
             Ok(plugs) => plugs,
             Err(e) => {
                 println!("{}", e);
