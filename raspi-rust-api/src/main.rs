@@ -5,8 +5,8 @@ use chrono_tz::Tz;
 use tokio::time::sleep;
 
 use rust_home::prices::PriceInfo;
-use rust_home::scheduling::{ActionType, SchedulingError};
-use rust_home::{db, plugs, prices, scheduling, shelly_client};
+use rust_home::scheduling::ActionType;
+use rust_home::{db, prices, scheduling, shelly_client};
 
 #[tokio::main]
 async fn main() {
@@ -53,13 +53,22 @@ async fn main() {
                     action
                 }
                 Err(e) => {
-                    println!("Failed to get action, sleeping for 10 seconds");
+                    println!(
+                        "Failed to get action, sleeping for 10 seconds, error: {}",
+                        e
+                    );
                     sleep(Duration::from_secs(10)).await;
                     continue;
                 }
             };
 
-        let plugs = plugs::get_plugs_from_env();
+        let plugs = match db::get_plugs(&firestore_http_client).await {
+            Ok(plugs) => plugs,
+            Err(e) => {
+                println!("{}", e);
+                panic!("Failed to get plugs from DB");
+            }
+        };
 
         for plug in plugs {
             println!("Processing plug: {}", &plug.name);

@@ -2,7 +2,8 @@ use std::error::Error;
 
 use serde::Deserialize;
 
-use crate::{plugs::Plug, scheduling::ActionType};
+use crate::scheduling::ActionType;
+use crate::Plug;
 
 #[derive(Debug, Deserialize)]
 pub struct PlugStatus {

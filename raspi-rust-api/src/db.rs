@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::time::Duration;
 
 use chrono::{Duration as CDuration, NaiveTime, Weekday};
 use gcp_auth::{AuthenticationManager, Error as GCPAuthError};
@@ -9,7 +8,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::scheduling::ScheduleData;
-use crate::PriceLevel;
+use crate::{Plug, PriceLevel};
 
 const SCHEDULES_COLLECTION_NAME: &'static str = "schedules";
 const PLUGS_COLLECTION_NAME: &'static str = "plugs";
@@ -80,6 +79,24 @@ pub async fn get_schedules(client: &Client) -> Result<Vec<ScheduleData>, DbError
 }
 
 async fn get_schedule_entities(client: &Client) -> Result<Vec<ScheduleEntity>, DbError> {
+    let schedules: Result<Vec<ScheduleEntity>, DbError> =
+        match get_documents(client, SCHEDULES_COLLECTION_NAME).await {
+            Err(e) => return Err(e),
+            Ok(documents) => documents.iter().map(parse_as_schedule).collect(),
+        };
+    schedules
+}
+
+pub async fn get_plugs(client: &Client) -> Result<Vec<Plug>, DbError> {
+    let plugs: Result<Vec<Plug>, DbError> = match get_documents(client, PLUGS_COLLECTION_NAME).await
+    {
+        Err(e) => return Err(e),
+        Ok(documents) => documents.iter().map(parse_as_plug).collect(),
+    };
+    plugs
+}
+
+async fn get_documents(client: &Client, collection_name: &str) -> Result<Vec<Value>, DbError> {
     let project_id = config_env_var("PROJECT_ID");
     let user_id = config_env_var("USER_ID");
 
@@ -89,7 +106,10 @@ async fn get_schedule_entities(client: &Client) -> Result<Vec<ScheduleEntity>, D
     let scopes = &["https://www.googleapis.com/auth/datastore"];
     let token = auth_manager.get_token(scopes).await?;
 
-    let url = format!("https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/schedules", project_id, user_id);
+    let url = format!(
+        "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/{}",
+        project_id, user_id, collection_name
+    );
 
     let res: Value = client
         .get(url)
@@ -101,12 +121,23 @@ async fn get_schedule_entities(client: &Client) -> Result<Vec<ScheduleEntity>, D
 
     let documents = res.get("documents").expect("Failed to parse json");
 
-    let schedules: Result<Vec<ScheduleEntity>, DbError> = match documents.as_array() {
-        None => return Err(DbError::UnexpectedJsonFormat),
-        Some(documents) => documents.iter().map(parse_as_schedule).collect(),
-    };
+    match documents.as_array() {
+        None => Err(DbError::UnexpectedJsonFormat),
+        Some(docs_array) => Ok(docs_array.clone()),
+    }
+}
 
-    schedules
+fn parse_as_plug(value: &Value) -> Result<Plug, DbError> {
+    let name = get_string_value(value, "/fields/name")?;
+    let ip = get_string_value(value, "/fields/ip")?;
+    let username = get_string_value(value, "/fields/username")?;
+    let password = get_string_value(value, "/fields/password")?;
+    Ok(Plug {
+        name,
+        ip,
+        username,
+        password,
+    })
 }
 
 fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
@@ -116,13 +147,7 @@ fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
             None => return Err(DbError::UnexpectedJsonFormat),
             Some(days_obj) => days_obj
                 .iter()
-                .map(|day| match day.pointer("/stringValue") {
-                    None => Err(DbError::UnexpectedJsonFormat),
-                    Some(day) => match day.as_str() {
-                        None => Err(DbError::UnexpectedJsonFormat),
-                        Some(day) => Ok(day.to_string()),
-                    },
-                })
+                .map(|day| get_string_value(day, ""))
                 .collect(),
         },
     };
@@ -140,32 +165,8 @@ fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
                 Some(hours_obj) => hours_obj
                     .iter()
                     .map(|hour| {
-                        let from = match hour.pointer("/mapValue/fields/from/stringValue") {
-                            None => Err(DbError::UnexpectedJsonFormat),
-                            Some(from) => match from.as_str() {
-                                None => Err(DbError::UnexpectedJsonFormat),
-                                Some(from) => Ok(from.to_string()),
-                            },
-                        };
-
-                        let from = match from {
-                            Ok(from) => from,
-                            Err(_) => return Err(DbError::UnexpectedJsonFormat),
-                        };
-
-                        let to = match hour.pointer("/mapValue/fields/to/stringValue") {
-                            None => Err(DbError::UnexpectedJsonFormat),
-                            Some(from) => match from.as_str() {
-                                None => Err(DbError::UnexpectedJsonFormat),
-                                Some(from) => Ok(from.to_string()),
-                            },
-                        };
-
-                        let to = match to {
-                            Ok(to) => to,
-                            Err(_) => return Err(DbError::UnexpectedJsonFormat),
-                        };
-
+                        let from = get_string_value(hour, "/mapValue/fields/from")?;
+                        let to = get_string_value(hour, "/mapValue/fields/to")?;
                         Ok(HoursEntity { from, to })
                     })
                     .collect(),
@@ -177,15 +178,7 @@ fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
         Err(e) => return Err(e),
     };
 
-    let price_level = value.pointer("/fields/priceLevel/stringValue");
-
-    let price_level = match price_level {
-        Some(price_level) => match price_level.as_str() {
-            None => return Err(DbError::UnexpectedJsonFormat),
-            Some(price_level) => price_level.to_string(),
-        },
-        None => return Err(DbError::UnexpectedJsonFormat),
-    };
+    let price_level = get_string_value(value, "/fields/priceLevel")?;
 
     let id = match value.pointer("/name") {
         None => return Err(DbError::UnexpectedJsonFormat),
@@ -204,6 +197,19 @@ fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
         days,
         hours,
     })
+}
+
+fn get_string_value(value: &Value, field_path: &str) -> Result<String, DbError> {
+    match value.pointer(&*format!("{}/stringValue", field_path)) {
+        None => Err(DbError::UnexpectedJsonFormat),
+        Some(maybe_str) => match maybe_str.as_str() {
+            None => {
+                println!("here");
+                Err(DbError::UnexpectedJsonFormat)
+            }
+            Some(str) => Ok(str.to_string()),
+        },
+    }
 }
 
 #[cfg(test)]

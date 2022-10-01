@@ -1,10 +1,8 @@
-use std::{fs, str::FromStr};
-
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime, Weekday};
 use reqwest::Client;
+use thiserror::Error;
 
 use crate::db::{get_schedules, DbError};
-use crate::scheduling::SchedulingError::FailedToGetSchedules;
 use crate::PriceLevel;
 
 pub enum ActionType {
@@ -28,8 +26,10 @@ pub struct ScheduleData {
     pub windows: Vec<(NaiveTime, Duration)>,
 }
 
+#[derive(Error, Debug)]
 pub enum SchedulingError {
-    FailedToGetSchedules(DbError),
+    #[error("DbError: {0}")]
+    FailedToGetSchedules(#[from] DbError),
 }
 
 pub async fn get_action(
@@ -37,10 +37,7 @@ pub async fn get_action(
     price_level: &PriceLevel,
     time: &NaiveDateTime,
 ) -> Result<ActionType, SchedulingError> {
-    let schedules: Vec<ScheduleData> = match get_schedules(client).await {
-        Ok(entities) => entities,
-        Err(e) => return Err(FailedToGetSchedules(e)),
-    };
+    let schedules: Vec<ScheduleData> = get_schedules(client).await?;
 
     for schedule in schedules {
         let result = matching_schedule(&schedule, price_level, time);
