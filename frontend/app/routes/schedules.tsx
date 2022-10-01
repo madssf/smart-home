@@ -1,5 +1,5 @@
 import {ActionArgs, json, LoaderFunction, redirect} from "@remix-run/node";
-import {Schedule} from "~/routes/schedules/types/types";
+import {PRICE_LEVELS, Schedule} from "~/routes/schedules/types/types";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
 import ScheduleForm from "~/routes/schedules/components/scheduleForm";
@@ -90,7 +90,11 @@ const Schedules = () => {
     const [showNew, setShowNew] = useState(false)
 
     const renderSchedules = (schedules: Schedule[]) => {
-        return schedules.map((schedule) => {
+        return schedules
+            .sort((a, b) => {
+                return b.days.length - a.days.length || PRICE_LEVELS.indexOf(a.priceLevel) - PRICE_LEVELS.indexOf(b.priceLevel)
+            })
+            .map((schedule) => {
             return (
                 <ScheduleForm key={schedule.id} schedule={schedule}/>
             )

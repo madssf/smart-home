@@ -6,7 +6,7 @@ import {ActionArgs, json, LoaderFunction, redirect} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
 import {collections} from "~/utils/firestoreUtils.server";
-import {validateIpAddress, validateName} from "~/routes/plugs/utils/utils";
+import {validateIpAddress, validateNonEmptyString} from "~/routes/plugs/utils/utils";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button} from "@chakra-ui/react";
@@ -28,6 +28,9 @@ export async function action({request}: ActionArgs) {
     const id = body.get("id")?.toString();
     const name = body.get("name")?.toString();
     const ip = body.get("ip")?.toString();
+    const username = body.get("username")?.toString();
+    const password = body.get("password")?.toString();
+
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
@@ -36,22 +39,27 @@ export async function action({request}: ActionArgs) {
     }
 
     const validated = {
-        name: validateName(name),
+        name: validateNonEmptyString(name),
         ip: validateIpAddress(ip),
+        username: validateNonEmptyString(username),
+        password: validateNonEmptyString(password),
     }
 
-    if (!validated.name.valid || !validated.ip.valid) {
+    if (!validated.name.valid || !validated.ip.valid || !validated.username.valid || !validated.password.valid) {
         return json<PlugFormErrors>(
             {
                 id,
                 name: !validated.name.valid ? validated.name.error : undefined,
                 ip: !validated.ip.valid ? validated.ip.error : undefined,
+                username: !validated.username.valid ? validated.username.error : undefined,
+                password: !validated.password.valid ? validated.password.error : undefined,
+
             }
         )
     }
 
     const document: Omit<Plug, 'id'> = {
-        name: validated.name.data, ip: validated.ip.data,
+        name: validated.name.data, ip: validated.ip.data, username: validated.username.data, password: validated.password.data,
     }
 
     if (!id) {
@@ -72,7 +80,7 @@ export const loader: LoaderFunction = async ({request}) => {
         const data = doc.data()
         // TODO: Validate
         const plug: Plug = {
-            name: data.name, ip: data.ip, id: doc.id,
+            id: doc.id, name: data.name, ip: data.ip, username: data.username, password: data.password
         }
         return plug
     })

@@ -56,6 +56,22 @@ const PlugForm = ({plug}: PlugFormProps) => {
                     <Text color="tomato">{errors.ip}</Text>
                 }
             </div>
+            <div>
+                <label className="font-bold">Username</label>
+                <Input name="name" defaultValue={plug?.username}/>
+                {
+                    !!errors?.username &&
+                    <Text color="tomato">{errors.username}</Text>
+                }
+            </div>
+            <div>
+                <label className="font-bold">Password</label>
+                <Input name="name" defaultValue={plug?.password}/>
+                {
+                    !!errors?.password &&
+                    <Text color="tomato">{errors.password}</Text>
+                }
+            </div>
             <div className="mt-1">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
                         disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>

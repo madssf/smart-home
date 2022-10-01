@@ -9,6 +9,6 @@ export const validateIpAddress = (str?: string): Validate<string> => {
         {valid: true, data: str} : {valid: false, error: "Not a valid IPv4 address"}
 }
 
-export const validateName = (str?: string): Validate<string> => {
-    return (!!str && str.length > 0) ? {valid: true, data: str} : {valid: false, error: 'Name is required'}
+export const validateNonEmptyString = (str?: string): Validate<string> => {
+    return (!!str && str.length > 0) ? {valid: true, data: str} : {valid: false, error: 'Required'}
 }
