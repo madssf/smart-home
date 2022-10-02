@@ -6,31 +6,11 @@
 
 `.env/.envrc`
 ```
-TIBBER_API_TOKEN=<replaceme>
+TIBBER_API_TOKEN=<replace_me>
+TIME_ZONE=<replace_me>
+PROJECT_ID=<gcp_project_id>
+USER_ID=<firebase_user_id>
+FB_SA_KEY=<base64 encoded firebase service account key json>
+RUST_LOG=<rust log level>
 
-SHELLY_USERNAME=<replaceme>
-SHELLY_PASSWORD=<replaceme>
-
-SHELLY_PLUGS=<name>@<local_ip>,<name>@<local_ip>
-
-TIME_ZONE=<replaceme>
-```
-
-### Schedule config
-
-`schedule.json`
-
-`level: "CHEAP" | "NORMAL" | "EXPENSIVE"`
-
-
-```
-[
-  {
-    "level": "CHEAP",
-    "days":["MON", "TUE", "WED", "THU", "FRI"],
-    "hours":[
-      {"from": "16:00:00", "to": "21:00:00"}
-    ]
-  },
-  ...
 ```
