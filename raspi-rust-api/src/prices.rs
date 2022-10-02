@@ -1,8 +1,11 @@
 use std::env;
+use std::fmt::{Display, Formatter};
 
+use thiserror::Error;
 use tibber::{PriceInfo as TPriceInfo, PriceLevel as TPriceLevel, TibberSession};
+use tokio::task::JoinError;
 
-use crate::prices::PriceError::{FailedToGetPrice, FailedToGetUser, JoinError, UserHasNoHome};
+use crate::prices::PriceError::ThreadError;
 use crate::PriceLevel;
 
 impl PriceLevel {
@@ -25,6 +28,17 @@ pub struct PriceInfo {
     pub level: PriceLevel,
 }
 
+impl Display for PriceInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "Price: {} {} - Level: {}",
+            &self.amount,
+            &self.currency,
+            &self.level.to_string()
+        ))
+    }
+}
+
 impl PriceInfo {
     fn from_tibber_price_info(tibber_price_info: &TPriceInfo) -> Self {
         PriceInfo {
@@ -35,11 +49,16 @@ impl PriceInfo {
     }
 }
 
+#[derive(Error, Debug)]
 pub enum PriceError {
+    #[error("Failed to get user")]
     FailedToGetUser,
+    #[error("User has no home")]
     UserHasNoHome,
+    #[error("Failed to get price")]
     FailedToGetPrice,
-    JoinError,
+    #[error("Thread error: {0}")]
+    ThreadError(JoinError),
 }
 
 pub async fn get_current_price() -> Result<PriceInfo, PriceError> {
@@ -50,21 +69,22 @@ pub async fn get_current_price() -> Result<PriceInfo, PriceError> {
 
         let user = match conn.get_user() {
             Ok(user) => user,
-            Err(_) => return Err(FailedToGetUser),
+            Err(_) => return Err(PriceError::FailedToGetUser),
         };
 
         if user.homes.is_empty() {
-            return Err(UserHasNoHome);
+            return Err(PriceError::UserHasNoHome);
         }
+
         match conn.get_current_price(&user.homes[0]) {
             Ok(price_info) => Ok(PriceInfo::from_tibber_price_info(&price_info)),
-            Err(_) => Err(FailedToGetPrice),
+            Err(_) => Err(PriceError::FailedToGetPrice),
         }
     })
     .await;
 
     match res {
         Ok(result) => result,
-        Err(_) => Err(JoinError),
+        Err(e) => Err(ThreadError(e)),
     }
 }

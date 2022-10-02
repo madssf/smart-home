@@ -1,11 +1,12 @@
 use strum_macros::{Display, EnumString};
 
+pub mod api;
 pub mod clients;
 pub mod db;
+pub mod work_handler;
 pub mod prices;
 pub mod scheduling;
 pub mod shelly_client;
-pub mod looper;
 
 #[derive(Debug, EnumString, Display, Eq, PartialEq)]
 pub enum PriceLevel {

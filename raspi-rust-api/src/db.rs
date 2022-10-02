@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use chrono::{Duration as CDuration, NaiveTime, Weekday};
-use gcp_auth::{AuthenticationManager, Error as GCPAuthError};
-use reqwest::Client;
+use gcp_auth::Error as GCPAuthError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
@@ -119,7 +118,10 @@ async fn get_documents(
         .json()
         .await?;
 
-    let documents = res.get("documents").expect("Failed to parse json");
+    let documents = match res.get("documents") {
+        None => return Err(DbError::UnexpectedJsonFormat),
+        Some(docs) => docs,
+    };
 
     match documents.as_array() {
         None => Err(DbError::UnexpectedJsonFormat),
@@ -203,10 +205,7 @@ fn get_string_value(value: &Value, field_path: &str) -> Result<String, DbError> 
     match value.pointer(&*format!("{}/stringValue", field_path)) {
         None => Err(DbError::UnexpectedJsonFormat),
         Some(maybe_str) => match maybe_str.as_str() {
-            None => {
-                println!("here");
-                Err(DbError::UnexpectedJsonFormat)
-            }
+            None => Err(DbError::UnexpectedJsonFormat),
             Some(str) => Ok(str.to_string()),
         },
     }
