@@ -141,7 +141,6 @@ fn parse_as_plug(value: &Value) -> Result<Plug, DbError> {
     let temp_action = match value.pointer("/fields/temp_action/mapValue") {
         None => None,
         Some(value) => {
-            println!("{}", value);
             let action_type =
                 ActionType::from_str(&get_string_value(value, "/fields/action_type")?)?;
             let expires_at =
