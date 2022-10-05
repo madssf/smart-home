@@ -66,20 +66,20 @@ impl WorkHandler {
             .expect("Missing TIME_ZONE env var")
             .parse()
             .expect("Failed to parse timezone");
-        let time = tz.from_utc_datetime(&utc).naive_local();
+        let now = tz.from_utc_datetime(&utc).naive_local();
 
-        info!("Current local time: {}", &time);
+        info!("Current local time: {}", &now);
 
         let price: PriceInfo = prices::get_current_price().await?;
 
         info!("Current price: {}", &price);
 
+        let plugs = db::get_plugs(&self.firestore_client).await?;
+
         let action: ActionType =
-            scheduling::get_action(&self.firestore_client, &price.level, &time).await?;
+            scheduling::get_action(&self.firestore_client, &price.level, &now).await?;
 
         info!("Got action: {}", &action.to_string());
-
-        let plugs = db::get_plugs(&self.firestore_client).await?;
 
         for plug in plugs {
             info!("Processing plug: {}", &plug.name);
@@ -92,7 +92,28 @@ impl WorkHandler {
                 );
             };
 
-            match shelly_client::execute_action(&self.shelly_client, &plug, &action).await {
+            let actual_action = if let Some(temp_action) = &plug.temp_action {
+                if temp_action.expires_at > now {
+                    info!(
+                        "Found temp action {} on plug {}",
+                        temp_action.action_type.to_string(),
+                        &plug.name
+                    );
+                    temp_action.action_type
+                } else {
+                    // TODO: Delete the temp_action
+                    info!(
+                        "Found expired temp action {} on plug {}",
+                        temp_action.action_type.to_string(),
+                        &plug.name
+                    );
+                    action
+                }
+            } else {
+                action
+            };
+
+            match shelly_client::execute_action(&self.shelly_client, &plug, &actual_action).await {
                 Ok(_) => info!(
                     "Action executed on plug {}: {}",
                     &plug.name,

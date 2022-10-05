@@ -1,22 +1,15 @@
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime, Weekday};
+use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
 use crate::clients::FirestoreClient;
 use crate::db::{get_schedules, DbError};
 use crate::PriceLevel;
 
+#[derive(EnumString, Display, Debug, Clone, Copy)]
 pub enum ActionType {
     ON,
     OFF,
-}
-
-impl ActionType {
-    pub fn to_string(&self) -> &str {
-        match &self {
-            ActionType::ON => "on",
-            ActionType::OFF => "off",
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

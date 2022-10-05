@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{Duration as CDuration, NaiveTime, Weekday};
+use chrono::{Duration as CDuration, NaiveDateTime, NaiveTime, Weekday};
 use gcp_auth::Error as GCPAuthError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::clients::FirestoreClient;
 use crate::scheduling::ScheduleData;
-use crate::{config_env_var, Plug, PriceLevel};
+use crate::{config_env_var, ActionType, Plug, PriceLevel, TempAction};
 
 const SCHEDULES_COLLECTION_NAME: &str = "schedules";
 const PLUGS_COLLECTION_NAME: &str = "plugs";
@@ -60,6 +60,10 @@ pub enum DbError {
     AuthClientError(#[from] GCPAuthError),
     #[error("Request error: {0}")]
     RequestError(#[from] reqwest::Error),
+    #[error("Parse error: {0}")]
+    EnumParseError(#[from] strum::ParseError),
+    #[error("Parse error: {0}")]
+    TimeParseError(#[from] chrono::ParseError),
 }
 
 pub async fn get_schedules(
@@ -134,11 +138,26 @@ fn parse_as_plug(value: &Value) -> Result<Plug, DbError> {
     let ip = get_string_value(value, "/fields/ip")?;
     let username = get_string_value(value, "/fields/username")?;
     let password = get_string_value(value, "/fields/password")?;
+    let temp_action = match value.pointer("/fields/temp_action/mapValue") {
+        None => None,
+        Some(value) => {
+            println!("{}", value);
+            let action_type =
+                ActionType::from_str(&get_string_value(value, "/fields/action_type")?)?;
+            let expires_at =
+                NaiveDateTime::from_str(&get_string_value(value, "/fields/expires_at")?)?;
+            Some(TempAction {
+                action_type,
+                expires_at,
+            })
+        }
+    };
     Ok(Plug {
         name,
         ip,
         username,
         password,
+        temp_action,
     })
 }
 

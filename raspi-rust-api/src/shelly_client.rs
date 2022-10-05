@@ -43,7 +43,7 @@ pub async fn execute_action(
         plug.username,
         plug.password,
         plug.ip,
-        action.to_string()
+        action.to_string().to_lowercase(),
     );
 
     shelly_client.client.get(url).send().await?.text().await?;
