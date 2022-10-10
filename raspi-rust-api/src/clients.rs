@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use gcp_auth::{AuthenticationManager, CustomServiceAccount};
+use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
 use reqwest::Client;
 
 use crate::config_env_var;
@@ -12,6 +12,13 @@ pub struct ShellyClient {
 pub struct FirestoreClient {
     pub client: Client,
     pub auth_manager: AuthenticationManager,
+}
+
+impl FirestoreClient {
+    pub async fn get_token(&self) -> Result<Token, gcp_auth::Error> {
+        let scopes = &["https://www.googleapis.com/auth/datastore"];
+        self.auth_manager.get_token(scopes).await
+    }
 }
 
 pub fn get_clients() -> (ShellyClient, FirestoreClient) {

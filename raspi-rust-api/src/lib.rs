@@ -20,15 +20,17 @@ pub enum PriceLevel {
 
 #[derive(Debug)]
 pub struct Plug {
+    pub id: String,
     pub name: String,
     pub ip: String,
     pub username: String,
     pub password: String,
-    pub temp_action: Option<TempAction>,
 }
 
 #[derive(Debug)]
 pub struct TempAction {
+    pub id: String,
+    pub plug_ids: Vec<String>,
     pub action_type: ActionType,
     pub expires_at: NaiveDateTime,
 }

@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use chrono::{TimeZone, Utc};
 use chrono_tz::Tz;
-use log::{error, info};
+use log::{error, info, warn};
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -75,6 +75,8 @@ impl WorkHandler {
         info!("Current price: {}", &price);
 
         let plugs = db::get_plugs(&self.firestore_client).await?;
+        let temp_actions = db::get_temp_actions(&self.firestore_client).await?;
+        info!("Found temp actions {:?}", temp_actions);
 
         let action: ActionType =
             scheduling::get_action(&self.firestore_client, &price.level, &now).await?;
@@ -92,7 +94,10 @@ impl WorkHandler {
                 );
             };
 
-            let actual_action = if let Some(temp_action) = &plug.temp_action {
+            let actual_action = if let Some(temp_action) = temp_actions
+                .iter()
+                .find(|action| action.plug_ids.contains(&plug.id))
+            {
                 if temp_action.expires_at > now {
                     info!(
                         "Found temp action {} on plug {}",
@@ -101,12 +106,14 @@ impl WorkHandler {
                     );
                     temp_action.action_type
                 } else {
-                    // TODO: Delete the temp_action
-                    info!(
-                        "Found expired temp action {} on plug {}",
-                        temp_action.action_type.to_string(),
-                        &plug.name
-                    );
+                    match db::delete_temp_action(&self.firestore_client, &temp_action.id).await {
+                        Ok(_) => info!("Deleted temp action: {}", &temp_action.id),
+                        Err(e) => warn!(
+                            "Failed to delete temp action: {}, error: {}",
+                            &temp_action.id,
+                            e.to_string()
+                        ),
+                    }
                     action
                 }
             } else {

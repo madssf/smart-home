@@ -12,6 +12,7 @@ use crate::{config_env_var, ActionType, Plug, PriceLevel, TempAction};
 
 const SCHEDULES_COLLECTION_NAME: &str = "schedules";
 const PLUGS_COLLECTION_NAME: &str = "plugs";
+const TEMP_ACTIONS_COLLECTION__NAME: &str = "temp_actions";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ScheduleEntity {
@@ -90,33 +91,49 @@ async fn get_schedule_entities(
 }
 
 pub async fn get_plugs(firestore_client: &FirestoreClient) -> Result<Vec<Plug>, DbError> {
-    let plugs: Result<Vec<Plug>, DbError> =
-        match get_documents(firestore_client, PLUGS_COLLECTION_NAME).await {
-            Err(e) => return Err(e),
-            Ok(documents) => documents.iter().map(parse_as_plug).collect(),
-        };
-    plugs
+    match get_documents(firestore_client, PLUGS_COLLECTION_NAME).await {
+        Err(e) => Err(e),
+        Ok(documents) => documents.iter().map(parse_as_plug).collect(),
+    }
+}
+
+pub async fn get_temp_actions(
+    firestore_client: &FirestoreClient,
+) -> Result<Vec<TempAction>, DbError> {
+    match get_documents(firestore_client, TEMP_ACTIONS_COLLECTION__NAME).await {
+        Ok(documents) => documents.iter().map(parse_as_temp_action).collect(),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn delete_temp_action(
+    firestore_client: &FirestoreClient,
+    plug_id: &str,
+) -> Result<(), DbError> {
+    delete_document(firestore_client, TEMP_ACTIONS_COLLECTION__NAME, plug_id).await
+}
+
+fn get_base_url(collection_name: &str) -> String {
+    let project_id = config_env_var("PROJECT_ID");
+    let user_id = config_env_var("USER_ID");
+
+    format!(
+        "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/{}",
+        project_id, user_id, collection_name
+    )
 }
 
 async fn get_documents(
     firestore_client: &FirestoreClient,
     collection_name: &str,
 ) -> Result<Vec<Value>, DbError> {
-    let project_id = config_env_var("PROJECT_ID");
-    let user_id = config_env_var("USER_ID");
-
-    let scopes = &["https://www.googleapis.com/auth/datastore"];
-    let token = firestore_client.auth_manager.get_token(scopes).await?;
-
-    let url = format!(
-        "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/{}",
-        project_id, user_id, collection_name
-    );
-
     let res: Value = firestore_client
         .client
-        .get(url)
-        .header("Authorization", format!("Bearer {}", token.as_str()))
+        .get(get_base_url(collection_name))
+        .header(
+            "Authorization",
+            format!("Bearer {}", firestore_client.get_token().await?.as_str()),
+        )
         .send()
         .await?
         .json()
@@ -133,52 +150,57 @@ async fn get_documents(
     }
 }
 
-fn parse_as_plug(value: &Value) -> Result<Plug, DbError> {
-    let name = get_string_value(value, "/fields/name")?;
-    let ip = get_string_value(value, "/fields/ip")?;
-    let username = get_string_value(value, "/fields/username")?;
-    let password = get_string_value(value, "/fields/password")?;
-    let temp_action = match value.pointer("/fields/temp_action/mapValue") {
-        None => None,
-        Some(value) => {
-            let action_type =
-                ActionType::from_str(&get_string_value(value, "/fields/action_type")?)?;
-            let expires_at =
-                NaiveDateTime::from_str(&get_string_value(value, "/fields/expires_at")?)?;
-            Some(TempAction {
-                action_type,
-                expires_at,
-            })
-        }
-    };
+async fn delete_document(
+    firestore_client: &FirestoreClient,
+    collection_name: &str,
+    document_id: &str,
+) -> Result<(), DbError> {
+    let url = format!("{}/{}", get_base_url(collection_name), document_id);
+    firestore_client
+        .client
+        .delete(url)
+        .header(
+            "Authorization",
+            format!("Bearer {}", firestore_client.get_token().await?.as_str()),
+        )
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(())
+}
+
+fn parse_as_temp_action(doc_json: &Value) -> Result<TempAction, DbError> {
+    let id = get_document_id(doc_json)?;
+    let plug_ids = get_string_vec(doc_json, "fields/plug_ids")?;
+    let action_type = ActionType::from_str(&get_string_value(doc_json, "/fields/action_type")?)?;
+    let expires_at = NaiveDateTime::from_str(&get_string_value(doc_json, "/fields/expires_at")?)?;
+    Ok(TempAction {
+        id,
+        plug_ids,
+        action_type,
+        expires_at,
+    })
+}
+
+fn parse_as_plug(doc_json: &Value) -> Result<Plug, DbError> {
+    let id = get_document_id(doc_json)?;
+    let name = get_string_value(doc_json, "/fields/name")?;
+    let ip = get_string_value(doc_json, "/fields/ip")?;
+    let username = get_string_value(doc_json, "/fields/username")?;
+    let password = get_string_value(doc_json, "/fields/password")?;
     Ok(Plug {
+        id,
         name,
         ip,
         username,
         password,
-        temp_action,
     })
 }
 
-fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
-    let days: Result<Vec<String>, DbError> = match value.pointer("/fields/days/arrayValue/values") {
-        None => return Err(DbError::UnexpectedJsonFormat),
-        Some(days) => match days.as_array() {
-            None => return Err(DbError::UnexpectedJsonFormat),
-            Some(days_obj) => days_obj
-                .iter()
-                .map(|day| get_string_value(day, ""))
-                .collect(),
-        },
-    };
-
-    let days = match days {
-        Ok(days) => days,
-        Err(e) => return Err(e),
-    };
-
+fn parse_as_schedule(doc_json: &Value) -> Result<ScheduleEntity, DbError> {
+    let days = get_string_vec(doc_json, "fields/days")?;
     let hours: Result<Vec<HoursEntity>, DbError> =
-        match value.pointer("/fields/hours/arrayValue/values") {
+        match doc_json.pointer("/fields/hours/arrayValue/values") {
             None => return Err(DbError::UnexpectedJsonFormat),
             Some(hours) => match hours.as_array() {
                 None => return Err(DbError::UnexpectedJsonFormat),
@@ -198,18 +220,9 @@ fn parse_as_schedule(value: &Value) -> Result<ScheduleEntity, DbError> {
         Err(e) => return Err(e),
     };
 
-    let price_level = get_string_value(value, "/fields/priceLevel")?;
+    let price_level = get_string_value(doc_json, "/fields/priceLevel")?;
 
-    let id = match value.pointer("/name") {
-        None => return Err(DbError::UnexpectedJsonFormat),
-        Some(id) => match id.as_str() {
-            None => return Err(DbError::UnexpectedJsonFormat),
-            Some(id) => match id.split('/').last() {
-                None => return Err(DbError::UnexpectedJsonFormat),
-                Some(id) => id.to_string(),
-            },
-        },
-    };
+    let id = get_document_id(doc_json)?;
 
     Ok(ScheduleEntity {
         id,
@@ -225,6 +238,32 @@ fn get_string_value(value: &Value, field_path: &str) -> Result<String, DbError> 
         Some(maybe_str) => match maybe_str.as_str() {
             None => Err(DbError::UnexpectedJsonFormat),
             Some(str) => Ok(str.to_string()),
+        },
+    }
+}
+
+fn get_string_vec(json: &Value, field_path: &str) -> Result<Vec<String>, DbError> {
+    match json.pointer(&format!("/{}/arrayValue/values", field_path)) {
+        None => Err(DbError::UnexpectedJsonFormat),
+        Some(value) => match value.as_array() {
+            None => Err(DbError::UnexpectedJsonFormat),
+            Some(json_vec) => json_vec
+                .iter()
+                .map(|value| get_string_value(value, ""))
+                .collect(),
+        },
+    }
+}
+
+fn get_document_id(value: &Value) -> Result<String, DbError> {
+    match value.pointer("/name") {
+        None => Err(DbError::UnexpectedJsonFormat),
+        Some(id) => match id.as_str() {
+            None => Err(DbError::UnexpectedJsonFormat),
+            Some(id) => match id.split('/').last() {
+                None => Err(DbError::UnexpectedJsonFormat),
+                Some(id) => Ok(id.to_string()),
+            },
         },
     }
 }
@@ -245,8 +284,8 @@ mod tests {
             price_level: String::from("CHEAP"),
             days: vec![String::from("MON"), String::from("TUE")],
             hours: vec![HoursEntity {
-                from: String::from("13:00:00"),
-                to: String::from("14:00:00"),
+                from: String::from("13:00"),
+                to: String::from("14:00"),
             }],
         };
         let expected = ScheduleData {
