@@ -140,7 +140,7 @@ async fn get_documents(
         .await?;
 
     let documents = match res.get("documents") {
-        None => return Err(DbError::UnexpectedJsonFormat),
+        None => return Ok(vec![]),
         Some(docs) => docs,
     };
 
