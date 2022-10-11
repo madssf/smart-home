@@ -57,10 +57,6 @@ async fn report_temp(
     data: web::Data<AppState>,
 ) -> impl Responder {
     let room = room.into_inner();
-    warn!(
-        "Received hum: {}, temp: {} in {}",
-        body.hum, body.temp, room
-    );
     match data.sender.send(WorkMessage::TEMP(room, body.temp)).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
