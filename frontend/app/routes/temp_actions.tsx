@@ -8,7 +8,7 @@ import {collections} from "~/utils/firestoreUtils.server";
 import {useLoaderData} from "@remix-run/react";
 import {Button} from "@chakra-ui/react";
 import {TempAction} from "~/routes/temp_actions/types";
-import {validateActionType, validateNonEmptyList, validateNonEmptyString} from "~/utils/validation";
+import {validateActionType, validateDateTime, validateNonEmptyList} from "~/utils/validation";
 import {Plug} from "~/routes/plugs/types/types";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
 
@@ -30,7 +30,8 @@ export async function action({request}: ActionArgs) {
     const id = body.get("id")?.toString();
     const plugIds = body.getAll("plugIds").map((plug_id) => plug_id.toString());
     const actionType = body.get("actionType")?.toString();
-    const expiresAt = body.get("expiresAt")?.toString();
+    const expiresAtDate = body.get("expiresAt-date")?.toString();
+    const expiresAtTime = body.get("expiresAt-time")?.toString();
 
     const intent = body.get("intent")?.toString();
 
@@ -42,10 +43,9 @@ export async function action({request}: ActionArgs) {
     const validated = {
         plugIds: validateNonEmptyList(plugIds),
         actionType: validateActionType(actionType),
-        expiresAt: validateNonEmptyString(expiresAt),
+        expiresAt: validateDateTime(expiresAtDate, expiresAtTime),
     }
 
-    console.log(validated)
 
     if (!validated.plugIds.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
         return json<TempActionErrors>(

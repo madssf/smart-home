@@ -2,11 +2,11 @@ import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import {Plug} from "~/routes/plugs/types/types";
 import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Input} from "@chakra-ui/input";
 import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import {ActionType, TempAction} from "~/routes/temp_actions/types";
 import {TempActionErrors} from "~/routes/temp_actions";
 import {capitalize} from "~/utils/formattingUtils";
+import DatePicker from "~/components/datePicker";
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
@@ -59,7 +59,7 @@ const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
             </div>
             <div>
                 <label className="font-bold">Expires at</label>
-                <Input name="expiresAt" defaultValue={tempAction?.expires_at}/>
+                <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at} />
                 {
                     !!errors?.expires_at &&
                     <Text color="tomato">{errors.expires_at}</Text>
