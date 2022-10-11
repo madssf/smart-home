@@ -41,8 +41,9 @@ pub fn config_env_var(name: &str) -> String {
         .expect(&*format!("Missing config env var: {}", name))
 }
 
+#[derive(Display, Clone)]
 pub enum WorkMessage {
     REFRESH,
     POLL,
-    TEMP(String, f32),
+    TEMP(String, f64),
 }

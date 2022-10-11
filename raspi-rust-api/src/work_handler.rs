@@ -13,7 +13,7 @@ use crate::clients::{FirestoreClient, ShellyClient};
 use crate::db::DbError;
 use crate::prices::{PriceError, PriceInfo};
 use crate::scheduling::{ActionType, SchedulingError};
-use crate::{db, prices, scheduling, shelly_client};
+use crate::{db, prices, scheduling, shelly_client, WorkMessage};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -28,14 +28,14 @@ pub enum WorkHandlerError {
 pub struct WorkHandler {
     firestore_client: FirestoreClient,
     shelly_client: ShellyClient,
-    receiver: Receiver<String>,
+    receiver: Receiver<WorkMessage>,
 }
 
 impl WorkHandler {
     pub fn new(
         firestore_client: FirestoreClient,
         shelly_client: ShellyClient,
-        receiver: Receiver<String>,
+        receiver: Receiver<WorkMessage>,
     ) -> Self {
         WorkHandler {
             firestore_client,
@@ -48,19 +48,44 @@ impl WorkHandler {
         info!("Starting work handler");
         loop {
             while let Ok(message) = self.receiver.try_recv() {
-                info!("Got message {}", message);
-                match self.handle().await {
-                    Ok(_) => {
-                        info!("Work handled.")
+                info!("Got message {}", message.to_string());
+                match message {
+                    WorkMessage::REFRESH | WorkMessage::POLL => {
+                        match self.main_handler().await {
+                            Ok(_) => {
+                                info!("Work handled.")
+                            }
+                            Err(e) => error!("Work failed, error: {}", e.to_string()),
+                        };
                     }
-                    Err(e) => error!("Work failed, error: {}", e),
-                };
+                    WorkMessage::TEMP(room, temp) => {
+                        match self.temp_handler(&room, &temp).await {
+                            Ok(_) => {
+                                info!("Temperature work handled.")
+                            }
+                            Err(e) => error!("Temperature work failed, error: {}", e.to_string()),
+                        };
+                    }
+                }
             }
             sleep(Duration::from_secs(1))
         }
     }
 
-    pub async fn handle(&self) -> Result<(), WorkHandlerError> {
+    pub async fn temp_handler(&self, room_name: &str, temp: &f64) -> Result<(), WorkHandlerError> {
+        let utc = Utc::now().naive_utc();
+        let tz: Tz = env::var("TIME_ZONE")
+            .expect("Missing TIME_ZONE env var")
+            .parse()
+            .expect("Failed to parse timezone");
+        let now = tz.from_utc_datetime(&utc).naive_local();
+        match db::insert_temperature_log(&self.firestore_client, now, room_name, temp).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(WorkHandlerError::DbError(e)),
+        }
+    }
+
+    pub async fn main_handler(&self) -> Result<(), WorkHandlerError> {
         let utc = Utc::now().naive_utc();
         let tz: Tz = env::var("TIME_ZONE")
             .expect("Missing TIME_ZONE env var")
@@ -139,11 +164,11 @@ impl WorkHandler {
 }
 
 pub async fn poll(
-    sender: Sender<String>,
+    sender: Sender<WorkMessage>,
     sleep_duration_in_minutes: u64,
 ) -> Result<(), SendError<String>> {
     loop {
-        match sender.send("Poll".to_string()).await {
+        match sender.send(WorkMessage::POLL).await {
             Ok(_) => {
                 info!(
                     "Sent message, sleeping for {} minutes",

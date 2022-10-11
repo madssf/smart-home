@@ -5,11 +5,13 @@ use log::{info, warn};
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 
+use crate::WorkMessage;
+
 pub struct AppState {
-    sender: Sender<String>,
+    sender: Sender<WorkMessage>,
 }
 
-pub async fn start(sender: Sender<String>) -> Result<()> {
+pub async fn start(sender: Sender<WorkMessage>) -> Result<()> {
     info!("Starting API");
     HttpServer::new(move || {
         App::new()
@@ -34,7 +36,7 @@ async fn health(_req: HttpRequest) -> impl Responder {
 
 #[get("/trigger_refresh")]
 async fn refresh(data: web::Data<AppState>) -> impl Responder {
-    match &data.sender.send("Refresh".to_string()).await {
+    match &data.sender.send(WorkMessage::REFRESH).await {
         Ok(_) => HttpResponse::Ok().body("Ok"),
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to refresh, error: {}", e))
@@ -54,11 +56,13 @@ async fn report_temp(
     body: web::Query<ReportRequest>,
     data: web::Data<AppState>,
 ) -> impl Responder {
+    let room = room.into_inner();
     warn!(
         "Received hum: {}, temp: {} in {}",
-        body.hum,
-        body.temp,
-        room.into_inner()
+        body.hum, body.temp, room
     );
-    HttpResponse::Ok()
+    match data.sender.send(WorkMessage::TEMP(room, body.temp)).await {
+        Ok(_) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
+    }
 }

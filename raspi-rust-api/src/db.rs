@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::{Duration as CDuration, NaiveDateTime, NaiveTime, Weekday};
 use gcp_auth::Error as GCPAuthError;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 use thiserror::Error;
 
 use crate::clients::FirestoreClient;
@@ -13,6 +13,7 @@ use crate::{config_env_var, ActionType, Plug, PriceLevel, TempAction};
 const SCHEDULES_COLLECTION_NAME: &str = "schedules";
 const PLUGS_COLLECTION_NAME: &str = "plugs";
 const TEMP_ACTIONS_COLLECTION__NAME: &str = "temp_actions";
+const TEMPERATURE_LOG_COLLECTION_NAME: &str = "temperature_log";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ScheduleEntity {
@@ -65,6 +66,8 @@ pub enum DbError {
     EnumParseError(#[from] strum::ParseError),
     #[error("Parse error: {0}")]
     TimeParseError(#[from] chrono::ParseError),
+    #[error("Json parse error: {0}")]
+    JsonParseError(#[from] serde_json::Error),
 }
 
 pub async fn get_schedules(
@@ -111,6 +114,29 @@ pub async fn delete_temp_action(
     plug_id: &str,
 ) -> Result<(), DbError> {
     delete_document(firestore_client, TEMP_ACTIONS_COLLECTION__NAME, plug_id).await
+}
+
+pub async fn insert_temperature_log(
+    firestore_client: &FirestoreClient,
+    time: NaiveDateTime,
+    room: &str,
+    temperature: &f64,
+) -> Result<(), DbError> {
+    let doc_json = json!(
+            {
+      "fields": {
+                "temp": {
+                    "stringValue": temperature.to_string()
+                },
+                "room": {
+                    "stringValue": room.to_string()
+                },
+                "time": {
+                    "stringValue": time.to_string()
+                },
+      },
+    });
+    create_document(firestore_client, TEMPERATURE_LOG_COLLECTION_NAME, &doc_json).await
 }
 
 fn get_base_url(collection_name: &str) -> String {
@@ -166,6 +192,28 @@ async fn delete_document(
         .send()
         .await?
         .error_for_status()?;
+    Ok(())
+}
+
+async fn create_document(
+    firestore_client: &FirestoreClient,
+    collection_name: &str,
+    document_json: &Value,
+) -> Result<(), DbError> {
+    let url = get_base_url(collection_name);
+
+    let _ = firestore_client
+        .client
+        .post(url)
+        .header(
+            "Authorization",
+            format!("Bearer {}", firestore_client.get_token().await?.as_str()),
+        )
+        .json(document_json)
+        .send()
+        .await?
+        .error_for_status()?;
+
     Ok(())
 }
 
