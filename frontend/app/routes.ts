@@ -5,5 +5,8 @@ export const routes = {
     },
     PLUGS: {
         ROOT: '/plugs',
+    },
+    TEMP_ACTIONS: {
+        ROOT: '/temp_actions'
     }
 }

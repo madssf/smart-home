@@ -29,10 +29,9 @@ export default function Index() {
             </h1>
             <p>Welcome, <b>{data.name}</b></p>
             <div className="flex flex-col ml-4">
-                <Link href={'/plugs'}>Plugs</Link>
-                <Link href={'/schedules'}>Schedules</Link>
+                <Link className="mt-2" href={'/plugs'}>Plugs</Link>
+                <Link className="mt-2" href={'/schedules'}>Schedules</Link>
             </div>
-
 
         </div>
     );

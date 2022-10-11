@@ -62,7 +62,7 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                 <RadioGroup defaultValue={schedule?.priceLevel} name="priceLevel">
                     <Stack direction="row">
                         {PRICE_LEVELS.map((priceLevel) => {
-                            return <Radio id="priceLevel" name="priceLevel" checked={schedule?.priceLevel === priceLevel} value={priceLevel}>{capitalize(priceLevel)}</Radio>
+                            return <Radio key={schedule?.id + priceLevel} id="priceLevel" name="priceLevel" checked={schedule?.priceLevel === priceLevel} value={priceLevel}>{capitalize(priceLevel)}</Radio>
                         })}
                     </Stack>
                 </RadioGroup>
@@ -75,7 +75,7 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                 <label className="font-bold">Weekdays</label>
                 <div className="flex">
                 {WEEKDAYS.map((day) => {
-                    return <Checkbox size="sm" className="mr-1" id={day} name="days" value={day} defaultChecked={schedule?.days.includes(day)}>{capitalize(day)}</Checkbox>
+                    return <Checkbox key={schedule?.id + day} size="sm" className="mr-1" id={day} name="days" value={day} defaultChecked={schedule?.days.includes(day)}>{capitalize(day)}</Checkbox>
                 })}
                 </div>
                 {

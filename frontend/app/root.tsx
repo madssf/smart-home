@@ -135,6 +135,7 @@ export default function App() {
                                 <div>
                                     <Link className="mr-2" href={routes.HOME}>Home</Link>
                                     <Link className="mr-2" href={routes.PLUGS.ROOT}>Plugs</Link>
+                                    <Link className="mr-2" href={routes.TEMP_ACTIONS.ROOT}>Temp actions</Link>
                                     <Link href={routes.SCHEDULES.ROOT}>Schedules</Link>
                                 </div>
                                 <fetcher.Form action="/logout" method="post" replace>

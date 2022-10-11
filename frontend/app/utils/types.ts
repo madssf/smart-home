@@ -1,6 +1,7 @@
 export type Validate<T> = {
     valid: true
     data: T
+    error?: undefined
 } | {
     valid: false
     error: string

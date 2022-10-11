@@ -6,10 +6,10 @@ import {ActionArgs, json, LoaderFunction, redirect} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
 import {db} from "~/utils/firebase.server";
 import {collections} from "~/utils/firestoreUtils.server";
-import {validateIpAddress, validateNonEmptyString} from "~/routes/plugs/utils/utils";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button} from "@chakra-ui/react";
+import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 
 interface ResponseData {
     plugs: Plug[];
@@ -53,7 +53,6 @@ export async function action({request}: ActionArgs) {
                 ip: !validated.ip.valid ? validated.ip.error : undefined,
                 username: !validated.username.valid ? validated.username.error : undefined,
                 password: !validated.password.valid ? validated.password.error : undefined,
-
             }
         )
     }
