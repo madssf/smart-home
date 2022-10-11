@@ -1,7 +1,8 @@
 use std::io::Result;
 
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use log::info;
+use log::{info, warn};
+use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 
 pub struct AppState {
@@ -16,7 +17,8 @@ pub async fn start(sender: Sender<String>) -> Result<()> {
                 sender: sender.clone(),
             }))
             .service(refresh)
-            .service(greet)
+            .service(health)
+            .service(report_temp)
     })
     .shutdown_timeout(1)
     .bind(("0.0.0.0", 8080))
@@ -26,7 +28,7 @@ pub async fn start(sender: Sender<String>) -> Result<()> {
 }
 
 #[get("/_/health")]
-async fn greet(_req: HttpRequest) -> impl Responder {
+async fn health(_req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().body("Healthy!")
 }
 
@@ -38,4 +40,25 @@ async fn refresh(data: web::Data<AppState>) -> impl Responder {
             HttpResponse::InternalServerError().body(format!("Failed to refresh, error: {}", e))
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReportRequest {
+    hum: i32,
+    temp: f64,
+}
+
+#[get("/report_ht/{room}")]
+async fn report_temp(
+    room: web::Path<String>,
+    body: web::Query<ReportRequest>,
+    data: web::Data<AppState>,
+) -> impl Responder {
+    warn!(
+        "Received hum: {}, temp: {} in {}",
+        body.hum,
+        body.temp,
+        room.into_inner()
+    );
+    HttpResponse::Ok()
 }

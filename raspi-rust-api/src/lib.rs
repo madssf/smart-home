@@ -40,3 +40,9 @@ pub fn config_env_var(name: &str) -> String {
         .map_err(|e| format!("{}: {}", name, e))
         .expect(&*format!("Missing config env var: {}", name))
 }
+
+pub enum WorkMessage {
+    REFRESH,
+    POLL,
+    TEMP(String, f32),
+}
