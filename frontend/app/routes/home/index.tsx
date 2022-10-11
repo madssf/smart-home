@@ -30,6 +30,7 @@ export default function Index() {
             <p>Welcome, <b>{data.name}</b></p>
             <div className="flex flex-col ml-4">
                 <Link className="mt-2" href={'/plugs'}>Plugs</Link>
+                <Link className="mt-2" href={'/temp_actions'}>Temp actions</Link>
                 <Link className="mt-2" href={'/schedules'}>Schedules</Link>
             </div>
 

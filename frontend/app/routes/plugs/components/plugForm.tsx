@@ -58,7 +58,7 @@ const PlugForm = ({plug}: PlugFormProps) => {
             </div>
             <div>
                 <label className="font-bold">Username</label>
-                <Input name="name" defaultValue={plug?.username}/>
+                <Input name="username" defaultValue={plug?.username}/>
                 {
                     !!errors?.username &&
                     <Text color="tomato">{errors.username}</Text>
@@ -66,7 +66,7 @@ const PlugForm = ({plug}: PlugFormProps) => {
             </div>
             <div>
                 <label className="font-bold">Password</label>
-                <Input name="name" defaultValue={plug?.password}/>
+                <Input name="password" defaultValue={plug?.password}/>
                 {
                     !!errors?.password &&
                     <Text color="tomato">{errors.password}</Text>
