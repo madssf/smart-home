@@ -36,7 +36,7 @@ export async function action({request}: ActionArgs) {
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
-        await db.doc(`${collections.temp_actions(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        await db.doc(`${collections.tempActions(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
         return redirect(routes.PLUGS.ROOT)
     }
 
@@ -64,9 +64,9 @@ export async function action({request}: ActionArgs) {
     }
 
     if (!id) {
-        await db.collection(collections.temp_actions(userId)).add(document).catch((e) => {throw Error("Something went wrong")})
+        await db.collection(collections.tempActions(userId)).add(document).catch((e) => {throw Error("Something went wrong")})
     } else {
-        await db.doc(`${collections.temp_actions(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")})
+        await db.doc(`${collections.tempActions(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")})
     }
 
     return redirect(routes.TEMP_ACTIONS.ROOT);
@@ -86,7 +86,7 @@ export const loader: LoaderFunction = async ({request}) => {
         return plug
     })
 
-    const tempActionsRef = await db.collection(collections.temp_actions(userId)).get()
+    const tempActionsRef = await db.collection(collections.tempActions(userId)).get()
     const tempActions = tempActionsRef.docs.map((doc) => {
         const data = doc.data()
         // TODO: Validate

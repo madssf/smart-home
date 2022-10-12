@@ -1,7 +1,8 @@
 export const collections = {
     schedules: (userId: string) => generateCollectionPath(userId, 'schedules'),
     plugs: (userId: string) => generateCollectionPath(userId, 'plugs'),
-    temp_actions: (userId: string) => generateCollectionPath(userId, 'temp_actions')
+    tempActions: (userId: string) => generateCollectionPath(userId, 'temp_actions'),
+    tempLog: (userId: string) => generateCollectionPath(userId, 'temperature_log'),
 }
 
 const generateCollectionPath = (userId: string, collection: string) => {
