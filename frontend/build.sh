@@ -1,1 +1,1 @@
-docker build -t smart-home-frontend .
+docker build -t madssf/smart-home-frontend .

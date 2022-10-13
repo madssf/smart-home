@@ -1,9 +1,4 @@
-import {
-    AuthenticityTokenInput,
-    AuthenticityTokenProvider,
-    createAuthenticityToken,
-    useShouldHydrate,
-} from "remix-utils";
+import {useShouldHydrate,} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {getSessionData} from "./utils/auth.server";
 import styles from "./styles/app.css"
@@ -38,19 +33,14 @@ export function links() {
 // https://firebase.google.com/docs/hosting/manage-cache
 export const action: ActionFunction = async ({request}) => {
     let {session} = await getSessionData(request);
-
-    // Add CSRF token to session
-    createAuthenticityToken(session);
-
     return redirect("/login", {
         headers: {"Set-Cookie": await commitSession(session)},
     });
 };
 
 export const loader: LoaderFunction = async ({request}) => {
-    const {csrf, idToken} = await getSessionData(request);
+    const {idToken} = await getSessionData(request);
     return json<LoaderData>({
-        csrf,
         isLoggedIn: !!idToken,
         ENV: {
             FIREBASE_CONFIG: process.env.FIREBASE_CONFIG,
@@ -120,46 +110,43 @@ const Document = withEmotionCache(
 export default function App() {
     const fetcher = useFetcher();
 
-    const {csrf, isLoggedIn, ENV} = useLoaderData<LoaderData>();
+    const {isLoggedIn, ENV} = useLoaderData<LoaderData>();
     return (
         <Document>
             <ColorModeScript />
             <ChakraProvider theme={theme}>
-                <AuthenticityTokenProvider token={csrf || ""}>
-                    <nav
-                        className="flex align-middle justify-between m-2"
-                    >
-                        {/* We use fetcher.Form instead of Form because we dont want navigation events */}
-                        {isLoggedIn ? (
-                            <>
-                                <div>
-                                    <Link className="mr-2" href={routes.HOME}>Home</Link>
-                                 </div>
-                                <fetcher.Form action="/logout" method="post" replace>
-                                    <AuthenticityTokenInput/>
-                                    <Button variant="outline" size="sm" type="submit">Logout</Button>
-                                </fetcher.Form>
-                            </>
-                        ) : (
-                            <>
-                                <a href="/">Front page</a>
-                                <fetcher.Form action="/" method="post" replace>
-                                    <Button variant="outline" size="sm" type="submit">Login</Button>
-                                </fetcher.Form>
-                            </>
-                        )}
-                    </nav>
-                    <script
-                        dangerouslySetInnerHTML={{
-                            __html: `window.ENV = ${JSON.stringify(
-                                ENV
-                            )}`,
-                        }}
-                    />
-                    <div className="mx-1">
-                        <Outlet />
-                    </div>
-                </AuthenticityTokenProvider>
+                <nav
+                    className="flex align-middle justify-between m-2"
+                >
+                    {/* We use fetcher.Form instead of Form because we dont want navigation events */}
+                    {isLoggedIn ? (
+                        <>
+                            <div>
+                                <Link className="mr-2" href={routes.HOME}>Home</Link>
+                             </div>
+                            <fetcher.Form action="/logout" method="post" replace>
+                                <Button variant="outline" size="sm" type="submit">Logout</Button>
+                            </fetcher.Form>
+                        </>
+                    ) : (
+                        <>
+                            <a href="/">Front page</a>
+                            <fetcher.Form action="/" method="post" replace>
+                                <Button variant="outline" size="sm" type="submit">Login</Button>
+                            </fetcher.Form>
+                        </>
+                    )}
+                </nav>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `window.ENV = ${JSON.stringify(
+                            ENV
+                        )}`,
+                    }}
+                />
+                <div className="mx-1">
+                    <Outlet />
+                </div>
             </ChakraProvider>
         </Document>
     )

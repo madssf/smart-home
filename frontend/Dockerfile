@@ -47,4 +47,6 @@ COPY --from=build /app/build /app/build
 COPY --from=build /app/public /app/public
 ADD . .
 
+EXPOSE 3000
+
 CMD ["npm", "run", "start"]

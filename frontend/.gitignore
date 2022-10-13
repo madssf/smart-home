@@ -3,7 +3,9 @@ node_modules
 /.cache
 /build
 /public
-.env
+.env.frontend
+.envrc
+copy-env-files.sh
 .firebase
 
 firebase.json

@@ -1,5 +1,5 @@
 import {useEffect} from "react";
-import {ClientOnly, createAuthenticityToken, unauthorized, useAuthenticityToken, useHydrated,} from "remix-utils";
+import {ClientOnly, unauthorized, useHydrated,} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {admin} from "~/utils/firebase.server";
 import {getSessionData} from "~/utils/auth.server";
@@ -22,7 +22,7 @@ export const handle = {hydrate: true};
 
 export const action: ActionFunction = async ({request}) => {
     // Get the session and verify the CSRF token
-    const {session} = await getSessionData(request, true);
+    const {session} = await getSessionData(request);
     const form = await request.formData();
     const idToken = form.get("idToken") as string;
     // Set session expiration to 5 days.
@@ -36,9 +36,6 @@ export const action: ActionFunction = async ({request}) => {
                 .auth()
                 .createSessionCookie(idToken, {expiresIn});
             session.set("idToken", cookie);
-            // Create a new CSRF token to avoid session fixation attacks
-            // https://owasp.org/www-community/attacks/Session_fixation
-            createAuthenticityToken(session);
             return redirect("/home", {
                 headers: {"Set-Cookie": await commitSession(session)},
             });
@@ -54,13 +51,12 @@ export const action: ActionFunction = async ({request}) => {
 };
 export default function Login() {
     const submit = useSubmit();
-    const csrf = useAuthenticityToken();
     // Check if we are in the browser or server
     const hydrated = useHydrated();
 
     useEffect(() => {
         if (!firebase.apps.length)
-            firebase.initializeApp(JSON.parse(window.ENV.FIREBASE_CONFIG));
+            firebase.initializeApp(JSON.parse(atob(window.ENV.FIREBASE_CONFIG)));
         // Our auth is persisted in our cookie
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
     }, []);
@@ -79,7 +75,6 @@ export default function Login() {
                             authResult.user?.getIdToken().then((idToken) => {
                                 const formData = new FormData();
                                 formData.append("idToken", idToken);
-                                formData.append("csrf", csrf);
                                 submit(formData, {
                                     method: "post",
                                     action: "/login",
