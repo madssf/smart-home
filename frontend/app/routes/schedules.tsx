@@ -10,6 +10,7 @@ import {FormErrors} from "~/utils/types";
 import {useLoaderData} from "@remix-run/react";
 import React, {useState} from "react";
 import {Button} from "@chakra-ui/react";
+import {useTriggerRefresh} from "~/utils/raspiHooks";
 
 interface ResponseData {
     schedules: Schedule[];
@@ -32,6 +33,7 @@ export async function action({request}: ActionArgs) {
 
     if (intent === 'delete') {
         await db.doc(`${collections.schedules(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        await useTriggerRefresh();
         return redirect(routes.SCHEDULES.ROOT)
     }
 
@@ -61,6 +63,8 @@ export async function action({request}: ActionArgs) {
     } else {
         await db.doc(`${collections.schedules(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")})
     }
+
+    await useTriggerRefresh();
 
     return redirect(routes.SCHEDULES.ROOT);
 }

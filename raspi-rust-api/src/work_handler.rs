@@ -149,12 +149,12 @@ impl WorkHandler {
                 Ok(_) => info!(
                     "Action executed on plug {}: {}",
                     &plug.name,
-                    &action.to_string()
+                    &actual_action.to_string()
                 ),
                 Err(e) => error!(
                     "Action failed on plug {}: {} - error: {}",
                     &plug.name,
-                    &action.to_string(),
+                    &actual_action.to_string(),
                     e,
                 ),
             }

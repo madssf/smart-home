@@ -1,5 +1,4 @@
 .idea
-
 .envrc
 .env
 copy-env-files.sh

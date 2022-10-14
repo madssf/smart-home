@@ -1,0 +1,14 @@
+services:
+  frontend:
+    build: frontend
+    env_file:
+      - frontend/.env
+    ports:
+      - "3030:3000"
+  raspi-rust-api:
+    build: raspi-rust-api
+    env_file:
+      - raspi-rust-api/.env
+    ports:
+      - "8080:8080"
+

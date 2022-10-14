@@ -1,4 +1,5 @@
 use log::info;
+use tokio::signal;
 use tokio::sync::mpsc;
 
 use rust_home::clients::get_clients;
@@ -17,12 +18,33 @@ async fn main() -> std::io::Result<()> {
     let api_sender = sender.clone();
 
     tokio::spawn(async move { work_handler.start().await });
-    tokio::spawn(async move { work_handler::poll(poll_sender, 1).await });
-    tokio::spawn(async move {
+    tokio::spawn(async move { work_handler::poll(poll_sender, 10).await });
+    tokio::spawn(async {
         info!("Adding shutdown handler");
-        tokio::signal::ctrl_c().await.unwrap();
-        std::process::exit(0);
+        shutdown_signal().await
     });
 
     api::start(api_sender).await
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    info!("Signal received, starting graceful shutdown");
 }

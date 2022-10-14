@@ -10,6 +10,7 @@ import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button} from "@chakra-ui/react";
 import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
+import {useTriggerRefresh} from "~/utils/raspiHooks";
 
 interface ResponseData {
     plugs: Plug[];
@@ -35,6 +36,7 @@ export async function action({request}: ActionArgs) {
 
     if (intent === 'delete') {
         await db.doc(`${collections.plugs(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        await useTriggerRefresh();
         return redirect(routes.PLUGS.ROOT)
     }
 
@@ -66,7 +68,7 @@ export async function action({request}: ActionArgs) {
     } else {
         await db.doc(`${collections.plugs(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")})
     }
-
+    await useTriggerRefresh();
     return redirect(routes.PLUGS.ROOT);
 }
 

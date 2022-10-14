@@ -1,1 +1,1 @@
-docker run -it --env-file=.env --name=rust_home rust_home
+docker run --env-file .env -p 8080:8080 --restart=always <image name>

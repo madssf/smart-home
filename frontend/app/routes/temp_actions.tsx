@@ -11,6 +11,7 @@ import {TempAction} from "~/routes/temp_actions/types";
 import {validateActionType, validateDateTime, validateNonEmptyList} from "~/utils/validation";
 import {Plug} from "~/routes/plugs/types/types";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
+import {useTriggerRefresh} from "~/utils/raspiHooks";
 
 interface ResponseData {
     tempActions: TempAction[];
@@ -37,6 +38,7 @@ export async function action({request}: ActionArgs) {
 
     if (intent === 'delete') {
         await db.doc(`${collections.tempActions(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
+        await useTriggerRefresh();
         return redirect(routes.TEMP_ACTIONS.ROOT)
     }
 
@@ -68,6 +70,8 @@ export async function action({request}: ActionArgs) {
     } else {
         await db.doc(`${collections.tempActions(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")})
     }
+
+    await useTriggerRefresh();
 
     return redirect(routes.TEMP_ACTIONS.ROOT);
 }
