@@ -40,7 +40,7 @@ const TempLog = () => {
         <div>
             {
                  loaderData.tempLogs
-                     .sort((a, b) => a.time.localeCompare(b.time))
+                     .sort((a, b) => b.time.localeCompare(a.time))
                      .map((log) => {
                          return <p>{log.time.slice(0, 16)} {log.temp}</p>
                  })

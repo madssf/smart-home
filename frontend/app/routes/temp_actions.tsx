@@ -37,7 +37,7 @@ export async function action({request}: ActionArgs) {
 
     if (intent === 'delete') {
         await db.doc(`${collections.tempActions(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")})
-        return redirect(routes.PLUGS.ROOT)
+        return redirect(routes.TEMP_ACTIONS.ROOT)
     }
 
     const validated = {
