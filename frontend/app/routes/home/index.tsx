@@ -1,7 +1,7 @@
 import {requireUserId} from "~/utils/sessions.server";
-import {json, LoaderFunction} from "@remix-run/node";
-import {useLoaderData} from "@remix-run/react";
-import {Link} from "@chakra-ui/react";
+import type {LoaderFunction} from "@remix-run/node";
+import {json} from "@remix-run/node";
+import {Heading, Link} from "@chakra-ui/react";
 import {routes} from "~/routes";
 
 interface ResponseData {
@@ -11,7 +11,7 @@ interface ResponseData {
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const { name } = await requireUserId(request)
+    const { name } = await requireUserId(request);
 
     return json<ResponseData>({
         name: name,
@@ -21,14 +21,12 @@ export const loader: LoaderFunction = async ({request}) => {
 
 export default function Index() {
 
-    const data = useLoaderData<ResponseData>()
 
     return (
         <div>
-            <h1 className="text-4xl mb-5">
+            <Heading className="flex justify-center">
                 Smart Home
-            </h1>
-            <p>Welcome, <b>{data.name}</b></p>
+            </Heading>
             <div className="flex flex-col ml-4">
                 <Link className="mt-2" href={routes.PLUGS.ROOT}>Plugs</Link>
                 <Link className="mt-2" href={routes.SCHEDULES.ROOT}>Schedules</Link>

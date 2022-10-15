@@ -1,11 +1,13 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {PRICE_LEVELS, Schedule, TimeWindow, WEEKDAYS} from "~/routes/schedules/types/types";
+import type {Schedule, TimeWindow} from "~/routes/schedules/types/types";
+import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types/types";
 import TimeForm from "~/routes/schedules/components/timeForm";
 import {routes} from "~/routes";
-import {ScheduleFormErrors} from "~/routes/schedules";
+import type {ScheduleFormErrors} from "~/routes/schedules";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
-import {capitalize} from '~/utils/formattingUtils';
+import {capitalizeAndRemoveUnderscore} from '~/utils/formattingUtils';
+import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 
 export interface ScheduleFormProps {
     schedule?: Schedule
@@ -13,46 +15,45 @@ export interface ScheduleFormProps {
 
 const ScheduleForm = ({schedule}: ScheduleFormProps) => {
     const actionData = useActionData<ScheduleFormErrors>();
-    const transition = useTransition()
-    const isCreating = transition.submission?.formData.get("intent") === "create" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
-    const isUpdating = transition.submission?.formData.get("intent") === "update" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
-    const isDeleting = transition.submission?.formData.get("intent") === "delete" && (transition.submission?.formData.get('id') ?? undefined) === schedule?.id;
-    const isNew = !schedule
+    const transition = useTransition();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, schedule);
+
     const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<ScheduleFormErrors | null>(null);
 
     useEffect(() => {
         if (actionData && !schedule && !actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else if (actionData && schedule?.id === actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else {
-            setErrors(null)
+            setErrors(null);
         }
-    }, [actionData])
+    }, [schedule, actionData]);
 
     useEffect(() => {
         if (!isCreating || !isUpdating) {
             formRef.current?.reset();
         }
-        setHoursList(schedule?.hours ?? [])
-    }, [transition])
+        setHoursList(schedule?.hours ?? []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transition]);
 
     const [hoursList, setHoursList] = useState(schedule?.hours ?? []);
 
     const handleRemoveTimeWindow = (toRemove: TimeWindow) => {
         setHoursList((prev) => prev.filter((existing) => {
-            return existing.from !== toRemove.from && existing.to !== toRemove.to
-        }))
-    }
+            return existing.from !== toRemove.from && existing.to !== toRemove.to;
+        }));
+    };
 
     const addTimeWindow = () => {
         setHoursList((prev) => prev.concat([{
             from: "01:00",
             to: "02:00",
-        }]))
-    }
+        }]));
+    };
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.SCHEDULES.ROOT}>
@@ -62,7 +63,14 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                 <RadioGroup defaultValue={schedule?.priceLevel} name="priceLevel">
                     <Stack direction="row">
                         {PRICE_LEVELS.map((priceLevel) => {
-                            return <Radio key={schedule?.id + priceLevel} id="priceLevel" name="priceLevel" checked={schedule?.priceLevel === priceLevel} value={priceLevel}>{capitalize(priceLevel)}</Radio>
+                            return <Radio
+                                key={schedule?.id + priceLevel}
+                                id="priceLevel"
+                                name="priceLevel"
+                                checked={schedule?.priceLevel === priceLevel}
+                                value={priceLevel}>
+                                {capitalizeAndRemoveUnderscore(priceLevel)}
+                            </Radio>;
                         })}
                     </Stack>
                 </RadioGroup>
@@ -75,7 +83,16 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                 <label className="font-bold">Weekdays</label>
                 <div className="flex">
                 {WEEKDAYS.map((day) => {
-                    return <Checkbox key={schedule?.id + day} size="sm" className="mr-1" id={day} name="days" value={day} defaultChecked={schedule?.days.includes(day)}>{capitalize(day)}</Checkbox>
+                    return <Checkbox
+                        key={schedule?.id + day}
+                        size="sm"
+                        className="mr-1"
+                        id={day}
+                        name="days"
+                        value={day}
+                        defaultChecked={schedule?.days.includes(day)}>
+                        {capitalizeAndRemoveUnderscore(day)}
+                    </Checkbox>;
                 })}
                 </div>
                 {
@@ -90,7 +107,7 @@ const ScheduleForm = ({schedule}: ScheduleFormProps) => {
                 <div className="ml-2 mb-1">
                     {
                         (hoursList).map((window, i) => {
-                            return <TimeForm key={i} window={window} handleRemove={() => handleRemoveTimeWindow(window)}/>
+                            return <TimeForm key={i} window={window} handleRemove={() => handleRemoveTimeWindow(window)}/>;
                         })
                     }
                 </div>

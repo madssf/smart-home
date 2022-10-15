@@ -1,12 +1,13 @@
 import {useEffect} from "react";
-import {ClientOnly, unauthorized, useHydrated,} from "remix-utils";
+import {ClientOnly, unauthorized, useHydrated} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {admin} from "~/utils/firebase.server";
 import {getSessionData} from "~/utils/auth.server";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import StyledFirebaseAuth from "~/components/styledFirebaseAuth";
-import {ActionFunction, redirect} from "@remix-run/node";
+import type {ActionFunction} from "@remix-run/node";
+import {redirect} from "@remix-run/node";
 import {useSubmit} from "@remix-run/react";
 
 // Extend window
@@ -21,7 +22,6 @@ declare global {
 export const handle = {hydrate: true};
 
 export const action: ActionFunction = async ({request}) => {
-    // Get the session and verify the CSRF token
     const {session} = await getSessionData(request);
     const form = await request.formData();
     const idToken = form.get("idToken") as string;
@@ -41,7 +41,7 @@ export const action: ActionFunction = async ({request}) => {
             });
         }
         // If the JWT is too old we reject it
-        admin.auth().revokeRefreshTokens(token.sub);
+        await admin.auth().revokeRefreshTokens(token.sub);
         return new Response("Recent sign in required!", {
             status: 401,
         });
@@ -70,7 +70,7 @@ export default function Login() {
                     callbacks: {
                         // On sign in we POST our server with the JWT token
                         signInSuccessWithAuthResult: (
-                            authResult: firebase.auth.UserCredential
+                            authResult: firebase.auth.UserCredential,
                         ) => {
                             authResult.user?.getIdToken().then((idToken) => {
                                 const formData = new FormData();

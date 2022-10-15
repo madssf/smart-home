@@ -31,6 +31,6 @@ export async function requireUserId(
         throw redirect('/');
     }
 
-    const {user_id, name} = jwt_decode(idToken) as { user_id: string, name: string }
+    const {user_id, name} = jwt_decode(idToken) as { user_id: string, name: string };
     return {userId: user_id, name: name};
 }

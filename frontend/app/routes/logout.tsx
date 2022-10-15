@@ -1,14 +1,15 @@
 import {destroySession} from "~/utils/sessions.server";
 import {admin} from "~/utils/firebase.server";
 import {getSessionData} from "~/utils/auth.server";
-import {ActionFunction, LoaderFunction, redirect} from "@remix-run/node";
+import type {ActionFunction, LoaderFunction} from "@remix-run/node";
+import {redirect} from "@remix-run/node";
 
 export const loader: LoaderFunction = async () => {
     return redirect("/");
 };
 
 export const action: ActionFunction = async ({request}) => {
-    const {session, idToken} = await getSessionData(request, true);
+    const {session, idToken} = await getSessionData(request);
     const jwtToken = await admin.auth().verifySessionCookie(idToken!);
     await admin.auth().revokeRefreshTokens(jwtToken.sub);
     return redirect("/", {

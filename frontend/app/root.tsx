@@ -1,17 +1,17 @@
-import {useShouldHydrate,} from "remix-utils";
+import {useShouldHydrate} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {getSessionData} from "./utils/auth.server";
-import styles from "./styles/app.css"
+import styles from "./styles/app.css";
 import {routes} from "~/routes";
-import {ActionFunction, json, LoaderFunction, redirect} from "@remix-run/node";
+import type {ActionFunction, LoaderFunction} from "@remix-run/node";
+import {json, redirect} from "@remix-run/node";
 import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useFetcher, useLoaderData} from "@remix-run/react";
-import {ClientStyleContext, ServerStyleContext} from './context'
+import {ClientStyleContext, ServerStyleContext} from './context';
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
 import {Button, ChakraProvider, ColorModeScript, extendTheme, Link, withDefaultColorScheme} from "@chakra-ui/react";
 
 interface LoaderData {
-    csrf?: string;
     isLoggedIn: boolean;
     ENV: {
         FIREBASE_CONFIG?: string
@@ -19,11 +19,11 @@ interface LoaderData {
 }
 
 export const theme = extendTheme(
-    withDefaultColorScheme({ colorScheme: 'teal' })
+    withDefaultColorScheme({ colorScheme: 'teal' }),
 );
 
 export function links() {
-    return [{rel: "stylesheet", href: styles}]
+    return [{rel: "stylesheet", href: styles}];
 }
 
 // Setup CSRF token only if they are heading to the login page.
@@ -32,7 +32,7 @@ export function links() {
 // If someone isn't logged in we want them to hit the public cache
 // https://firebase.google.com/docs/hosting/manage-cache
 export const action: ActionFunction = async ({request}) => {
-    let {session} = await getSessionData(request);
+    const {session} = await getSessionData(request);
     return redirect("/login", {
         headers: {"Set-Cookie": await commitSession(session)},
     });
@@ -44,7 +44,7 @@ export const loader: LoaderFunction = async ({request}) => {
         isLoggedIn: !!idToken,
         ENV: {
             FIREBASE_CONFIG: process.env.FIREBASE_CONFIG,
-        }
+        },
     });
 };
 
@@ -73,6 +73,7 @@ const Document = withEmotionCache(
             });
             // reset cache to reapply global styles
             clientStyleData?.reset();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []);
 
         return (
@@ -103,7 +104,7 @@ const Document = withEmotionCache(
             </body>
             </html>
         );
-    }
+    },
 );
 
 
@@ -140,14 +141,14 @@ export default function App() {
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `window.ENV = ${JSON.stringify(
-                            ENV
+                            ENV,
                         )}`,
                     }}
                 />
-                <div className="mx-1">
+                <div className="mx-1 pb-8">
                     <Outlet />
                 </div>
             </ChakraProvider>
         </Document>
-    )
+    );
 }

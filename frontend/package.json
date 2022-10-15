@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npm run build:css && cross-env NODE_ENV=production remix build",
     "build:css": "tailwindcss -m -i ./styles/app.css -o app/styles/app.css",
-    "dev": "concurrently \"npm run dev:css\" \"cross-env NODE_ENV=development remix dev\"",
+    "dev": "PORT=3030 concurrently \"npm run dev:css\" \"cross-env NODE_ENV=development remix dev\"",
     "dev:css": "tailwindcss -w -i ./styles/app.css -o app/styles/app.css",
     "start": "cross-env NODE_ENV=production remix-serve build"
   },
@@ -21,6 +21,7 @@
     "@remix-run/react": "^1.7.2",
     "@remix-run/serve": "^1.7.2",
     "cross-env": "7.0.3",
+    "dayjs": "^1.11.5",
     "firebase": "^9.10.0",
     "firebase-admin": "^11.0.1",
     "firebaseui": "^6.0.1",
@@ -29,6 +30,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-use": "^17.4.0",
+    "recharts": "^2.1.15",
     "remix": "^1.7.2",
     "remix-utils": "^3.3.0",
     "zod": "3.12.1"
@@ -38,9 +40,13 @@
     "@remix-run/eslint-config": "1.4.0",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.17",
+    "@typescript-eslint/eslint-plugin": "^5.40.0",
+    "@typescript-eslint/parser": "^5.40.0",
     "autoprefixer": "^10.4.12",
     "concurrently": "^7.4.0",
     "eslint": "8.10.0",
+    "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "postcss": "^8.4.16",
     "tailwindcss": "^3.1.8",
     "typescript": "4.6.2"

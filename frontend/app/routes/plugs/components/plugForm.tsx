@@ -1,10 +1,11 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
-import {Plug} from "~/routes/plugs/types/types";
-import {PlugFormErrors} from "~/routes/plugs";
+import type {Plug} from "~/routes/plugs/types/types";
+import type {PlugFormErrors} from "~/routes/plugs";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Input} from "@chakra-ui/input";
 import {Button, Text} from "@chakra-ui/react";
+import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 
 export interface PlugFormProps {
     plug?: Plug
@@ -12,30 +13,30 @@ export interface PlugFormProps {
 
 const PlugForm = ({plug}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
-    const transition = useTransition()
-    const isCreating = transition.submission?.formData.get("intent") === "create" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
-    const isUpdating = transition.submission?.formData.get("intent") === "update" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
-    const isDeleting = transition.submission?.formData.get("intent") === "delete" && (transition.submission?.formData.get('id') ?? undefined) === plug?.id;
-    const isNew = !plug
+    const transition = useTransition();
+
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, plug);
+
     const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<PlugFormErrors | null>(null);
 
     useEffect(() => {
         if (actionData && !plug && !actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else if (actionData && plug?.id === actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else {
-            setErrors(null)
+            setErrors(null);
         }
-    }, [actionData])
+    }, [actionData, plug]);
 
     useEffect(() => {
         if (!isCreating || !isUpdating) {
             formRef.current?.reset();
         }
-    }, [transition])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transition]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.PLUGS.ROOT}>

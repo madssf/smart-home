@@ -1,27 +1,29 @@
-import React, {useState} from 'react'
-import {CacheProvider} from '@emotion/react'
-import {RemixBrowser} from '@remix-run/react'
-import {ClientStyleContext} from './context'
-import createEmotionCache from './createEmotionCache'
+import React, {useState} from 'react';
+import {CacheProvider} from '@emotion/react';
+import {RemixBrowser} from '@remix-run/react';
+import {ClientStyleContext} from './context';
+import createEmotionCache from './createEmotionCache';
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import * as ReactDOMClient from 'react-dom/client'
+import * as ReactDOMClient from 'react-dom/client';
 
 interface ClientCacheProviderProps {
     children: React.ReactNode;
 }
 
 function ClientCacheProvider({ children }: ClientCacheProviderProps) {
-    const [cache, setCache] = useState(createEmotionCache())
+    const [cache, setCache] = useState(createEmotionCache());
 
     function reset() {
-        setCache(createEmotionCache())
+        setCache(createEmotionCache());
     }
 
     return (
         <ClientStyleContext.Provider value={{ reset }}>
             <CacheProvider value={cache}>{children}</CacheProvider>
         </ClientStyleContext.Provider>
-    )
+    );
 }
 
 ReactDOMClient.hydrateRoot(
@@ -29,4 +31,4 @@ ReactDOMClient.hydrateRoot(
     <ClientCacheProvider>
         <RemixBrowser />
     </ClientCacheProvider>,
-)
+);

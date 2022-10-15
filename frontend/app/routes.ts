@@ -7,9 +7,9 @@ export const routes = {
         ROOT: '/plugs',
     },
     TEMP_ACTIONS: {
-        ROOT: '/temp_actions'
+        ROOT: '/temp_actions',
     },
     TEMP_LOG: {
-        ROOT: '/temp_log'
-    }
-}
+        ROOT: '/temp_log',
+    },
+};

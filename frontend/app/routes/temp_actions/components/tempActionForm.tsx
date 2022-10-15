@@ -1,12 +1,14 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
-import {Plug} from "~/routes/plugs/types/types";
+import type {Plug} from "~/routes/plugs/types/types";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
-import {ActionType, TempAction} from "~/routes/temp_actions/types";
-import {TempActionErrors} from "~/routes/temp_actions";
-import {capitalize} from "~/utils/formattingUtils";
+import type {TempAction} from "~/routes/temp_actions/types";
+import {ActionType} from "~/routes/temp_actions/types";
+import type {TempActionErrors} from "~/routes/temp_actions";
+import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import DatePicker from "~/components/datePicker";
+import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
@@ -15,30 +17,29 @@ export interface TempActionFormProps {
 
 const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
     const actionData = useActionData<TempActionErrors>();
-    const transition = useTransition()
-    const isCreating = transition.submission?.formData.get("intent") === "create" && (transition.submission?.formData.get('id') ?? undefined) === tempAction?.id;
-    const isUpdating = transition.submission?.formData.get("intent") === "update" && (transition.submission?.formData.get('id') ?? undefined) === tempAction?.id;
-    const isDeleting = transition.submission?.formData.get("intent") === "delete" && (transition.submission?.formData.get('id') ?? undefined) === tempAction?.id;
-    const isNew = !tempAction
+    const transition = useTransition();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, tempAction);
+
     const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<TempActionErrors | null>(null);
 
     useEffect(() => {
         if (actionData && !tempAction && !actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else if (actionData && tempAction?.id === actionData.id) {
-            setErrors(actionData)
+            setErrors(actionData);
         } else {
-            setErrors(null)
+            setErrors(null);
         }
-    }, [actionData])
+    }, [actionData]);
 
     useEffect(() => {
         if (!isCreating || !isUpdating) {
             formRef.current?.reset();
         }
-    }, [transition])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transition]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.TEMP_ACTIONS.ROOT}>
@@ -48,7 +49,14 @@ const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
                 <RadioGroup defaultValue={tempAction?.action_type} name="actionType">
                     <Stack direction="row">
                         {Object.values(ActionType).map((actionType) => {
-                            return <Radio key={tempAction?.id + actionType} id="actionType" name="actionType" checked={tempAction?.action_type === actionType} value={actionType}>{capitalize(actionType)}</Radio>
+                            return <Radio
+                                key={tempAction?.id + actionType}
+                                id="actionType"
+                                name="actionType"
+                                checked={tempAction?.action_type === actionType}
+                                value={actionType}>
+                                {capitalizeAndRemoveUnderscore(actionType)}
+                            </Radio>;
                         })}
                     </Stack>
                 </RadioGroup>
@@ -69,7 +77,16 @@ const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
                 <label className="font-bold">Plugs</label>
                 <div className="flex">
                     {plugs.map((plug) => {
-                        return <Checkbox key={tempAction?.id + plug.id} size="sm" className="mr-1" id={plug.id} name="plugIds" value={plug.id} defaultChecked={tempAction?.plug_ids.includes(plug.id)}>{capitalize(plug.name)}</Checkbox>
+                        return <Checkbox
+                            key={tempAction?.id + plug.id}
+                            size="sm"
+                            className="mr-1"
+                            id={plug.id}
+                            name="plugIds"
+                            value={plug.id}
+                            defaultChecked={tempAction?.plug_ids.includes(plug.id)}>
+                            {capitalizeAndRemoveUnderscore(plug.name)}
+                        </Checkbox>;
                     })}
                 </div>
                 {

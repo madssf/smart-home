@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {onAuthStateChanged} from 'firebase/auth';
 import 'firebaseui/dist/firebaseui.css';
-import {auth} from "firebaseui";
+import type {auth} from "firebaseui";
 
 interface Props {
     // The Firebase UI Web UI Config object.
@@ -50,6 +50,7 @@ const StyledFirebaseAuth = ({uiConfig, firebaseAuth, className, uiCallback}: Pro
             uiCallback(firebaseUiWidget);
 
         // Render the firebaseUi Widget.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         firebaseUiWidget.start(elementRef.current, uiConfig);
 
