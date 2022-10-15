@@ -48,8 +48,7 @@ export const loader: LoaderFunction = async ({request}) => {
 
     dayjs.extend(utc);
     dayjs.extend(timezone);
-    const tz = dayjs.tz.guess();
-    const now = dayjs().tz(tz);
+    const now = dayjs().tz(process.env.TIMEZONE!);
 
     const generateDataset = () => {
         const temps = tempLogs
