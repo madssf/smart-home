@@ -1,3 +1,5 @@
+set -euxo pipefail
+
 rm -rf "smart-home"
 mkdir "smart-home"
 
@@ -34,3 +36,9 @@ echo "Finished compressing"
 rm -rf "smart-home"
 
 scp transfer.tar.gz pi@raspberrypi.local:
+
+echo "Finished transfer"
+
+rm transfer.tar.gz
+
+echo "Finished cleanup"
