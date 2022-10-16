@@ -14,8 +14,10 @@ import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 
+type DatasetEntry = {timeString: string, temp: number}
+
 type ResponseData = {
-    dataset: {timeString: string, temp: number | string}[]
+    dataset: DatasetEntry[]
 }
 
 export type TempLogType = {
@@ -94,22 +96,31 @@ export const loader: LoaderFunction = async ({request}) => {
         const getTempValue = (time: dayjs.Dayjs) => {
             switch (period) {
                 case TimePeriod.day:
-                    return temps.reduce((prev, curr) => {
+                    return Number(temps.reduce((prev, curr) => {
                         return (Math.abs(curr.time.diff(time)) < Math.abs(prev.time.diff(time)) ? curr : prev);
-                    }).temp;
+                    }).temp);
                 case TimePeriod.week:
                 case TimePeriod.month:
                     const dayTemps = temps
                         .filter((entry) =>
                             entry.time.date() === time.date() && time.month() === entry.time.month() && entry.time.year() === time.year());
                     if (dayTemps.length === 0) {
-                        return '';
+                        return null;
                     }
-                    console.log(dayTemps);
-                    return dayTemps.reduce((acc, curr) => acc + Number(curr.temp), 0) / dayTemps.length;
+                    const day = [...Array(24).keys()].map((i) => {
+                        const hour = time.startOf('day').add(i, 'hour');
+                        return Number(dayTemps.reduce((prev, curr) => {
+                            return (Math.abs(curr.time.diff(hour)) < Math.abs(prev.time.diff(hour)) ? curr : prev);
+                        }).temp);
+                    });
+                    return day.reduce((acc, curr) => acc + curr, 0) / day.length;
             }
 
         };
+
+        function notEmpty(value: DatasetEntry | { timeString: string, temp: number | null }): value is DatasetEntry {
+            return value.temp !== null;
+        }
 
         return [...Array(length()).keys()].map((i) => {
             const time = now.subtract(i, gap());
@@ -117,12 +128,14 @@ export const loader: LoaderFunction = async ({request}) => {
                 timeString: time.format(format()),
                 temp: getTempValue(time),
             };
-        }).reverse();
+        })
+            .filter(notEmpty)
+            .reverse();
 
     };
 
     return json<ResponseData>({
-        dataset: generateDataset(),
+        dataset: generateDataset().map((entry) => {return {temp: Math.round(entry.temp * 10) / 10, timeString: entry.timeString}}),
     });
 
 };
