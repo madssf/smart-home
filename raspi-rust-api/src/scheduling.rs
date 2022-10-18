@@ -3,7 +3,7 @@ use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
 use crate::clients::FirestoreClient;
-use crate::db::{get_schedules, DbError};
+use crate::firebase_db::{get_schedules, DbError};
 use crate::PriceLevel;
 
 #[derive(EnumString, Display, Debug, Clone, Copy)]

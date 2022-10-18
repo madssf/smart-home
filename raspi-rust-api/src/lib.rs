@@ -5,7 +5,9 @@ use crate::scheduling::ActionType;
 
 pub mod api;
 pub mod clients;
+pub mod configuration;
 pub mod db;
+pub mod firebase_db;
 pub mod prices;
 pub mod scheduling;
 pub mod shelly_client;

@@ -10,10 +10,10 @@ use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::clients::{FirestoreClient, ShellyClient};
-use crate::db::DbError;
+use crate::firebase_db::DbError;
 use crate::prices::{PriceError, PriceInfo};
 use crate::scheduling::{ActionType, SchedulingError};
-use crate::{db, prices, scheduling, shelly_client, WorkMessage};
+use crate::{firebase_db, prices, scheduling, shelly_client, WorkMessage};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -79,7 +79,9 @@ impl WorkHandler {
             .parse()
             .expect("Failed to parse timezone");
         let now = tz.from_utc_datetime(&utc).naive_local();
-        match db::insert_temperature_log(&self.firestore_client, now, room_name, temp).await {
+        match firebase_db::insert_temperature_log(&self.firestore_client, now, room_name, temp)
+            .await
+        {
             Ok(_) => Ok(()),
             Err(e) => Err(WorkHandlerError::DbError(e)),
         }
@@ -99,8 +101,8 @@ impl WorkHandler {
 
         info!("Current price: {}", &price);
 
-        let plugs = db::get_plugs(&self.firestore_client).await?;
-        let temp_actions = db::get_temp_actions(&self.firestore_client).await?;
+        let plugs = firebase_db::get_plugs(&self.firestore_client).await?;
+        let temp_actions = firebase_db::get_temp_actions(&self.firestore_client).await?;
         info!("Found temp actions {:?}", temp_actions);
 
         let action: ActionType =
@@ -131,7 +133,9 @@ impl WorkHandler {
                     );
                     temp_action.action_type
                 } else {
-                    match db::delete_temp_action(&self.firestore_client, &temp_action.id).await {
+                    match firebase_db::delete_temp_action(&self.firestore_client, &temp_action.id)
+                        .await
+                    {
                         Ok(_) => info!("Deleted temp action: {}", &temp_action.id),
                         Err(e) => warn!(
                             "Failed to delete temp action: {}, error: {}",
