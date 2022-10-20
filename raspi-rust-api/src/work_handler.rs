@@ -12,11 +12,14 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::clients::{FirestoreClient, ShellyClient};
 use crate::db::plugs::PlugsClient;
+use crate::db::schedules::SchedulesClient;
+use crate::db::temp_actions::TempActionsClient;
 use crate::db::DbError;
+use crate::domain::{ActionType, WorkMessage};
 use crate::firebase_db::FirebaseDbError;
 use crate::prices::{PriceError, PriceInfo};
-use crate::scheduling::{ActionType, SchedulingError};
-use crate::{firebase_db, prices, scheduling, shelly_client, WorkMessage};
+use crate::scheduling::SchedulingError;
+use crate::{firebase_db, prices, scheduling, shelly_client};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -35,6 +38,8 @@ pub struct WorkHandler {
     shelly_client: ShellyClient,
     receiver: Receiver<WorkMessage>,
     plugs_client: Arc<PlugsClient>,
+    temp_actions_client: Arc<TempActionsClient>,
+    schedules_client: Arc<SchedulesClient>,
 }
 
 impl WorkHandler {
@@ -43,12 +48,16 @@ impl WorkHandler {
         shelly_client: ShellyClient,
         receiver: Receiver<WorkMessage>,
         plugs_client: Arc<PlugsClient>,
+        schedules_client: Arc<SchedulesClient>,
+        temp_actions_client: Arc<TempActionsClient>,
     ) -> Self {
         WorkHandler {
             firestore_client,
             shelly_client,
             receiver,
             plugs_client,
+            temp_actions_client,
+            schedules_client,
         }
     }
 
@@ -110,11 +119,11 @@ impl WorkHandler {
         info!("Current price: {}", &price);
 
         let plugs = self.plugs_client.get_plugs().await?;
-        let temp_actions = firebase_db::get_temp_actions(&self.firestore_client).await?;
+        let temp_actions = self.temp_actions_client.get_temp_actions().await?;
         info!("Found temp actions {:?}", temp_actions);
 
-        let action: ActionType =
-            scheduling::get_action(&self.firestore_client, &price.level, &now).await?;
+        let schedules = self.schedules_client.get_schedules().await?;
+        let action: ActionType = scheduling::get_action(schedules, &price.level, &now).await?;
 
         info!("Got action: {}", &action.to_string());
 
@@ -131,7 +140,7 @@ impl WorkHandler {
 
             let actual_action = if let Some(temp_action) = temp_actions
                 .iter()
-                .find(|action| action.plug_ids.contains(&plug.id.to_string()))
+                .find(|action| action.room_ids.contains(&plug.room_id))
             {
                 if temp_action.expires_at > now {
                     info!(
@@ -141,7 +150,9 @@ impl WorkHandler {
                     );
                     temp_action.action_type
                 } else {
-                    match firebase_db::delete_temp_action(&self.firestore_client, &temp_action.id)
+                    match &self
+                        .temp_actions_client
+                        .delete_temp_action(&temp_action.id)
                         .await
                     {
                         Ok(_) => info!("Deleted temp action: {}", &temp_action.id),

@@ -3,9 +3,11 @@ use std::sync::Arc;
 
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use log::{error, info};
+use sqlx::types::ipnetwork::IpNetwork;
 use uuid::Uuid;
 
 use crate::db::plugs::PlugsClient;
+use crate::domain::Plug;
 
 pub fn plugs() -> Scope {
     web::scope("/plugs")
@@ -19,10 +21,36 @@ pub fn plugs() -> Scope {
 async fn get_plugs(plugs_client: web::Data<Arc<PlugsClient>>) -> impl Responder {
     info!("plugs");
     match plugs_client.get_ref().get_plugs().await {
-        Ok(plugs) => HttpResponse::Ok().json(plugs),
+        Ok(plugs) => {
+            let json: Vec<PlugResponse> = plugs.iter().map(|plug| plug.to_json()).collect();
+            HttpResponse::Ok().json(json)
+        }
         Err(e) => {
             error!("{:?}", e);
             HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct PlugResponse {
+    id: Uuid,
+    name: String,
+    ip: String,
+    username: String,
+    password: String,
+    room_id: Uuid,
+}
+
+impl Plug {
+    pub fn to_json(&self) -> PlugResponse {
+        PlugResponse {
+            id: self.id,
+            name: self.name.clone(),
+            ip: self.ip.ip().to_string(),
+            username: self.username.clone(),
+            password: self.password.clone(),
+            room_id: self.room_id,
         }
     }
 }
@@ -33,6 +61,7 @@ pub struct PlugRequest {
     ip: String,
     username: String,
     password: String,
+    room_id: Uuid,
 }
 
 #[post("/")]
@@ -40,17 +69,19 @@ async fn create_plug(
     plugs_client: web::Data<Arc<PlugsClient>>,
     body: web::Json<PlugRequest>,
 ) -> impl Responder {
-    match plugs_client
-        .get_ref()
-        .create_plug(
-            body.name.as_ref(),
-            body.ip.as_ref(),
-            body.username.as_ref(),
-            body.password.as_ref(),
-        )
-        .await
-    {
-        Ok(plugs) => HttpResponse::Ok().json(plugs),
+    let new_plug = match Plug::new(
+        &body.name,
+        &body.ip,
+        &body.username,
+        &body.password,
+        &body.room_id,
+    ) {
+        Ok(plug) => plug,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+
+    match plugs_client.get_ref().create_plug(new_plug).await {
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
@@ -61,19 +92,25 @@ async fn update_plug(
     id: web::Path<String>,
     body: web::Json<PlugRequest>,
 ) -> impl Responder {
-    let uuid = match Uuid::from_str(&id.into_inner()) {
+    let id = match Uuid::from_str(&id.into_inner()) {
         Ok(uuid) => uuid,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
+    let ip = match IpNetwork::from_str(&body.ip) {
+        Ok(ip) => ip,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+
     match plugs_client
         .get_ref()
-        .update_plug(
-            &uuid,
-            body.name.as_ref(),
-            body.ip.as_ref(),
-            body.username.as_ref(),
-            body.password.as_ref(),
-        )
+        .update_plug(Plug {
+            id,
+            ip,
+            name: body.name.clone(),
+            username: body.username.clone(),
+            password: body.password.clone(),
+            room_id: body.room_id,
+        })
         .await
     {
         Ok(plugs) => HttpResponse::Ok().json(plugs),

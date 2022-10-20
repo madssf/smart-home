@@ -2,13 +2,13 @@ use std::io::Result;
 use std::sync::Arc;
 
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use log::{error, info};
+use log::info;
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 
 use crate::db::plugs::PlugsClient;
+use crate::domain::WorkMessage;
 use crate::routes::plugs::plugs;
-use crate::WorkMessage;
 
 pub async fn start(
     sender: Sender<WorkMessage>,

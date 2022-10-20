@@ -5,10 +5,11 @@ use tokio::sync::mpsc;
 
 use rust_home::clients::get_clients;
 use rust_home::db::plugs::PlugsClient;
+use rust_home::db::schedules::SchedulesClient;
+use rust_home::db::temp_actions::TempActionsClient;
 use rust_home::db::DbConfig;
-use rust_home::{
-    api, configuration::get_configuration, work_handler, work_handler::WorkHandler, WorkMessage,
-};
+use rust_home::domain::WorkMessage;
+use rust_home::{api, configuration::get_configuration, work_handler, work_handler::WorkHandler};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -20,7 +21,8 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
 
     let plugs_client = Arc::new(PlugsClient::new(db_config.clone()));
-
+    let schedules_client = Arc::new(SchedulesClient::new(db_config.clone()));
+    let temp_actions_client = Arc::new(TempActionsClient::new(db_config.clone()));
     let (shelly_client, firestore_client) = get_clients();
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
@@ -30,6 +32,8 @@ async fn main() -> std::io::Result<()> {
         shelly_client,
         receiver,
         plugs_client.clone(),
+        schedules_client.clone(),
+        temp_actions_client.clone(),
     );
 
     let poll_sender = sender.clone();

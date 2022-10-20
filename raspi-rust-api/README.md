@@ -14,3 +14,5 @@ FB_SA_KEY=<base64 encoded firebase service account key json>
 RUST_LOG=<rust log level>
 
 ```
+
+### SQLX Offline Mode

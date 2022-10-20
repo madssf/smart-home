@@ -5,8 +5,8 @@ use thiserror::Error;
 use tibber::{PriceInfo as TPriceInfo, PriceLevel as TPriceLevel, TibberSession};
 use tokio::task::JoinError;
 
+use crate::domain::PriceLevel;
 use crate::prices::PriceError::ThreadError;
-use crate::PriceLevel;
 
 impl PriceLevel {
     fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {

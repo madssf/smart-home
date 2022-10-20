@@ -17,7 +17,7 @@ impl<'a> DatabaseTestConfig<'a> {
         let user = "user";
         let password = "password";
 
-        let image = GenericImage::new("docker.io/postgres", "12-alpine")
+        let image = GenericImage::new("docker.io/postgres", "14-alpine")
             .with_wait_for(WaitFor::message_on_stderr(
                 "database system is ready to accept connections",
             ))

@@ -6,6 +6,9 @@ use sqlx::PgPool;
 use thiserror::Error;
 
 pub mod plugs;
+pub mod rooms;
+pub mod schedules;
+pub mod temp_actions;
 
 #[derive(Debug, Clone)]
 pub struct DbConfig {
@@ -18,6 +21,8 @@ pub enum DbError {
     SQLXClientFailure(#[from] sqlx::Error),
     #[error("Error when running migrations: {0}")]
     MigrationFailure(#[from] sqlx::migrate::MigrateError),
+    #[error("Error when parsing: {0}")]
+    ParseError(#[from] anyhow::Error),
 }
 
 pub static DB_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("db/migrations");

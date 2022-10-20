@@ -3,8 +3,7 @@ use std::error::Error;
 use serde::Deserialize;
 
 use crate::clients::ShellyClient;
-use crate::scheduling::ActionType;
-use crate::Plug;
+use crate::domain::{ActionType, Plug};
 
 #[derive(Debug, Deserialize)]
 pub struct PlugStatus {

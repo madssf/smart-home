@@ -1,16 +1,8 @@
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime, Weekday};
-use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
-use crate::clients::FirestoreClient;
-use crate::firebase_db::{get_schedules, FirebaseDbError};
-use crate::PriceLevel;
-
-#[derive(EnumString, Display, Debug, Clone, Copy)]
-pub enum ActionType {
-    ON,
-    OFF,
-}
+use crate::db::DbError;
+use crate::domain::{ActionType, PriceLevel, Schedule};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScheduleData {
@@ -22,16 +14,14 @@ pub struct ScheduleData {
 #[derive(Error, Debug)]
 pub enum SchedulingError {
     #[error("DbError: {0}")]
-    FailedToGetSchedules(#[from] FirebaseDbError),
+    FailedToGetSchedules(#[from] DbError),
 }
 
 pub async fn get_action(
-    firestore_client: &FirestoreClient,
+    schedules: Vec<Schedule>,
     price_level: &PriceLevel,
     time: &NaiveDateTime,
 ) -> Result<ActionType, SchedulingError> {
-    let schedules: Vec<ScheduleData> = get_schedules(firestore_client).await?;
-
     for schedule in schedules {
         let result = matching_schedule(&schedule, price_level, time);
         if result {
@@ -42,59 +32,59 @@ pub async fn get_action(
     Ok(ActionType::OFF)
 }
 
-fn matching_schedule(
-    schedule_data: &ScheduleData,
-    price_level: &PriceLevel,
-    time: &NaiveDateTime,
-) -> bool {
-    return price_level == &schedule_data.price_level
-        && schedule_data.days.contains(&time.weekday())
-        && schedule_data
-            .windows
+fn matching_schedule(schedule: &Schedule, price_level: &PriceLevel, time: &NaiveDateTime) -> bool {
+    return price_level == &schedule.price_level
+        && schedule.days.contains(&time.weekday())
+        && schedule
+            .time_windows
             .iter()
-            .map(|window| window.0 < time.time() && window.0 + window.1 > time.time())
+            .map(|window| window.0 < time.time() && window.1 > time.time())
             .any(|x| x);
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Duration, NaiveDateTime, NaiveTime, Weekday};
+    use chrono::{NaiveDateTime, NaiveTime, Weekday};
+    use uuid::Uuid;
 
-    use crate::PriceLevel;
+    use crate::domain::{PriceLevel, Schedule};
 
-    use super::{matching_schedule, ScheduleData};
+    use super::matching_schedule;
 
     #[test]
     fn should_only_return_matching_schedule() {
-        let schedule_data = ScheduleData {
+        let schedule = Schedule {
+            id: Uuid::new_v4(),
             price_level: PriceLevel::CHEAP,
             days: vec![Weekday::Mon, Weekday::Tue],
-            windows: vec![(NaiveTime::from_hms(12, 0, 0), Duration::hours(1))],
+            time_windows: vec![(NaiveTime::from_hms(12, 0, 0), NaiveTime::from_hms(13, 0, 0))],
+            temp: 0.0,
+            room_ids: vec![],
         };
 
         assert!(matching_schedule(
-            &schedule_data,
+            &schedule,
             &PriceLevel::CHEAP,
             &NaiveDateTime::from_timestamp(1663592399, 0)
         ));
 
         // Wrong level
         assert!(!matching_schedule(
-            &schedule_data,
+            &schedule,
             &PriceLevel::NORMAL,
             &NaiveDateTime::from_timestamp(1663592399, 0)
         ));
 
         // Wrong day
         assert!(!matching_schedule(
-            &schedule_data,
+            &schedule,
             &PriceLevel::CHEAP,
             &NaiveDateTime::from_timestamp(1663765199, 0)
         ));
 
         // Wrong time
         assert!(!matching_schedule(
-            &schedule_data,
+            &schedule,
             &PriceLevel::CHEAP,
             &NaiveDateTime::from_timestamp(1663678800, 0)
         ));
