@@ -1,5 +1,7 @@
 use chrono::NaiveDateTime;
+use serde::Serialize;
 use strum_macros::{Display, EnumString};
+use uuid::Uuid;
 
 use crate::scheduling::ActionType;
 
@@ -8,7 +10,9 @@ pub mod clients;
 pub mod configuration;
 pub mod db;
 pub mod firebase_db;
+pub mod observability;
 pub mod prices;
+mod routes;
 pub mod scheduling;
 pub mod shelly_client;
 pub mod work_handler;
@@ -20,9 +24,9 @@ pub enum PriceLevel {
     EXPENSIVE,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Plug {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub ip: String,
     pub username: String,
@@ -37,7 +41,7 @@ pub struct TempAction {
     pub expires_at: NaiveDateTime,
 }
 
-pub fn config_env_var(name: &str) -> String {
+pub fn env_var(name: &str) -> String {
     std::env::var(name)
         .map_err(|e| format!("{}: {}", name, e))
         .expect(&*format!("Missing config env var: {}", name))

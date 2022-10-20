@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -10,7 +11,9 @@ use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::clients::{FirestoreClient, ShellyClient};
-use crate::firebase_db::DbError;
+use crate::db::plugs::PlugsClient;
+use crate::db::DbError;
+use crate::firebase_db::FirebaseDbError;
 use crate::prices::{PriceError, PriceInfo};
 use crate::scheduling::{ActionType, SchedulingError};
 use crate::{firebase_db, prices, scheduling, shelly_client, WorkMessage};
@@ -22,6 +25,8 @@ pub enum WorkHandlerError {
     #[error("SchedulingError: {0}")]
     SchedulingError(#[from] SchedulingError),
     #[error("DbError: {0}")]
+    FirebaseDbError(#[from] FirebaseDbError),
+    #[error("DbError: {0}")]
     DbError(#[from] DbError),
 }
 
@@ -29,6 +34,7 @@ pub struct WorkHandler {
     firestore_client: FirestoreClient,
     shelly_client: ShellyClient,
     receiver: Receiver<WorkMessage>,
+    plugs_client: Arc<PlugsClient>,
 }
 
 impl WorkHandler {
@@ -36,11 +42,13 @@ impl WorkHandler {
         firestore_client: FirestoreClient,
         shelly_client: ShellyClient,
         receiver: Receiver<WorkMessage>,
+        plugs_client: Arc<PlugsClient>,
     ) -> Self {
         WorkHandler {
             firestore_client,
             shelly_client,
             receiver,
+            plugs_client,
         }
     }
 
@@ -83,7 +91,7 @@ impl WorkHandler {
             .await
         {
             Ok(_) => Ok(()),
-            Err(e) => Err(WorkHandlerError::DbError(e)),
+            Err(e) => Err(WorkHandlerError::FirebaseDbError(e)),
         }
     }
 
@@ -101,7 +109,7 @@ impl WorkHandler {
 
         info!("Current price: {}", &price);
 
-        let plugs = firebase_db::get_plugs(&self.firestore_client).await?;
+        let plugs = self.plugs_client.get_plugs().await?;
         let temp_actions = firebase_db::get_temp_actions(&self.firestore_client).await?;
         info!("Found temp actions {:?}", temp_actions);
 
@@ -123,7 +131,7 @@ impl WorkHandler {
 
             let actual_action = if let Some(temp_action) = temp_actions
                 .iter()
-                .find(|action| action.plug_ids.contains(&plug.id))
+                .find(|action| action.plug_ids.contains(&plug.id.to_string()))
             {
                 if temp_action.expires_at > now {
                     info!(

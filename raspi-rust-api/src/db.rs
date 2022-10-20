@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use log::info;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
@@ -25,6 +27,7 @@ impl DbConfig {
         info!("Connecting to DB!");
 
         let pool = PgPoolOptions::new()
+            .acquire_timeout(Duration::from_secs(10))
             .max_connections(3)
             .connect(db_url)
             .await?;

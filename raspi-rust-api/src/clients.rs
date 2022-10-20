@@ -3,7 +3,7 @@ use std::time::Duration;
 use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
 use reqwest::Client;
 
-use crate::config_env_var;
+use crate::env_var;
 
 pub struct ShellyClient {
     pub client: Client,
@@ -22,7 +22,7 @@ impl FirestoreClient {
 }
 
 pub fn get_clients() -> (ShellyClient, FirestoreClient) {
-    let base64_key = config_env_var("FB_SA_KEY");
+    let base64_key = env_var("FB_SA_KEY");
     let decoded_vec = base64::decode(base64_key).expect("Failed to decode FB_SA_KEY");
 
     let key = match String::from_utf8(decoded_vec) {

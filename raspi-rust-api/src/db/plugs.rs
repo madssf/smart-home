@@ -5,6 +5,8 @@ use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::{FromRow, Row};
 use uuid::Uuid;
 
+use crate::Plug;
+
 use super::DbConfig;
 use super::DbError;
 
@@ -16,17 +18,17 @@ pub enum CreatePlugError {
     IpParseError,
 }
 
-pub struct Client {
+pub struct PlugsClient {
     db_config: DbConfig,
 }
 
-impl Client {
+impl PlugsClient {
     pub fn new(db_config: DbConfig) -> Self {
         Self { db_config }
     }
 
-    pub async fn get_plugs(&self) -> Result<Vec<DbPlug>, DbError> {
-        let res: Vec<DbPlug> = sqlx::query_as::<_, DbPlug>("SELECT * FROM plugs")
+    pub async fn get_plugs(&self) -> Result<Vec<Plug>, DbError> {
+        let res: Vec<Plug> = sqlx::query_as::<_, Plug>("SELECT * FROM plugs")
             .fetch_all(&self.db_config.pool)
             .await?;
 
@@ -35,13 +37,13 @@ impl Client {
 
     pub async fn create_plug(
         &self,
-        name: String,
-        ip: String,
-        username: String,
-        password: String,
+        name: &str,
+        ip: &str,
+        username: &str,
+        password: &str,
     ) -> Result<(), CreatePlugError> {
         let uuid = Uuid::new_v4();
-        let ip = match IpNetwork::from_str(&ip) {
+        let ip = match IpNetwork::from_str(ip) {
             Ok(ip) => ip,
             Err(_) => return Err(CreatePlugError::IpParseError),
         };
@@ -61,18 +63,52 @@ impl Client {
 
         Ok(())
     }
+
+    pub async fn delete_plug(&self, id: &Uuid) -> Result<(), DbError> {
+        sqlx::query!(
+            r#"
+            DELETE FROM plugs WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&self.db_config.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_plug(
+        &self,
+        id: &Uuid,
+        name: &str,
+        ip: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<(), CreatePlugError> {
+        let ip = match IpNetwork::from_str(ip) {
+            Ok(ip) => ip,
+            Err(_) => return Err(CreatePlugError::IpParseError),
+        };
+        sqlx::query!(
+            r#"
+            UPDATE plugs
+            SET name = $2, ip = $3, username = $4, password = $5
+            WHERE id = $1
+            "#,
+            id,
+            name,
+            ip,
+            username,
+            password
+        )
+        .execute(&self.db_config.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct DbPlug {
-    pub id: Uuid,
-    pub name: String,
-    pub ip: String,
-    pub username: String,
-    pub password: String,
-}
-
-impl FromRow<'_, PgRow> for DbPlug {
+impl FromRow<'_, PgRow> for Plug {
     fn from_row(row: &PgRow) -> sqlx::Result<Self> {
         Ok(Self {
             id: row.get::<Uuid, &str>("id"),

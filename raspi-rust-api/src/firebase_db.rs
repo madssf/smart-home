@@ -8,10 +8,9 @@ use thiserror::Error;
 
 use crate::clients::FirestoreClient;
 use crate::scheduling::ScheduleData;
-use crate::{config_env_var, ActionType, Plug, PriceLevel, TempAction};
+use crate::{env_var, ActionType, PriceLevel, TempAction};
 
 const SCHEDULES_COLLECTION_NAME: &str = "schedules";
-const PLUGS_COLLECTION_NAME: &str = "plugs";
 const TEMP_ACTIONS_COLLECTION__NAME: &str = "temp_actions";
 const TEMPERATURE_LOG_COLLECTION_NAME: &str = "temperature_log";
 
@@ -55,7 +54,7 @@ pub struct HoursEntity {
     pub to: String,
 }
 #[derive(Error, Debug)]
-pub enum DbError {
+pub enum FirebaseDbError {
     #[error("Unexpected json format")]
     UnexpectedJsonFormat,
     #[error("AuthClientError: {0}")]
@@ -72,7 +71,7 @@ pub enum DbError {
 
 pub async fn get_schedules(
     firestore_client: &FirestoreClient,
-) -> Result<Vec<ScheduleData>, DbError> {
+) -> Result<Vec<ScheduleData>, FirebaseDbError> {
     match get_schedule_entities(firestore_client).await {
         Ok(entities) => Ok(entities
             .iter()
@@ -84,8 +83,8 @@ pub async fn get_schedules(
 
 async fn get_schedule_entities(
     firestore_client: &FirestoreClient,
-) -> Result<Vec<ScheduleEntity>, DbError> {
-    let schedules: Result<Vec<ScheduleEntity>, DbError> =
+) -> Result<Vec<ScheduleEntity>, FirebaseDbError> {
+    let schedules: Result<Vec<ScheduleEntity>, FirebaseDbError> =
         match get_documents(firestore_client, SCHEDULES_COLLECTION_NAME).await {
             Err(e) => return Err(e),
             Ok(documents) => documents.iter().map(parse_as_schedule).collect(),
@@ -93,16 +92,9 @@ async fn get_schedule_entities(
     schedules
 }
 
-pub async fn get_plugs(firestore_client: &FirestoreClient) -> Result<Vec<Plug>, DbError> {
-    match get_documents(firestore_client, PLUGS_COLLECTION_NAME).await {
-        Err(e) => Err(e),
-        Ok(documents) => documents.iter().map(parse_as_plug).collect(),
-    }
-}
-
 pub async fn get_temp_actions(
     firestore_client: &FirestoreClient,
-) -> Result<Vec<TempAction>, DbError> {
+) -> Result<Vec<TempAction>, FirebaseDbError> {
     match get_documents(firestore_client, TEMP_ACTIONS_COLLECTION__NAME).await {
         Ok(documents) => documents.iter().map(parse_as_temp_action).collect(),
         Err(e) => Err(e),
@@ -112,7 +104,7 @@ pub async fn get_temp_actions(
 pub async fn delete_temp_action(
     firestore_client: &FirestoreClient,
     plug_id: &str,
-) -> Result<(), DbError> {
+) -> Result<(), FirebaseDbError> {
     delete_document(firestore_client, TEMP_ACTIONS_COLLECTION__NAME, plug_id).await
 }
 
@@ -121,7 +113,7 @@ pub async fn insert_temperature_log(
     time: NaiveDateTime,
     room: &str,
     temperature: &f64,
-) -> Result<(), DbError> {
+) -> Result<(), FirebaseDbError> {
     let doc_json = json!(
             {
       "fields": {
@@ -140,8 +132,8 @@ pub async fn insert_temperature_log(
 }
 
 fn get_base_url(collection_name: &str) -> String {
-    let project_id = config_env_var("PROJECT_ID");
-    let user_id = config_env_var("USER_ID");
+    let project_id = env_var("PROJECT_ID");
+    let user_id = env_var("USER_ID");
 
     format!(
         "https://firestore.googleapis.com/v1/projects/{}/databases/(default)/documents/users/{}/{}",
@@ -152,7 +144,7 @@ fn get_base_url(collection_name: &str) -> String {
 async fn get_documents(
     firestore_client: &FirestoreClient,
     collection_name: &str,
-) -> Result<Vec<Value>, DbError> {
+) -> Result<Vec<Value>, FirebaseDbError> {
     let res: Value = firestore_client
         .client
         .get(get_base_url(collection_name))
@@ -171,7 +163,7 @@ async fn get_documents(
     };
 
     match documents.as_array() {
-        None => Err(DbError::UnexpectedJsonFormat),
+        None => Err(FirebaseDbError::UnexpectedJsonFormat),
         Some(docs_array) => Ok(docs_array.clone()),
     }
 }
@@ -180,7 +172,7 @@ async fn delete_document(
     firestore_client: &FirestoreClient,
     collection_name: &str,
     document_id: &str,
-) -> Result<(), DbError> {
+) -> Result<(), FirebaseDbError> {
     let url = format!("{}/{}", get_base_url(collection_name), document_id);
     firestore_client
         .client
@@ -199,7 +191,7 @@ async fn create_document(
     firestore_client: &FirestoreClient,
     collection_name: &str,
     document_json: &Value,
-) -> Result<(), DbError> {
+) -> Result<(), FirebaseDbError> {
     let url = get_base_url(collection_name);
 
     let _ = firestore_client
@@ -217,7 +209,7 @@ async fn create_document(
     Ok(())
 }
 
-fn parse_as_temp_action(doc_json: &Value) -> Result<TempAction, DbError> {
+fn parse_as_temp_action(doc_json: &Value) -> Result<TempAction, FirebaseDbError> {
     let id = get_document_id(doc_json)?;
     let plug_ids = get_string_vec(doc_json, "fields/plug_ids")?;
     let action_type = ActionType::from_str(&get_string_value(doc_json, "/fields/action_type")?)?;
@@ -230,28 +222,13 @@ fn parse_as_temp_action(doc_json: &Value) -> Result<TempAction, DbError> {
     })
 }
 
-fn parse_as_plug(doc_json: &Value) -> Result<Plug, DbError> {
-    let id = get_document_id(doc_json)?;
-    let name = get_string_value(doc_json, "/fields/name")?;
-    let ip = get_string_value(doc_json, "/fields/ip")?;
-    let username = get_string_value(doc_json, "/fields/username")?;
-    let password = get_string_value(doc_json, "/fields/password")?;
-    Ok(Plug {
-        id,
-        name,
-        ip,
-        username,
-        password,
-    })
-}
-
-fn parse_as_schedule(doc_json: &Value) -> Result<ScheduleEntity, DbError> {
+fn parse_as_schedule(doc_json: &Value) -> Result<ScheduleEntity, FirebaseDbError> {
     let days = get_string_vec(doc_json, "fields/days")?;
-    let hours: Result<Vec<HoursEntity>, DbError> =
+    let hours: Result<Vec<HoursEntity>, FirebaseDbError> =
         match doc_json.pointer("/fields/hours/arrayValue/values") {
-            None => return Err(DbError::UnexpectedJsonFormat),
+            None => return Err(FirebaseDbError::UnexpectedJsonFormat),
             Some(hours) => match hours.as_array() {
-                None => return Err(DbError::UnexpectedJsonFormat),
+                None => return Err(FirebaseDbError::UnexpectedJsonFormat),
                 Some(hours_obj) => hours_obj
                     .iter()
                     .map(|hour| {
@@ -280,21 +257,21 @@ fn parse_as_schedule(doc_json: &Value) -> Result<ScheduleEntity, DbError> {
     })
 }
 
-fn get_string_value(value: &Value, field_path: &str) -> Result<String, DbError> {
+fn get_string_value(value: &Value, field_path: &str) -> Result<String, FirebaseDbError> {
     match value.pointer(&*format!("{}/stringValue", field_path)) {
-        None => Err(DbError::UnexpectedJsonFormat),
+        None => Err(FirebaseDbError::UnexpectedJsonFormat),
         Some(maybe_str) => match maybe_str.as_str() {
-            None => Err(DbError::UnexpectedJsonFormat),
+            None => Err(FirebaseDbError::UnexpectedJsonFormat),
             Some(str) => Ok(str.to_string()),
         },
     }
 }
 
-fn get_string_vec(json: &Value, field_path: &str) -> Result<Vec<String>, DbError> {
+fn get_string_vec(json: &Value, field_path: &str) -> Result<Vec<String>, FirebaseDbError> {
     match json.pointer(&format!("/{}/arrayValue/values", field_path)) {
-        None => Err(DbError::UnexpectedJsonFormat),
+        None => Err(FirebaseDbError::UnexpectedJsonFormat),
         Some(value) => match value.as_array() {
-            None => Err(DbError::UnexpectedJsonFormat),
+            None => Err(FirebaseDbError::UnexpectedJsonFormat),
             Some(json_vec) => json_vec
                 .iter()
                 .map(|value| get_string_value(value, ""))
@@ -303,13 +280,13 @@ fn get_string_vec(json: &Value, field_path: &str) -> Result<Vec<String>, DbError
     }
 }
 
-fn get_document_id(value: &Value) -> Result<String, DbError> {
+fn get_document_id(value: &Value) -> Result<String, FirebaseDbError> {
     match value.pointer("/name") {
-        None => Err(DbError::UnexpectedJsonFormat),
+        None => Err(FirebaseDbError::UnexpectedJsonFormat),
         Some(id) => match id.as_str() {
-            None => Err(DbError::UnexpectedJsonFormat),
+            None => Err(FirebaseDbError::UnexpectedJsonFormat),
             Some(id) => match id.split('/').last() {
-                None => Err(DbError::UnexpectedJsonFormat),
+                None => Err(FirebaseDbError::UnexpectedJsonFormat),
                 Some(id) => Ok(id.to_string()),
             },
         },

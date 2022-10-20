@@ -1,22 +1,31 @@
 use std::io::Result;
+use std::sync::Arc;
 
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use log::{info, warn};
+use log::{error, info};
 use serde::Deserialize;
-use sqlx::{PgConnection, PgPool};
 use tokio::sync::mpsc::Sender;
 
+use crate::db::plugs::PlugsClient;
+use crate::routes::plugs::plugs;
 use crate::WorkMessage;
 
-pub async fn start(sender: Sender<WorkMessage>, port: u16) -> Result<()> {
+pub async fn start(
+    sender: Sender<WorkMessage>,
+    port: u16,
+    plugs_client: Arc<PlugsClient>,
+) -> Result<()> {
     let sender = web::Data::new(sender);
+    let plugs_client = web::Data::new(plugs_client);
     info!("Starting API");
     HttpServer::new(move || {
         App::new()
             .app_data(sender.clone())
+            .app_data(plugs_client.clone())
             .service(refresh)
             .service(health)
             .service(report_temp)
+            .service(plugs())
     })
     .shutdown_timeout(1)
     .bind(("0.0.0.0", port))

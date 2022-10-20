@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use log::info;
 use tokio::sync::mpsc;
 
 use rust_home::clients::get_clients;
+use rust_home::db::plugs::PlugsClient;
 use rust_home::db::DbConfig;
 use rust_home::{
     api, configuration::get_configuration, work_handler, work_handler::WorkHandler, WorkMessage,
@@ -9,16 +12,25 @@ use rust_home::{
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
+
     let configuration = get_configuration().expect("Failed to read configuration.");
-    let db = DbConfig::new(&configuration.database.connection_string())
+    let db_config = DbConfig::new(&configuration.database.connection_string())
         .await
         .expect("Failed to connect to database");
-    env_logger::init();
+
+    let plugs_client = Arc::new(PlugsClient::new(db_config.clone()));
+
     let (shelly_client, firestore_client) = get_clients();
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
 
-    let work_handler = WorkHandler::new(firestore_client, shelly_client, receiver);
+    let work_handler = WorkHandler::new(
+        firestore_client,
+        shelly_client,
+        receiver,
+        plugs_client.clone(),
+    );
 
     let poll_sender = sender.clone();
     let api_sender = sender.clone();
@@ -30,7 +42,12 @@ async fn main() -> std::io::Result<()> {
         shutdown_signal().await
     });
 
-    api::start(api_sender, configuration.application_port).await
+    api::start(
+        api_sender,
+        configuration.application_port,
+        plugs_client.clone(),
+    )
+    .await
 }
 
 async fn shutdown_signal() {
