@@ -5,13 +5,12 @@ import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
-import {db} from "~/utils/firebase.server";
-import {collections} from "~/utils/firestoreUtils.server";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button, Heading} from "@chakra-ui/react";
 import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
+import {createPlug, deletePlug, getPlugs, updatePlug} from "~/routes/plugs/plugs.server";
 
 interface ResponseData {
     plugs: Plug[];
@@ -36,7 +35,7 @@ export async function action({request}: ActionArgs) {
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
-        await db.doc(`${collections.plugs(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")});
+        await deletePlug(id!!);
         await piTriggerRefresh();
         return redirect(routes.PLUGS.ROOT);
     }
@@ -65,9 +64,9 @@ export async function action({request}: ActionArgs) {
     };
 
     if (!id) {
-        await db.collection(collections.plugs(userId)).add(document).catch((e) => {throw Error("Something went wrong")});
+        await createPlug(document);
     } else {
-        await db.doc(`${collections.plugs(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")});
+        await updatePlug({...document, id});
     }
     await piTriggerRefresh();
     return redirect(routes.PLUGS.ROOT);
@@ -75,17 +74,9 @@ export async function action({request}: ActionArgs) {
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
-    const plugsRef = await db.collection(collections.plugs(userId)).get();
-    const plugs = plugsRef.docs.map((doc) => {
-        const data = doc.data();
-        // TODO: Validate
-        const plug: Plug = {
-            id: doc.id, name: data.name, ip: data.ip, username: data.username, password: data.password,
-        };
-        return plug;
-    });
+    const plugs = await getPlugs();
 
     return json<ResponseData>({
         plugs,

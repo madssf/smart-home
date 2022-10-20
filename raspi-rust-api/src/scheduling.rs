@@ -3,7 +3,7 @@ use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
 use crate::clients::FirestoreClient;
-use crate::db::{get_schedules, DbError};
+use crate::firebase_db::{get_schedules, FirebaseDbError};
 use crate::PriceLevel;
 
 #[derive(EnumString, Display, Debug, Clone, Copy)]
@@ -22,7 +22,7 @@ pub struct ScheduleData {
 #[derive(Error, Debug)]
 pub enum SchedulingError {
     #[error("DbError: {0}")]
-    FailedToGetSchedules(#[from] DbError),
+    FailedToGetSchedules(#[from] FirebaseDbError),
 }
 
 pub async fn get_action(

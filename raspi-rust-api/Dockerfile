@@ -12,12 +12,14 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
+ENV SQLX_OFFLINE true
 RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian11 as runtime
 WORKDIR app
 EXPOSE 8080
 
+COPY --from=builder /app/configuration /app/configuration
 COPY --from=builder /app/target/release/rust_home ./target/release/rust_home
 
 CMD ["/app/target/release/rust_home"]

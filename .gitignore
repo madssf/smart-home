@@ -1,3 +1,4 @@
 .idea/
 .env
+.env.db
 transfer.tar.gz
