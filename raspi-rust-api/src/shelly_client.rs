@@ -1,9 +1,31 @@
-use std::error::Error;
+use std::time::Duration;
 
+use reqwest::Client;
 use serde::Deserialize;
+use thiserror::Error;
 
-use crate::clients::ShellyClient;
 use crate::domain::{ActionType, Plug};
+
+pub struct ShellyClient {
+    pub client: Client,
+}
+
+impl ShellyClient {
+    pub fn new() -> Self {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("Failed to create client");
+
+        ShellyClient { client }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum ShellyClientError {
+    #[error("Reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+}
 
 #[derive(Debug, Deserialize)]
 pub struct PlugStatus {
@@ -17,7 +39,10 @@ pub struct PlugStatus {
      */
 }
 
-pub async fn get_status(shelly_client: &ShellyClient, plug: &Plug) -> Result<f64, Box<dyn Error>> {
+pub async fn get_status(
+    shelly_client: &ShellyClient,
+    plug: &Plug,
+) -> Result<f64, ShellyClientError> {
     let url = format!(
         "http://{}:{}@{}/meter/0",
         plug.username, plug.password, plug.ip
@@ -36,7 +61,7 @@ pub async fn execute_action(
     shelly_client: &ShellyClient,
     plug: &Plug,
     action: &ActionType,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), ShellyClientError> {
     let url = format!(
         "http://{}:{}@{}/relay/0/command?turn={}",
         plug.username,

@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use chrono::{NaiveDateTime, NaiveTime, Weekday};
+use chrono::{NaiveDateTime, NaiveTime, Utc, Weekday};
 use sqlx::types::ipnetwork::IpNetwork;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
 
 use configuration::DatabaseTestConfig;
-use rust_home::db::{plugs, rooms, schedules, temp_actions};
-use rust_home::domain::{ActionType, Plug, PriceLevel, Schedule, TempAction};
+use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
+use rust_home::domain::{ActionType, Plug, PriceLevel, Schedule, TempAction, TemperatureLog};
 
 mod configuration;
 
@@ -24,7 +24,7 @@ fn schedule(room_ids: Vec<Uuid>) -> Schedule {
             NaiveTime::from_hms(12, 00, 00),
             NaiveTime::from_hms(13, 00, 00),
         )],
-        &(20 as f64),
+        20.0,
         room_ids,
     )
     .expect("Could not create schedule")
@@ -37,6 +37,14 @@ fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
         room_ids,
     )
     .expect("Failed to create temp_action")
+}
+
+fn temperature_log(room_id: Uuid) -> TemperatureLog {
+    TemperatureLog {
+        room_id,
+        time: Utc::now().naive_utc(),
+        temp: 20.0,
+    }
 }
 
 #[tokio::test]
@@ -366,4 +374,46 @@ async fn temp_actions() {
         .await
         .expect("Failed to get temp actions");
     assert_eq!(after_delete.len(), 0)
+}
+
+#[tokio::test]
+async fn temperature_logs() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let rooms_client = rooms::RoomsClient::new(test_config.db_config.clone());
+    rooms_client
+        .create_room("test_room")
+        .await
+        .expect("Could not insert room");
+
+    let rooms = rooms_client.get_rooms().await.expect("Can't get rooms");
+    let room_id = rooms[0].clone().id;
+
+    let client = temperature_logs::TemperatureLogsClient::new(test_config.db_config);
+
+    let log_entry = temperature_log(room_id);
+
+    client
+        .create_temp_log(log_entry.clone())
+        .await
+        .expect("Failed to insert temp action");
+
+    let duplicate = client.create_temp_log(log_entry).await;
+
+    assert!(duplicate.is_err());
+
+    for _ in 0..1000 {
+        client
+            .create_temp_log(temperature_log(room_id))
+            .await
+            .expect("Could not create temp_log")
+    }
+
+    let stored = client
+        .get_temp_logs()
+        .await
+        .expect("Failed to get temp actions");
+
+    assert_eq!(stored.len(), 1001)
 }

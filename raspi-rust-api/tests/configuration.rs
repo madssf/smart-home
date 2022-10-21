@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use testcontainers::clients::Cli;
 use testcontainers::core::WaitFor;
 use testcontainers::images::generic::GenericImage;
@@ -5,7 +7,6 @@ use testcontainers::Container;
 
 use rust_home::db;
 
-#[allow(dead_code)]
 pub struct DatabaseTestConfig<'a> {
     pub postgres_container: Container<'a, GenericImage>, // Needed to keep container running
     pub db_config: db::DbConfig,

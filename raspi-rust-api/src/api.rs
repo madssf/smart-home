@@ -5,6 +5,7 @@ use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder}
 use log::info;
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
+use uuid::Uuid;
 
 use crate::db::plugs::PlugsClient;
 use crate::domain::WorkMessage;
@@ -51,13 +52,13 @@ async fn refresh(sender: web::Data<Sender<WorkMessage>>) -> impl Responder {
 
 #[derive(Debug, Deserialize)]
 pub struct ReportRequest {
-    hum: i32,
+    // hum: i32,
     temp: f64,
 }
 
 #[get("/report_ht/{room}")]
 async fn report_temp(
-    room: web::Path<String>,
+    room: web::Path<Uuid>,
     body: web::Query<ReportRequest>,
     sender: web::Data<Sender<WorkMessage>>,
 ) -> impl Responder {

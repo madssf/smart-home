@@ -64,7 +64,7 @@ impl Schedule {
         price_level: &PriceLevel,
         days: Vec<Weekday>,
         time_windows: Vec<(NaiveTime, NaiveTime)>,
-        temp: &f64,
+        temp: f64,
         room_ids: Vec<Uuid>,
     ) -> Result<Self, anyhow::Error> {
         Ok(Schedule {
@@ -72,7 +72,7 @@ impl Schedule {
             price_level: *price_level,
             days,
             time_windows,
-            temp: *temp,
+            temp,
             room_ids,
         })
     }
@@ -108,9 +108,16 @@ impl TempAction {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TemperatureLog {
+    pub room_id: Uuid,
+    pub time: NaiveDateTime,
+    pub temp: f64,
+}
+
 #[derive(Display, Clone)]
 pub enum WorkMessage {
     REFRESH,
     POLL,
-    TEMP(String, f64),
+    TEMP(Uuid, f64),
 }

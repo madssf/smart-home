@@ -17,6 +17,36 @@
     },
     "query": "\n        INSERT INTO plugs (id, name, ip, username, password, room_id)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        "
   },
+  "1f10ef540d3c0899fd72f1f137b031e041d926dcb835e1e24846c5636f33fa99": {
+    "describe": {
+      "columns": [
+        {
+          "name": "room_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "time",
+          "ordinal": 1,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "temp",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM temperature_logs"
+  },
   "26c7d6bdc0d468425b51b3ed2e15686b6d1b3687a16ded44bf0985fedcf0c794": {
     "describe": {
       "columns": [],
@@ -293,6 +323,20 @@
       }
     },
     "query": "SELECT * FROM room_schedules WHERE schedule_id = $1"
+  },
+  "9719b2abfe97c63989fa113104d26bc67ff3a5ff9012b213683e97e8fc0e7383": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Timestamp",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO temperature_logs (room_id, time, temp)\n            VALUES ($1, $2, $3)\n        "
   },
   "9b30ca4e4f3baef473013efdaf408b4d3f2f0ad43a45ab6a3cacdad7ace01e2c": {
     "describe": {

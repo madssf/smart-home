@@ -42,7 +42,7 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY --from=production-deps /app/node_modules /app/node_modules
-#My build goes to /app/server/build and i'm running /server/index.js express
+#My build goes to /app/server/build and _i'm running /server/index.js express
 COPY --from=build /app/build /app/build
 COPY --from=build /app/public /app/public
 ADD . .

@@ -9,17 +9,18 @@ use log::{error, info, warn};
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
+use uuid::Uuid;
 
-use crate::clients::{FirestoreClient, ShellyClient};
 use crate::db::plugs::PlugsClient;
 use crate::db::schedules::SchedulesClient;
 use crate::db::temp_actions::TempActionsClient;
+use crate::db::temperature_logs::TemperatureLogsClient;
 use crate::db::DbError;
-use crate::domain::{ActionType, WorkMessage};
-use crate::firebase_db::FirebaseDbError;
+use crate::domain::{ActionType, TemperatureLog, WorkMessage};
 use crate::prices::{PriceError, PriceInfo};
 use crate::scheduling::SchedulingError;
-use crate::{firebase_db, prices, scheduling, shelly_client};
+use crate::shelly_client::ShellyClient;
+use crate::{prices, scheduling, shelly_client};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -28,36 +29,34 @@ pub enum WorkHandlerError {
     #[error("SchedulingError: {0}")]
     SchedulingError(#[from] SchedulingError),
     #[error("DbError: {0}")]
-    FirebaseDbError(#[from] FirebaseDbError),
-    #[error("DbError: {0}")]
     DbError(#[from] DbError),
 }
 
 pub struct WorkHandler {
-    firestore_client: FirestoreClient,
     shelly_client: ShellyClient,
     receiver: Receiver<WorkMessage>,
     plugs_client: Arc<PlugsClient>,
     temp_actions_client: Arc<TempActionsClient>,
     schedules_client: Arc<SchedulesClient>,
+    temperature_logs_client: Arc<TemperatureLogsClient>,
 }
 
 impl WorkHandler {
     pub fn new(
-        firestore_client: FirestoreClient,
         shelly_client: ShellyClient,
         receiver: Receiver<WorkMessage>,
         plugs_client: Arc<PlugsClient>,
         schedules_client: Arc<SchedulesClient>,
         temp_actions_client: Arc<TempActionsClient>,
+        temperature_logs_client: Arc<TemperatureLogsClient>,
     ) -> Self {
         WorkHandler {
-            firestore_client,
             shelly_client,
             receiver,
             plugs_client,
             temp_actions_client,
             schedules_client,
+            temperature_logs_client,
         }
     }
 
@@ -89,19 +88,22 @@ impl WorkHandler {
         }
     }
 
-    pub async fn temp_handler(&self, room_name: &str, temp: &f64) -> Result<(), WorkHandlerError> {
+    pub async fn temp_handler(&self, room_id: &Uuid, temp: &f64) -> Result<(), WorkHandlerError> {
         let utc = Utc::now().naive_utc();
         let tz: Tz = env::var("TIME_ZONE")
             .expect("Missing TIME_ZONE env var")
             .parse()
             .expect("Failed to parse timezone");
         let now = tz.from_utc_datetime(&utc).naive_local();
-        match firebase_db::insert_temperature_log(&self.firestore_client, now, room_name, temp)
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => Err(WorkHandlerError::FirebaseDbError(e)),
-        }
+        self.temperature_logs_client
+            .create_temp_log(TemperatureLog {
+                room_id: room_id.clone(),
+                time: now,
+                temp: temp.clone(),
+            })
+            .await?;
+
+        Ok(())
     }
 
     pub async fn main_handler(&self) -> Result<(), WorkHandlerError> {

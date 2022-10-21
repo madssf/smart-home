@@ -16,3 +16,7 @@ RUST_LOG=<rust log level>
 ```
 
 ### SQLX Offline Mode
+
+```bash
+cargo sqlx prepare
+```

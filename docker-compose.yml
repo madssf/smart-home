@@ -1,12 +1,14 @@
 services:
   frontend:
     build: frontend
+    restart: always
     env_file:
       - frontend/.env
     ports:
       - "3030:3000"
   raspi-rust-api:
     build: raspi-rust-api
+    restart: always
     env_file:
       - raspi-rust-api/.env
     ports:
