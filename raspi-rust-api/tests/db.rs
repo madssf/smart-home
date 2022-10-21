@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{NaiveDateTime, NaiveTime, Utc, Weekday};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
 use sqlx::types::ipnetwork::IpNetwork;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
@@ -190,39 +190,7 @@ async fn can_delete_plug() {
 }
 
 #[tokio::test]
-async fn can_insert_schedule() {
-    let docker = Cli::default();
-
-    let test_config = DatabaseTestConfig::new(&docker).await;
-    let rooms_client = rooms::RoomsClient::new(test_config.db_config.clone());
-    rooms_client
-        .create_room("test_room")
-        .await
-        .expect("Could not insert room");
-    let rooms = rooms_client.get_rooms().await.expect("Can't get rooms");
-    let room_id = rooms[0].clone().id;
-
-    let schedules_client = schedules::SchedulesClient::new(test_config.db_config.clone());
-
-    let new_schedule = schedule(vec![room_id]);
-
-    schedules_client
-        .create_schedule(new_schedule.clone())
-        .await
-        .expect("Could not insert schedule");
-
-    let result = schedules_client
-        .get_schedules()
-        .await
-        .expect("Can't get schedules");
-
-    let result_schedule = result[0].clone();
-
-    assert_eq!(result_schedule, new_schedule);
-}
-
-#[tokio::test]
-async fn can_update_schedule() {
+async fn schedules() {
     let docker = Cli::default();
 
     let test_config = DatabaseTestConfig::new(&docker).await;
@@ -278,6 +246,12 @@ async fn can_update_schedule() {
     let stored_schedule = stored[0].clone();
 
     assert_eq!(stored_schedule, update_expected);
+
+    let room_schedules = schedules_client
+        .get_room_schedules(&room_id_2)
+        .await
+        .expect("Cant get room schedules");
+    assert_eq!(room_schedules[0], stored_schedule)
 }
 
 #[tokio::test]
@@ -432,4 +406,64 @@ async fn temperature_logs() {
         .expect("Failed to get temp actions");
 
     assert_eq!(stored.len(), 1001)
+}
+
+#[tokio::test]
+async fn latest_temp_logs() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let rooms_client = rooms::RoomsClient::new(test_config.db_config.clone());
+
+    for i in 1..5 {
+        rooms_client
+            .create_room(format!("room_{}", i).as_str())
+            .await
+            .expect("Could not insert room");
+    }
+
+    let rooms = rooms_client.get_rooms().await.expect("Can't get rooms");
+    let client = temperature_logs::TemperatureLogsClient::new(test_config.db_config);
+
+    let time = NaiveDateTime::new(
+        NaiveDate::from_ymd(2022, 1, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+    for room in rooms.clone() {
+        for i in 1..=100 {
+            client
+                .create_temp_log(TemperatureLog {
+                    room_id: room.id,
+                    time: time + Duration::minutes(i),
+                    temp: (i as f64 / 10.0),
+                })
+                .await
+                .expect("Failed to insert temperature log")
+        }
+    }
+
+    let current_temps = client
+        .get_current_temps(rooms)
+        .await
+        .expect("Couldn't get latest temps");
+    assert_eq!(current_temps.len(), 4);
+    for temp in current_temps {
+        assert_eq!(temp.1, 10.0)
+    }
+
+    rooms_client
+        .create_room("dummy")
+        .await
+        .expect("Cant create room");
+    let new_rooms = rooms_client.get_rooms().await.expect("Cant get rooms");
+    let new_room = new_rooms
+        .iter()
+        .find(|room| room.name == "dummy")
+        .expect("Couldnt find room");
+
+    let current_non_existing = client
+        .get_current_temps(vec![new_room.clone()])
+        .await
+        .expect("Couldnt get temps");
+    assert_eq!(current_non_existing.get(&new_room.id), None)
 }

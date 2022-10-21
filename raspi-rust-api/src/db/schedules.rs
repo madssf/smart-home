@@ -13,6 +13,7 @@ pub struct SchedulesClient {
     db_config: DbConfig,
 }
 
+#[derive(Copy, Clone)]
 struct RoomScheduleEntity {
     room_id: Uuid,
     schedule_id: Uuid,
@@ -27,7 +28,7 @@ struct ScheduleEntity {
 }
 
 impl ScheduleEntity {
-    fn from_domain(domain: &Schedule) -> Result<ScheduleEntity, anyhow::Error> {
+    fn from_domain(domain: &Schedule) -> Result<Self, anyhow::Error> {
         let temp = BigDecimal::from_f64(domain.temp)
             .context(format!("Can't convert to big decimal: {}", domain.temp))?;
         let price_level = domain.price_level.to_string();
@@ -46,6 +47,30 @@ impl ScheduleEntity {
             price_level,
             days,
             time_windows,
+        })
+    }
+    fn to_domain(&self, room_schedules: Vec<RoomScheduleEntity>) -> Result<Schedule, DbError> {
+        let price_level = PriceLevel::from_str(&self.price_level)
+            .context(format!("Failed to parse PriceLevel: {}", &self.price_level))?;
+
+        let days = parse_weekdays(self.days.clone())?;
+        let time_windows = parse_time_windows(self.time_windows.clone())?;
+        let room_ids = room_schedules
+            .iter()
+            .filter(|room_schedule| room_schedule.schedule_id == self.id)
+            .map(|room_schedule| room_schedule.room_id)
+            .collect();
+
+        Ok(Schedule {
+            id: self.id,
+            price_level,
+            days,
+            time_windows,
+            room_ids,
+            temp: self.temp.to_f64().context(format!(
+                "Failed to parse floating point number: {}",
+                self.temp
+            ))?,
         })
     }
 }
@@ -68,34 +93,35 @@ impl SchedulesClient {
 
         entities
             .iter()
-            .map(|entity| {
-                let price_level = PriceLevel::from_str(&entity.price_level).context(format!(
-                    "Failed to parse PriceLevel: {}",
-                    &entity.price_level
-                ))?;
-
-                let days = parse_weekdays(entity.days.clone())?;
-                let time_windows = parse_time_windows(entity.time_windows.clone())?;
-                let room_ids = room_schedules
-                    .iter()
-                    .filter(|room_schedule| room_schedule.schedule_id == entity.id)
-                    .map(|room_schedule| room_schedule.room_id)
-                    .collect();
-
-                Ok(Schedule {
-                    id: entity.id,
-                    price_level,
-                    days,
-                    time_windows,
-                    room_ids,
-                    temp: entity.temp.to_f64().context(format!(
-                        "Failed to parse floating point number: {}",
-                        entity.temp
-                    ))?,
-                })
-            })
+            .map(|entity| entity.to_domain(room_schedules.clone()))
             .collect()
     }
+
+    pub async fn get_room_schedules(&self, room_id: &Uuid) -> Result<Vec<Schedule>, DbError> {
+        let room_schedules: Vec<RoomScheduleEntity> = sqlx::query_as!(
+            RoomScheduleEntity,
+            "SELECT * FROM room_schedules WHERE room_id = $1",
+            room_id
+        )
+        .fetch_all(&self.db_config.pool)
+        .await?;
+
+        let sched_ids: Vec<Uuid> = room_schedules.iter().map(|r| r.schedule_id).collect();
+
+        let entities: Vec<ScheduleEntity> = sqlx::query_as!(
+            ScheduleEntity,
+            "SELECT * FROM schedules WHERE id = any($1)",
+            &sched_ids
+        )
+        .fetch_all(&self.db_config.pool)
+        .await?;
+
+        entities
+            .iter()
+            .map(|entity| entity.to_domain(room_schedules.clone()))
+            .collect()
+    }
+
     pub async fn create_schedule(&self, new_schedule: Schedule) -> Result<(), DbError> {
         let mut tx = self.db_config.pool.begin().await?;
         let entity = ScheduleEntity::from_domain(&new_schedule)?;

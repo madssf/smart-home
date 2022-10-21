@@ -1,40 +1,41 @@
-use std::env;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 
-use chrono::{TimeZone, Utc};
-use chrono_tz::Tz;
-use log::{error, info, warn};
+use chrono::NaiveDateTime;
+use itertools::Itertools;
+use log::{error, info};
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
 use crate::db::plugs::PlugsClient;
+use crate::db::rooms::RoomsClient;
 use crate::db::schedules::SchedulesClient;
 use crate::db::temp_actions::TempActionsClient;
 use crate::db::temperature_logs::TemperatureLogsClient;
-use crate::db::DbError;
-use crate::domain::{ActionType, TemperatureLog, WorkMessage};
+use crate::db::{DbClients, DbError};
+use crate::domain::{ActionType, TempAction, TemperatureLog, WorkMessage};
 use crate::prices::{PriceError, PriceInfo};
-use crate::scheduling::SchedulingError;
 use crate::shelly_client::ShellyClient;
-use crate::{prices, scheduling, shelly_client};
+use crate::{now, prices, scheduling, shelly_client};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
     #[error("PriceError: {0}")]
     PriceError(#[from] PriceError),
-    #[error("SchedulingError: {0}")]
-    SchedulingError(#[from] SchedulingError),
     #[error("DbError: {0}")]
     DbError(#[from] DbError),
+    #[error("SendError")]
+    SendError,
 }
 
 pub struct WorkHandler {
     shelly_client: ShellyClient,
+    sender: Sender<WorkMessage>,
     receiver: Receiver<WorkMessage>,
+    rooms_client: Arc<RoomsClient>,
     plugs_client: Arc<PlugsClient>,
     temp_actions_client: Arc<TempActionsClient>,
     schedules_client: Arc<SchedulesClient>,
@@ -44,19 +45,19 @@ pub struct WorkHandler {
 impl WorkHandler {
     pub fn new(
         shelly_client: ShellyClient,
+        sender: Sender<WorkMessage>,
         receiver: Receiver<WorkMessage>,
-        plugs_client: Arc<PlugsClient>,
-        schedules_client: Arc<SchedulesClient>,
-        temp_actions_client: Arc<TempActionsClient>,
-        temperature_logs_client: Arc<TemperatureLogsClient>,
+        db_clients: DbClients,
     ) -> Self {
         WorkHandler {
             shelly_client,
+            sender,
             receiver,
-            plugs_client,
-            temp_actions_client,
-            schedules_client,
-            temperature_logs_client,
+            rooms_client: db_clients.rooms,
+            plugs_client: db_clients.plugs,
+            temp_actions_client: db_clients.temp_actions,
+            schedules_client: db_clients.schedules,
+            temperature_logs_client: db_clients.temperature_logs,
         }
     }
 
@@ -67,15 +68,21 @@ impl WorkHandler {
                 info!("Got message {}", message.to_string());
                 match message {
                     WorkMessage::REFRESH | WorkMessage::POLL => {
-                        match self.main_handler().await {
-                            Ok(_) => {
-                                info!("Work handled.")
+                        let now = now();
+                        match prices::get_current_price().await {
+                            Ok(price) => {
+                                match self.main_handler(&price, &now).await {
+                                    Ok(_) => {
+                                        info!("Work handled.")
+                                    }
+                                    Err(e) => error!("Work failed, error: {}", e.to_string()),
+                                };
                             }
-                            Err(e) => error!("Work failed, error: {}", e.to_string()),
-                        };
+                            Err(_) => error!("Failed to fetch price"),
+                        }
                     }
                     WorkMessage::TEMP(room, temp) => {
-                        match self.temp_handler(&room, &temp).await {
+                        match self.temp_handler(&room, &temp, self.sender.clone()).await {
                             Ok(_) => {
                                 info!("Temperature work handled.")
                             }
@@ -88,13 +95,13 @@ impl WorkHandler {
         }
     }
 
-    pub async fn temp_handler(&self, room_id: &Uuid, temp: &f64) -> Result<(), WorkHandlerError> {
-        let utc = Utc::now().naive_utc();
-        let tz: Tz = env::var("TIME_ZONE")
-            .expect("Missing TIME_ZONE env var")
-            .parse()
-            .expect("Failed to parse timezone");
-        let now = tz.from_utc_datetime(&utc).naive_local();
+    pub async fn temp_handler(
+        &self,
+        room_id: &Uuid,
+        temp: &f64,
+        sender: Sender<WorkMessage>,
+    ) -> Result<(), WorkHandlerError> {
+        let now = now();
         self.temperature_logs_client
             .create_temp_log(TemperatureLog {
                 room_id: *room_id,
@@ -102,88 +109,77 @@ impl WorkHandler {
                 temp: *temp,
             })
             .await?;
-
-        Ok(())
+        match sender.send(WorkMessage::REFRESH).await {
+            Ok(_) => Ok(()),
+            Err(_) => Err(WorkHandlerError::SendError),
+        }
     }
 
-    pub async fn main_handler(&self) -> Result<(), WorkHandlerError> {
-        let utc = Utc::now().naive_utc();
-        let tz: Tz = env::var("TIME_ZONE")
-            .expect("Missing TIME_ZONE env var")
-            .parse()
-            .expect("Failed to parse timezone");
-        let now = tz.from_utc_datetime(&utc).naive_local();
-
+    pub async fn main_handler(
+        &self,
+        price: &PriceInfo,
+        now: &NaiveDateTime,
+    ) -> Result<(), WorkHandlerError> {
         info!("Current local time: {}", &now);
+        info!("Current price: {}", price);
 
-        let price: PriceInfo = prices::get_current_price().await?;
-
-        info!("Current price: {}", &price);
-
-        let plugs = self.plugs_client.get_plugs().await?;
-        let temp_actions = self.temp_actions_client.get_temp_actions().await?;
-        info!("Found temp actions {:?}", temp_actions);
-
-        let schedules = self.schedules_client.get_schedules().await?;
-        let action: ActionType = scheduling::get_action(schedules, &price.level, &now).await?;
-
-        info!("Got action: {}", &action.to_string());
-
-        for plug in plugs {
-            info!("Processing plug: {}", &plug.name);
-            if let Ok(power_usage) = shelly_client::get_status(&self.shelly_client, &plug).await {
-                info!("Current power usage: {} W", power_usage);
-                info!(
-                    "Equals hourly price of: {:.3} {}",
-                    price.amount / 1000.0 * power_usage,
-                    price.currency
-                );
-            };
-
-            let actual_action = if let Some(temp_action) = temp_actions
-                .iter()
-                .find(|action| action.room_ids.contains(&plug.room_id))
-            {
-                if temp_action.expires_at > now {
-                    info!(
-                        "Found temp action {} on plug {}",
-                        temp_action.action_type.to_string(),
-                        &plug.name
-                    );
-                    temp_action.action_type
-                } else {
-                    match &self
-                        .temp_actions_client
-                        .delete_temp_action(&temp_action.id)
-                        .await
-                    {
-                        Ok(_) => info!("Deleted temp action: {}", &temp_action.id),
-                        Err(e) => warn!(
-                            "Failed to delete temp action: {}, error: {}",
-                            &temp_action.id,
-                            e.to_string()
-                        ),
-                    }
-                    action
-                }
+        let all_actions = self.temp_actions_client.get_temp_actions().await?;
+        let mut temp_actions = vec![];
+        for action in all_actions {
+            if action.expires_at > *now {
+                self.temp_actions_client
+                    .delete_temp_action(&action.id)
+                    .await?;
             } else {
-                action
-            };
-
-            match shelly_client::execute_action(&self.shelly_client, &plug, &actual_action).await {
-                Ok(_) => info!(
-                    "Action executed on plug {}: {}",
-                    &plug.name,
-                    &actual_action.to_string()
-                ),
-                Err(e) => error!(
-                    "Action failed on plug {}: {} - error: {}",
-                    &plug.name,
-                    &actual_action.to_string(),
-                    e,
-                ),
+                temp_actions.push(action)
             }
         }
+
+        info!("Found temp actions {:?}", temp_actions);
+
+        let rooms = self.rooms_client.get_rooms().await?;
+        let current_temps = self
+            .temperature_logs_client
+            .get_current_temps(rooms.clone())
+            .await?;
+
+        for room in rooms {
+            let room_actions: Vec<&TempAction> = temp_actions
+                .iter()
+                .filter(|a| a.room_ids.contains(&room.id))
+                .sorted_by(|a, b| Ord::cmp(&a.expires_at, &b.expires_at))
+                .collect();
+            let action = if let Some(action) = room_actions.first() {
+                action.action_type
+            } else {
+                let room_schedules = self.schedules_client.get_room_schedules(&room.id).await?;
+                let matching_schedule =
+                    scheduling::find_matching_schedule(room_schedules, &price.level, now);
+                let current_temp = current_temps.get(&room.id);
+                if let (Some(schedule), Some(current_temp)) = (matching_schedule, current_temp) {
+                    if current_temp < &schedule.temp {
+                        ActionType::ON
+                    } else {
+                        ActionType::OFF
+                    }
+                } else {
+                    ActionType::OFF
+                }
+            };
+
+            let room_plugs = self.plugs_client.get_room_plugs(&room.id).await?;
+
+            for plug in room_plugs {
+                let result =
+                    shelly_client::execute_action(&self.shelly_client, &plug, &action).await;
+                if result.is_ok() {
+                    info!("Turned plug {} {}", plug.name, action.to_string())
+                } else {
+                    error!("Failed to turn plug {} {}", plug.name, action.to_string())
+                }
+            }
+        }
+
         Ok(())
     }
 }

@@ -1,4 +1,3 @@
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
 use actix_web::dev::Server;
@@ -13,8 +12,6 @@ use rust_home::db::temp_actions::TempActionsClient;
 use rust_home::db::temperature_logs::TemperatureLogsClient;
 use rust_home::db::DbClients;
 use rust_home::domain::WorkMessage;
-use rust_home::routes::rooms::rooms;
-use rust_home::shelly_client::ShellyClient;
 
 use crate::configuration::DatabaseTestConfig;
 
@@ -33,6 +30,7 @@ async fn spawn_api() -> Server {
     let schedules_client = Arc::new(SchedulesClient::new(db_config.clone()));
     let temp_actions_client = Arc::new(TempActionsClient::new(db_config.clone()));
     let temperature_logs_client = Arc::new(TemperatureLogsClient::new(db_config.clone()));
+
     start(
         sender.clone(),
         "127.0.0.1".to_string(),
@@ -60,14 +58,5 @@ async fn api() {
         .await
         .expect("failed to execute");
 
-    assert!(result.status().is_success());
-
-    let result = client
-        .get("http://127.0.0.1:8080/plugs/")
-        .send()
-        .await
-        .expect("failed to execute");
-
-    dbg!(&result);
     assert!(result.status().is_success());
 }

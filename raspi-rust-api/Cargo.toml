@@ -25,6 +25,7 @@ uuid = {version ="1.2", features = ["v4", "serde"] }
 anyhow = "1.0"
 serde-aux = "4.0"
 bigdecimal = "0.3"
+itertools = "0.10"
 
 [dependencies.sqlx]
 version = "0.6"

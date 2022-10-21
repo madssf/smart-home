@@ -21,6 +21,14 @@ impl PlugsClient {
 
         Ok(plugs)
     }
+    
+    pub async fn get_room_plugs(&self, room_id: &Uuid) -> Result<Vec<Plug>, DbError> {
+        let plugs: Vec<Plug> = sqlx::query_as!(Plug, "SELECT * FROM plugs WHERE room_id = $1", room_id)
+            .fetch_all(&self.db_config.pool)
+            .await?;
+
+        Ok(plugs)
+    }
 
     pub async fn create_plug(&self, new_plug: Plug) -> Result<(), DbError> {
         sqlx::query!(

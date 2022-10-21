@@ -41,7 +41,7 @@ impl DbConfig {
 
         let pool = PgPoolOptions::new()
             .acquire_timeout(Duration::from_secs(10))
-            .max_connections(200)
+            .max_connections(10)
             .connect(db_url)
             .await?;
 
@@ -53,10 +53,23 @@ impl DbConfig {
     }
 }
 
+#[derive(Clone)]
 pub struct DbClients {
     pub rooms: Arc<RoomsClient>,
     pub plugs: Arc<PlugsClient>,
     pub schedules: Arc<SchedulesClient>,
     pub temp_actions: Arc<TempActionsClient>,
     pub temperature_logs: Arc<TemperatureLogsClient>,
+}
+
+impl DbClients {
+    pub fn new(db_config: &DbConfig) -> Self {
+        Self {
+            rooms: Arc::new(RoomsClient::new(db_config.clone())),
+            plugs: Arc::new(PlugsClient::new(db_config.clone())),
+            schedules: Arc::new(SchedulesClient::new(db_config.clone())),
+            temp_actions: Arc::new(TempActionsClient::new(db_config.clone())),
+            temperature_logs: Arc::new(TemperatureLogsClient::new(db_config.clone())),
+        }
+    }
 }

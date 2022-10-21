@@ -20,6 +20,7 @@ pub async fn start(
     db_clients: DbClients,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
+
     info!("Starting API");
     let server = HttpServer::new(move || {
         App::new()

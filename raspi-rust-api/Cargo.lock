@@ -1846,6 +1846,7 @@ dependencies = [
  "chrono-tz",
  "config",
  "env_logger",
+ "itertools",
  "log",
  "reqwest",
  "serde",

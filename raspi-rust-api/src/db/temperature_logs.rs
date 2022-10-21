@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Context;
 use bigdecimal::BigDecimal;
 use bigdecimal::{FromPrimitive, ToPrimitive};
@@ -5,7 +7,7 @@ use chrono::NaiveDateTime;
 use uuid::Uuid;
 
 use crate::db::{DbConfig, DbError};
-use crate::domain::TemperatureLog;
+use crate::domain::{Room, TemperatureLog};
 
 pub struct TemperatureLogsClient {
     db_config: DbConfig,
@@ -40,6 +42,30 @@ impl TemperatureLogsClient {
                 })
             })
             .collect()
+    }
+
+    pub async fn get_current_temps(&self, rooms: Vec<Room>) -> Result<HashMap<Uuid, f64>, DbError> {
+        let mut temps = HashMap::new();
+
+        for room in rooms {
+            let latest_temp = sqlx::query_as!(
+                TemperatureLogEntity,
+                "SELECT * FROM temperature_logs WHERE room_id = $1 ORDER BY time DESC LIMIT 1",
+                room.id,
+            )
+            .fetch_optional(&self.db_config.pool)
+            .await?;
+
+            if let Some(entry) = latest_temp {
+                let temp = entry.temp.to_f64().context(format!(
+                    "Failed to parse floating point number: {}",
+                    entry.temp
+                ))?;
+                temps.insert(room.id, temp);
+            }
+        }
+
+        Ok(temps)
     }
 
     pub async fn create_temp_log(&self, log_entry: TemperatureLog) -> Result<(), DbError> {
