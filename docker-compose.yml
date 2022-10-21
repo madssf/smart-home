@@ -10,7 +10,7 @@ services:
     build: raspi-rust-api
     restart: always
     env_file:
-      - raspi-rust-api/.env
+      - raspi-rust-api/.env.prod
     ports:
       - "8080:8080"
     depends_on:

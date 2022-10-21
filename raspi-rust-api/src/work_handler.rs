@@ -126,7 +126,7 @@ impl WorkHandler {
         let all_actions = self.temp_actions_client.get_temp_actions().await?;
         let mut temp_actions = vec![];
         for action in all_actions {
-            if action.expires_at > *now {
+            if action.expires_at < *now {
                 self.temp_actions_client
                     .delete_temp_action(&action.id)
                     .await?;

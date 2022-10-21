@@ -1,6 +1,7 @@
 .idea
 .envrc
-.env
+.env.dev
+.env.prod
 copy-env-files.sh
 
 /target/
