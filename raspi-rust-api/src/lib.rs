@@ -4,7 +4,7 @@ pub mod db;
 pub mod domain;
 pub mod observability;
 pub mod prices;
-mod routes;
+pub mod routes;
 pub mod scheduling;
 pub mod shelly_client;
 pub mod work_handler;

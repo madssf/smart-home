@@ -8,8 +8,10 @@ use uuid::Uuid;
 use crate::db::schedules::SchedulesClient;
 use crate::domain::{PriceLevel, Schedule};
 
-pub fn schedules() -> Scope {
+pub fn schedules(schedules_client: Arc<SchedulesClient>) -> Scope {
+    let schedules_client = web::Data::new(schedules_client);
     web::scope("/schedules")
+        .app_data(schedules_client)
         .service(get_schedules)
         .service(create_schedule)
         .service(update_schedule)
@@ -57,7 +59,10 @@ async fn create_schedule(
 ) -> impl Responder {
     let new_schedule = match body.into_inner().try_into() {
         Ok(schedule) => schedule,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(e) => {
+            error!("{}", e);
+            return HttpResponse::BadRequest().finish();
+        }
     };
     match schedules_client
         .get_ref()
@@ -65,7 +70,10 @@ async fn create_schedule(
         .await
     {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            error!("{}", e.to_string());
+            HttpResponse::BadRequest().finish()
+        }
     }
 }
 

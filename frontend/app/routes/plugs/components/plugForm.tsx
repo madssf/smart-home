@@ -1,17 +1,20 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
-import type {Plug} from "~/routes/plugs/types/types";
+import type {Plug} from "~/routes/plugs/types";
 import type {PlugFormErrors} from "~/routes/plugs";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Input} from "@chakra-ui/input";
-import {Button, Text} from "@chakra-ui/react";
+import {Button, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
+import type {Room} from '~/routes/rooms/types';
+import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 
 export interface PlugFormProps {
     plug?: Plug
+    rooms: Room[]
 }
 
-const PlugForm = ({plug}: PlugFormProps) => {
+const PlugForm = ({plug, rooms}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
     const transition = useTransition();
 
@@ -47,6 +50,27 @@ const PlugForm = ({plug}: PlugFormProps) => {
                 {
                     !!errors?.name &&
                     <Text color="tomato">{errors.name}</Text>
+                }
+            </div>
+            <div className="flex flex-col">
+                <label className="font-bold">Room</label>
+                <RadioGroup defaultValue={plug?.room_id} name="priceLevel">
+                    <Stack direction="row">
+                        {rooms.map((room) => {
+                            return <Radio
+                                key={plug?.id + room.id}
+                                id="room_id"
+                                name="room_id"
+                                checked={plug?.room_id === room.id}
+                                value={room.id}>
+                                {capitalizeAndRemoveUnderscore(room.name)}
+                            </Radio>;
+                        })}
+                    </Stack>
+                </RadioGroup>
+                {
+                    !!errors?.room_id &&
+                    <Text color="tomato">{errors.room_id}</Text>
                 }
             </div>
             <div>

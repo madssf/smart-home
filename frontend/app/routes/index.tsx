@@ -36,3 +36,13 @@ export default function Index() {
         </div>
     );
 }
+
+export function ErrorBoundary({error}: { error: Error }) {
+    console.error(error);
+
+    return (
+        <div>
+            <p>{error.message}</p>
+        </div>
+    );
+}

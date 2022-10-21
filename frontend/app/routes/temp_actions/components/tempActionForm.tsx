@@ -1,6 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
-import type {Plug} from "~/routes/plugs/types/types";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
@@ -9,13 +8,14 @@ import type {TempActionErrors} from "~/routes/temp_actions";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import DatePicker from "~/components/datePicker";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
+import type {Room} from "~/routes/rooms/types";
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
-    plugs: Plug[]
+    rooms: Room[]
 }
 
-const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
+const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
     const actionData = useActionData<TempActionErrors>();
     const transition = useTransition();
     const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, tempAction);
@@ -46,14 +46,14 @@ const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
             <input hidden readOnly name="id" value={tempAction?.id}/>
             <div className="flex flex-col">
                 <label className="font-bold">Action</label>
-                <RadioGroup defaultValue={tempAction?.action_type} name="actionType">
+                <RadioGroup defaultValue={tempAction?.action_type ?? ActionType.ON} name="actionType">
                     <Stack direction="row">
                         {Object.values(ActionType).map((actionType) => {
                             return <Radio
                                 key={tempAction?.id + actionType}
                                 id="actionType"
                                 name="actionType"
-                                checked={tempAction?.action_type === actionType}
+                                checked={tempAction ? tempAction.action_type === actionType : tempAction === ActionType.ON}
                                 value={actionType}>
                                 {capitalizeAndRemoveUnderscore(actionType)}
                             </Radio>;
@@ -65,33 +65,33 @@ const TempActionForm = ({tempAction, plugs}: TempActionFormProps) => {
                     <Text color="tomato">{errors.action_type}</Text>
                 }
             </div>
+            <div className="flex flex-col">
+                <label className="font-bold">Rooms</label>
+                <div className="flex">
+                    {rooms.map((room) => {
+                        return <Checkbox
+                            key={tempAction?.id + room.id}
+                            size="sm"
+                            className="mr-1"
+                            id={room.id}
+                            name="room_ids"
+                            value={room.id}
+                            defaultChecked={tempAction?.room_ids.includes(room.id)}>
+                            {capitalizeAndRemoveUnderscore(room.name)}
+                        </Checkbox>;
+                    })}
+                </div>
+                {
+                    !!errors?.room_ids &&
+                    <Text color="tomato">{errors.room_ids}</Text>
+                }
+            </div>
             <div>
                 <label className="font-bold">Expires at</label>
                 <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at} />
                 {
                     !!errors?.expires_at &&
                     <Text color="tomato">{errors.expires_at}</Text>
-                }
-            </div>
-            <div className="flex flex-col">
-                <label className="font-bold">Plugs</label>
-                <div className="flex">
-                    {plugs.map((plug) => {
-                        return <Checkbox
-                            key={tempAction?.id + plug.id}
-                            size="sm"
-                            className="mr-1"
-                            id={plug.id}
-                            name="plugIds"
-                            value={plug.id}
-                            defaultChecked={tempAction?.plug_ids.includes(plug.id)}>
-                            {capitalizeAndRemoveUnderscore(plug.name)}
-                        </Checkbox>;
-                    })}
-                </div>
-                {
-                    !!errors?.plug_ids &&
-                    <Text color="tomato">{errors.plug_ids}</Text>
                 }
             </div>
             <div className="mt-1">

@@ -9,8 +9,11 @@ use log::error;
 
 use crate::db::temperature_logs::TemperatureLogsClient;
 
-pub fn temperature_logs() -> Scope {
-    web::scope("/temperature_logs").service(get_temperature_logs)
+pub fn temperature_logs(temp_logs_client: Arc<TemperatureLogsClient>) -> Scope {
+    let temp_logs_client = web::Data::new(temp_logs_client);
+    web::scope("/temperature_logs")
+        .app_data(temp_logs_client)
+        .service(get_temperature_logs)
 }
 
 #[get("/")]

@@ -9,8 +9,10 @@ use uuid::Uuid;
 use crate::db::temp_actions::TempActionsClient;
 use crate::domain::{ActionType, TempAction};
 
-pub fn temp_actions() -> Scope {
+pub fn temp_actions(temp_actions_client: Arc<TempActionsClient>) -> Scope {
+    let temp_actions_client = web::Data::new(temp_actions_client);
     web::scope("/temp_actions")
+        .app_data(temp_actions_client)
         .service(get_temp_actions)
         .service(create_temp_action)
         .service(update_temp_action)
@@ -52,7 +54,10 @@ async fn create_temp_action(
 ) -> impl Responder {
     let new_action = match body.into_inner().try_into() {
         Ok(temp_action) => temp_action,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(e) => {
+            error!("{}", e);
+            return HttpResponse::BadRequest().finish();
+        }
     };
 
     match temp_actions_client

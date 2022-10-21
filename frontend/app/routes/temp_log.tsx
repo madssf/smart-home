@@ -2,8 +2,6 @@ import React from 'react';
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
-import {db} from "~/utils/firebase.server";
-import {collections} from "~/utils/firestoreUtils.server";
 import {useLoaderData, useNavigate, useSearchParams} from "@remix-run/react";
 import {Line, LineChart, Tooltip, XAxis} from 'recharts';
 import dayjs from "dayjs";
@@ -13,6 +11,7 @@ import {Button, Heading} from "@chakra-ui/react";
 import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
+import {getTemperatureLogs} from "~/routes/temp_log/temp_log.server";
 
 type DatasetEntry = {timeString: string, temp: number}
 
@@ -34,19 +33,12 @@ export enum TimePeriod {
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
     const url = new URL(request.url);
     const period: TimePeriod = TimePeriod[(url.searchParams.get("period")  ?? 'day') as keyof typeof TimePeriod];
 
-    const tempLogRef = await db.collection(collections.tempLog(userId)).get();
-    const tempLogs = tempLogRef.docs.map((doc) => {
-        const data = doc.data();
-        const log: TempLogType = {
-            room: data.room, temp: data.temp, time: data.time,
-        };
-        return log;
-    });
+    const tempLogs = await getTemperatureLogs();
 
     dayjs.extend(utc);
     dayjs.extend(timezone);
@@ -133,6 +125,12 @@ export const loader: LoaderFunction = async ({request}) => {
             .reverse();
 
     };
+
+    if (tempLogs.length === 0) {
+        return json({
+            dataset: [],
+        });
+    }
 
     return json<ResponseData>({
         dataset: generateDataset().map((entry) => {return {temp: Math.round(entry.temp * 10) / 10, timeString: entry.timeString}}),

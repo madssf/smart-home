@@ -1,7 +1,7 @@
 
 export interface TempAction {
     id: string,
-    plug_ids: string[],
+    room_ids: string[],
     action_type: ActionType,
     expires_at: string,
 }

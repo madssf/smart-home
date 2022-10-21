@@ -1,9 +1,16 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use log::info;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use thiserror::Error;
+
+use crate::db::plugs::PlugsClient;
+use crate::db::rooms::RoomsClient;
+use crate::db::schedules::SchedulesClient;
+use crate::db::temp_actions::TempActionsClient;
+use crate::db::temperature_logs::TemperatureLogsClient;
 
 pub mod plugs;
 pub mod rooms;
@@ -34,7 +41,7 @@ impl DbConfig {
 
         let pool = PgPoolOptions::new()
             .acquire_timeout(Duration::from_secs(10))
-            .max_connections(3)
+            .max_connections(200)
             .connect(db_url)
             .await?;
 
@@ -44,4 +51,12 @@ impl DbConfig {
 
         Ok(Self { pool })
     }
+}
+
+pub struct DbClients {
+    pub rooms: Arc<RoomsClient>,
+    pub plugs: Arc<PlugsClient>,
+    pub schedules: Arc<SchedulesClient>,
+    pub temp_actions: Arc<TempActionsClient>,
+    pub temperature_logs: Arc<TemperatureLogsClient>,
 }

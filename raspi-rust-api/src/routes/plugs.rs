@@ -9,8 +9,11 @@ use uuid::Uuid;
 use crate::db::plugs::PlugsClient;
 use crate::domain::Plug;
 
-pub fn plugs() -> Scope {
+pub fn plugs(plugs_client: Arc<PlugsClient>) -> Scope {
+    let plugs_client = web::Data::new(plugs_client);
+
     web::scope("/plugs")
+        .app_data(plugs_client)
         .service(get_plugs)
         .service(create_plug)
         .service(update_plug)
@@ -76,7 +79,10 @@ async fn create_plug(
         &body.room_id,
     ) {
         Ok(plug) => plug,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(e) => {
+            error!("{}", e);
+            return HttpResponse::BadRequest().json(e.to_string());
+        }
     };
 
     match plugs_client.get_ref().create_plug(new_plug).await {

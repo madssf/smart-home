@@ -4,6 +4,7 @@ export interface Plug {
     ip: string;
     username: string;
     password: string;
+    room_id: string;
 }
 
 

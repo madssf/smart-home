@@ -1,21 +1,24 @@
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import type {Schedule} from "~/routes/schedules/types/types";
-import {PRICE_LEVELS} from "~/routes/schedules/types/types";
+import type {Schedule} from "~/routes/schedules/types";
+import {PRICE_LEVELS} from "~/routes/schedules/types";
 import {requireUserId} from "~/utils/sessions.server";
-import {db} from "~/utils/firebase.server";
 import ScheduleForm from "~/routes/schedules/components/scheduleForm";
 import {routes} from "~/routes";
-import {collections} from "~/utils/firestoreUtils.server";
-import {validateDays, validateHours, validatePriceLevel} from "~/routes/schedules/utils/utils";
+import {validateDays, validatePriceLevel, validateTimeWindows} from "~/routes/schedules/utils/utils";
 import type {FormErrors} from "~/utils/types";
 import {useLoaderData} from "@remix-run/react";
 import React, {useState} from "react";
 import {Button, Heading} from "@chakra-ui/react";
 import {piTriggerRefresh} from "~/utils/piHooks";
+import {createSchedule, deleteSchedule, getSchedules, updateSchedule} from "~/routes/schedules/schedules.server";
+import {validateNonEmptyList, validateTemp} from "~/utils/validation";
+import {getRooms} from "~/routes/rooms/rooms.server";
+import type {Room} from "~/routes/rooms/types";
 
 interface ResponseData {
     schedules: Schedule[];
+    rooms: Room[];
 }
 export type ScheduleFormErrors = FormErrors<Schedule>
 
@@ -23,18 +26,21 @@ export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
     const body = await request.formData();
     const id = body.get("id")?.toString();
-    const priceLevel = body.get("priceLevel")?.toString();
+    const priceLevel = body.get("price_level")?.toString();
     const days = body.getAll("days").map((day) => day.toString());
     const from = body.getAll("from").map((naiveTime) => naiveTime.toString());
     const to = body.getAll("to").map((naiveTime) => naiveTime.toString());
+    const room_ids = body.getAll("room_ids").map((room_id) => room_id.toString());
+    const temp = body.get("temp")?.toString();
+
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
-        await db.doc(`${collections.schedules(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")});
+        await deleteSchedule(id!);
         await piTriggerRefresh();
         return redirect(routes.SCHEDULES.ROOT);
     }
@@ -42,28 +48,36 @@ export async function action({request}: ActionArgs) {
     const validated = {
         priceLevel: validatePriceLevel(priceLevel),
         days: validateDays(days),
-        hours: validateHours(from, to),
+        time_windows: validateTimeWindows(from, to),
+        room_ids: validateNonEmptyList(room_ids),
+        temp: validateTemp(temp),
     };
 
-    if (!validated.days.valid || !validated.hours.valid || !validated.priceLevel.valid) {
+    if (!validated.temp.valid || !validated.days.valid || !validated.time_windows.valid || !validated.priceLevel.valid || !validated.room_ids.valid) {
         return json<ScheduleFormErrors>(
             {
                 id,
                 days: !validated.days.valid ? validated.days.error : undefined,
-                hours: !validated.hours.valid ? validated.hours.error : undefined,
-                priceLevel: !validated.priceLevel.valid ? validated.priceLevel.error : undefined,
+                time_windows: !validated.time_windows.valid ? validated.time_windows.error : undefined,
+                price_level: !validated.priceLevel.valid ? validated.priceLevel.error : undefined,
+                room_ids: !validated.room_ids.valid ? validated.room_ids.error : undefined,
+                temp: !validated.temp.valid ? validated.temp.error : undefined,
             },
         );
     }
 
     const document: Omit<Schedule, 'id'> = {
-        days: validated.days.data, hours: validated.hours.data, priceLevel: validated.priceLevel.data,
+        days: validated.days.data,
+        time_windows: validated.time_windows.data,
+        price_level: validated.priceLevel.data,
+        room_ids: validated.room_ids.data,
+        temp: validated.temp.data,
     };
 
     if (!id) {
-        await db.collection(collections.schedules(userId)).add(document).catch((e) => {throw Error("Something went wrong")});
+        await createSchedule(document);
     } else {
-        await db.doc(`${collections.schedules(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")});
+        await updateSchedule({id, ...document});
     }
 
     await piTriggerRefresh();
@@ -73,24 +87,22 @@ export async function action({request}: ActionArgs) {
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
-    const schedulesRef = await db.collection(collections.schedules(userId)).get();
-    const schedules = schedulesRef.docs.map((doc) => {
-        const data = doc.data();
-        // TODO: Validate
-        const schedule: Schedule = {
-            days: data.days, hours: data.hours, id: doc.id, priceLevel: data.priceLevel,
-        };
-        return schedule;
-    }).sort((a, b) => {
+    const schedules = await getSchedules();
+    const sorted = schedules
+        .sort((a, b) => {
         if (a.days.length === b.days.length) {
-            return PRICE_LEVELS.indexOf(a.priceLevel) - PRICE_LEVELS.indexOf(b.priceLevel);
+            return PRICE_LEVELS.indexOf(a.price_level) - PRICE_LEVELS.indexOf(b.price_level);
         }
         return b.days.length - a.days.length;
     });
+
+    const rooms = await getRooms();
+
     return json<ResponseData>({
-        schedules,
+        schedules: sorted,
+        rooms,
     });
 
 };
@@ -104,7 +116,7 @@ const Schedules = () => {
         return schedules
             .map((schedule) => {
             return (
-                <ScheduleForm key={schedule.id} schedule={schedule}/>
+                <ScheduleForm key={schedule.id} schedule={schedule} rooms={loaderData.rooms}/>
             );
         });
     };
@@ -116,7 +128,7 @@ const Schedules = () => {
             <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
             {
                 showNew &&
-                <ScheduleForm />
+                <ScheduleForm rooms={loaderData.rooms} />
             }
         </div>
     );

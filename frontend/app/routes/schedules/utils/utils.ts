@@ -1,5 +1,5 @@
-import type {NaiveTime, PriceLevel, TimeWindow, Weekday} from "~/routes/schedules/types/types";
-import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types/types";
+import type {NaiveTime, PriceLevel, TimeWindow, Weekday} from "~/routes/schedules/types";
+import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types";
 import type {Validate} from "~/utils/types";
 
 export const validatePriceLevel = (priceLevel?: string): Validate<PriceLevel> => {
@@ -28,7 +28,7 @@ export const validateDays = (days: string[]): Validate<Weekday[]> => {
     };
 };
 
-export const validateHours = (from: string[], to: string[]): Validate<TimeWindow[]> => {
+export const validateTimeWindows = (from: string[], to: string[]): Validate<TimeWindow[]> => {
     if (from.length === 0 || to.length === 0 || from.length !== to.length) {
         return {valid: false, error: "Invalid time windows"};
     }
@@ -42,10 +42,7 @@ export const validateHours = (from: string[], to: string[]): Validate<TimeWindow
         if (!toValidated.valid) {
             return toValidated;
         }
-        validated.push({
-            from: fromValidated.data,
-            to: toValidated.data,
-        });
+        validated.push([fromValidated.data, toValidated.data]);
     }
     return {valid: true, data: validated};
 
@@ -62,6 +59,6 @@ const toNaiveTime = (str: string): Validate<NaiveTime> => {
     }
     return {
         valid: true,
-        data: `${String(hour).padStart(2,'0')}:${String(min).padStart(2, '0')}`,
+        data: `${String(hour).padStart(2,'0')}:${String(min).padStart(2, '0')}:00`,
     };
 };

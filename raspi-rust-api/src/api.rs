@@ -1,16 +1,11 @@
-use std::io::Result;
-use std::sync::Arc;
-
+use actix_web::dev::Server;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use crate::db::plugs::PlugsClient;
-use crate::db::schedules::SchedulesClient;
-use crate::db::temp_actions::TempActionsClient;
-use crate::db::temperature_logs::TemperatureLogsClient;
+use crate::db::DbClients;
 use crate::domain::WorkMessage;
 use crate::routes::plugs::plugs;
 use crate::routes::rooms::rooms;
@@ -20,39 +15,29 @@ use crate::routes::temperature_logs::temperature_logs;
 
 pub async fn start(
     sender: Sender<WorkMessage>,
+    host: String,
     port: u16,
-    plugs_client: Arc<PlugsClient>,
-    schedules_client: Arc<SchedulesClient>,
-    temp_actions_client: Arc<TempActionsClient>,
-    temperature_logs_client: Arc<TemperatureLogsClient>,
-) -> Result<()> {
+    db_clients: DbClients,
+) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
-    let plugs_client = web::Data::new(plugs_client);
-    let schedules_client = web::Data::new(schedules_client);
-    let temp_actions_client = web::Data::new(temp_actions_client);
-    let temperature_logs_client = web::Data::new(temperature_logs_client);
     info!("Starting API");
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(sender.clone())
-            .app_data(plugs_client.clone())
-            .app_data(schedules_client.clone())
-            .app_data(temp_actions_client.clone())
-            .app_data(temperature_logs_client.clone())
             .service(refresh)
             .service(health)
             .service(report_temp)
-            .service(plugs())
-            .service(rooms())
-            .service(schedules())
-            .service(temp_actions())
-            .service(temperature_logs())
+            .service(plugs(db_clients.plugs.clone()))
+            .service(rooms(db_clients.rooms.clone()))
+            .service(schedules(db_clients.schedules.clone()))
+            .service(temp_actions(db_clients.temp_actions.clone()))
+            .service(temperature_logs(db_clients.temperature_logs.clone()))
     })
     .shutdown_timeout(1)
-    .bind(("0.0.0.0", port))
-    .unwrap()
-    .run()
-    .await
+    .bind((host, port))?
+    .run();
+
+    Ok(server)
 }
 
 #[get("/_/health")]

@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {routes} from "~/routes";
-import type {Plug} from "~/routes/plugs/types/types";
+import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
@@ -11,9 +11,12 @@ import {Button, Heading} from "@chakra-ui/react";
 import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createPlug, deletePlug, getPlugs, updatePlug} from "~/routes/plugs/plugs.server";
+import {getRooms} from "~/routes/rooms/rooms.server";
+import type {Room} from "~/routes/rooms/types";
 
 interface ResponseData {
     plugs: Plug[];
+    rooms: Room[];
 }
 
 export type PlugFormErrors = FormErrors<Plug>;
@@ -22,7 +25,7 @@ export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
     const body = await request.formData();
 
@@ -31,11 +34,13 @@ export async function action({request}: ActionArgs) {
     const ip = body.get("ip")?.toString();
     const username = body.get("username")?.toString();
     const password = body.get("password")?.toString();
+    const roomId = body.get("room_id")?.toString();
+
 
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
-        await deletePlug(id!!);
+        await deletePlug(id!);
         await piTriggerRefresh();
         return redirect(routes.PLUGS.ROOT);
     }
@@ -45,9 +50,10 @@ export async function action({request}: ActionArgs) {
         ip: validateIpAddress(ip),
         username: validateNonEmptyString(username),
         password: validateNonEmptyString(password),
+        roomId: validateNonEmptyString(roomId),
     };
 
-    if (!validated.name.valid || !validated.ip.valid || !validated.username.valid || !validated.password.valid) {
+    if (!validated.name.valid || !validated.ip.valid || !validated.username.valid || !validated.password.valid || !validated.roomId.valid) {
         return json<PlugFormErrors>(
             {
                 id,
@@ -55,12 +61,17 @@ export async function action({request}: ActionArgs) {
                 ip: !validated.ip.valid ? validated.ip.error : undefined,
                 username: !validated.username.valid ? validated.username.error : undefined,
                 password: !validated.password.valid ? validated.password.error : undefined,
+                room_id: !validated.roomId.valid ? validated.roomId.error : undefined,
             },
         );
     }
 
     const document: Omit<Plug, 'id'> = {
-        name: validated.name.data, ip: validated.ip.data, username: validated.username.data, password: validated.password.data,
+        name: validated.name.data,
+        ip: validated.ip.data,
+        username: validated.username.data,
+        password: validated.password.data,
+        room_id: validated.roomId.data,
     };
 
     if (!id) {
@@ -77,9 +88,11 @@ export const loader: LoaderFunction = async ({request}) => {
     await requireUserId(request);
 
     const plugs = await getPlugs();
+    const rooms = await getRooms();
 
     return json<ResponseData>({
         plugs,
+        rooms,
     });
 
 };
@@ -92,7 +105,7 @@ const Plugs = () => {
     const renderPlugs = (plugs: Plug[]) => {
         return plugs.map((plug) => {
             return (
-                <PlugForm key={plug.id} plug={plug}/>
+                <PlugForm key={plug.id} plug={plug} rooms={loaderData.rooms}/>
             );
         });
     };
@@ -104,7 +117,7 @@ const Plugs = () => {
             <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
             {
                 showNew &&
-                <PlugForm />
+                <PlugForm rooms={loaderData.rooms} />
             }
         </div>
     );

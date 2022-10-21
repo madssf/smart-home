@@ -7,8 +7,10 @@ use uuid::Uuid;
 use crate::db::rooms::RoomsClient;
 use crate::domain::Room;
 
-pub fn rooms() -> Scope {
+pub fn rooms(rooms_client: Arc<RoomsClient>) -> Scope {
+    let rooms_client = web::Data::new(rooms_client);
     web::scope("/rooms")
+        .app_data(rooms_client)
         .service(get_rooms)
         .service(create_room)
         .service(update_room)

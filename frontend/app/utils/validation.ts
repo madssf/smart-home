@@ -16,7 +16,8 @@ export const validateNonEmptyString = (str?: string): Validate<string> => {
 };
 
 export const validateNonEmptyList = (list?: string[]): Validate<string[]> => {
-    return (!!list && !list.some((element) => element.length === 0)) ? {valid: true, data: list} : {valid: false, error: 'Can\'t be empty'};
+    return (!!list && list.length !== 0 && !list.some((element) => element.length === 0)) ?
+        {valid: true, data: list} : {valid: false, error: 'Can\'t be empty'};
 };
 
 export const validateActionType = (str?: string): Validate<ActionType> => {
@@ -31,4 +32,15 @@ export const validateDateTime = (dateStr?: string, timeStr?: string): Validate<s
         return {valid: false, error: 'Date and time are required'};
     }
     return {valid: true, data: `${dateStr}T${timeStr}:00`};
+};
+
+export const validateTemp = (str?: string): Validate<number> => {
+    const num = Number(str);
+    if (Number.isNaN(num)) {
+        return {valid: false, error: 'Not a valid temperature'};
+    }
+    if (num < 1 || num > 30) {
+        return {valid: false, error: 'Temperature must be between 1 and 30 degrees'};
+    }
+    return {valid: true, data: num};
 };

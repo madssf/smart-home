@@ -3,16 +3,15 @@ export type Weekday = typeof WEEKDAYS[number]
 
 export const PRICE_LEVELS = ['CHEAP', 'NORMAL', 'EXPENSIVE'] as const;
 export type PriceLevel = typeof PRICE_LEVELS[number]
-export type NaiveTime = `${string}:${string}`
+export type NaiveTime = `${string}:${string}:${string}`
 
-export type TimeWindow = {
-    from: NaiveTime;
-    to: NaiveTime;
-}
+export type TimeWindow = [NaiveTime, NaiveTime]
 
 export interface Schedule {
     id: string;
-    priceLevel: PriceLevel;
+    price_level: PriceLevel;
     days: Weekday[];
-    hours: TimeWindow[],
+    time_windows: TimeWindow[],
+    room_ids: string[],
+    temp: number,
 }

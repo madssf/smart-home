@@ -28,6 +28,7 @@ export default function Index() {
                 Smart Home
             </Heading>
             <div className="flex flex-col ml-4">
+                <Link className="mt-2" href={routes.ROOMS.ROOT}>Rooms</Link>
                 <Link className="mt-2" href={routes.PLUGS.ROOT}>Plugs</Link>
                 <Link className="mt-2" href={routes.SCHEDULES.ROOT}>Schedules</Link>
                 <Link className="mt-2" href={routes.TEMP_ACTIONS.ROOT}>Temp actions</Link>

@@ -4,19 +4,24 @@ import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
-import {db} from "~/utils/firebase.server";
-import {collections} from "~/utils/firestoreUtils.server";
 import {useLoaderData} from "@remix-run/react";
 import {Button, Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
 import {validateActionType, validateDateTime, validateNonEmptyList} from "~/utils/validation";
-import type {Plug} from "~/routes/plugs/types/types";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
 import {piTriggerRefresh} from "~/utils/piHooks";
+import {
+    createTempAction,
+    deleteTempAction,
+    getTempActions,
+    updateTempAction,
+} from "~/routes/temp_actions/tempActions.server";
+import {getRooms} from "~/routes/rooms/rooms.server";
+import type {Room} from "~/routes/rooms/types";
 
 interface ResponseData {
     tempActions: TempAction[];
-    plugs: Plug[];
+    rooms: Room[];
 }
 
 export type TempActionErrors = FormErrors<TempAction>;
@@ -25,12 +30,12 @@ export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
     const body = await request.formData();
 
     const id = body.get("id")?.toString();
-    const plugIds = body.getAll("plugIds").map((plug_id) => plug_id.toString());
+    const roomIds = body.getAll("room_ids").map((room_id) => room_id.toString());
     const actionType = body.get("actionType")?.toString();
     const expiresAtDate = body.get("expiresAt-date")?.toString();
     const expiresAtTime = body.get("expiresAt-time")?.toString();
@@ -38,23 +43,23 @@ export async function action({request}: ActionArgs) {
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
-        await db.doc(`${collections.tempActions(userId)}/${id}`).delete().catch((e) => {throw Error("Something went wrong")});
+        await deleteTempAction(id!);
         await piTriggerRefresh();
         return redirect(routes.TEMP_ACTIONS.ROOT);
     }
 
     const validated = {
-        plugIds: validateNonEmptyList(plugIds),
+        roomIds: validateNonEmptyList(roomIds),
         actionType: validateActionType(actionType),
         expiresAt: validateDateTime(expiresAtDate, expiresAtTime),
     };
 
 
-    if (!validated.plugIds.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
+    if (!validated.roomIds.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
         return json<TempActionErrors>(
             {
                 id,
-                plug_ids: validated.plugIds.error,
+                room_ids: validated.roomIds.error,
                 action_type: validated.actionType.error,
                 expires_at: validated.expiresAt.error,
             },
@@ -63,13 +68,13 @@ export async function action({request}: ActionArgs) {
 
 
     const document: Omit<TempAction, 'id'> = {
-        plug_ids: validated.plugIds.data, action_type: validated.actionType.data, expires_at: validated.expiresAt.data,
+        room_ids: validated.roomIds.data, action_type: validated.actionType.data, expires_at: validated.expiresAt.data,
     };
 
     if (!id) {
-        await db.collection(collections.tempActions(userId)).add(document).catch((e) => {throw Error("Something went wrong")});
+        await createTempAction(document);
     } else {
-        await db.doc(`${collections.tempActions(userId)}/${id}`).set(document).catch((e) => {throw Error("Something went wrong")});
+        await updateTempAction({id, ...document});
     }
 
     await piTriggerRefresh();
@@ -79,31 +84,14 @@ export async function action({request}: ActionArgs) {
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const {userId} = await requireUserId(request);
+    await requireUserId(request);
 
-    const plugsRef = await db.collection(collections.plugs(userId)).get();
-    const plugs = plugsRef.docs.map((doc) => {
-        const data = doc.data();
-        // TODO: Validate and DRY from plugs
-        const plug: Plug = {
-            id: doc.id, name: data.name, ip: data.ip, username: data.username, password: data.password,
-        };
-        return plug;
-    });
-
-    const tempActionsRef = await db.collection(collections.tempActions(userId)).get();
-    const tempActions = tempActionsRef.docs.map((doc) => {
-        const data = doc.data();
-        // TODO: Validate
-        const tempAction: TempAction = {
-            id: doc.id, plug_ids: data.plug_ids, action_type: data.action_type, expires_at: data.expires_at,
-        };
-        return tempAction;
-    });
+    const rooms = await getRooms();
+    const tempActions = await getTempActions();
 
     return json<ResponseData>({
         tempActions,
-        plugs,
+        rooms,
     });
 
 };
@@ -113,10 +101,10 @@ const TempActions = () => {
     const loaderData = useLoaderData<ResponseData>();
     const [showNew, setShowNew] = useState(false);
 
-    const renderTempActions = (tempActions: TempAction[], plugs: Plug[]) => {
+    const renderTempActions = (tempActions: TempAction[], rooms: Room[]) => {
         return tempActions.map((tempAction) => {
             return (
-                <TempActionForm key={tempAction.id} tempAction={tempAction} plugs={plugs} />
+                <TempActionForm key={tempAction.id} tempAction={tempAction} rooms={rooms} />
             );
         });
     };
@@ -124,11 +112,11 @@ const TempActions = () => {
     return (
         <div>
             <Heading className="pb-4">Temporary actions</Heading>
-            {renderTempActions(loaderData.tempActions, loaderData.plugs)}
+            {renderTempActions(loaderData.tempActions, loaderData.rooms)}
             <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add temporary action'}</Button>
             {
                 showNew &&
-                <TempActionForm plugs={loaderData.plugs} />
+                <TempActionForm rooms={loaderData.rooms} />
             }
         </div>
     );

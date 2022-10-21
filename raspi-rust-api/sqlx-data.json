@@ -403,6 +403,19 @@
     },
     "query": "\n        INSERT INTO temp_actions (id, room_ids, action, expires_at)\n        VALUES ($1, $2, $3, $4)\n        "
   },
+  "dd973f01799dab5cb827be59886379fb69c49afc7495b52ffaa85035421a5e86": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            UPDATE rooms\n            SET name = $2\n            WHERE id = $1\n            "
+  },
   "e95e2975356867a750708b70980a93f58ab77f577cb22441fe4d2631271b38fc": {
     "describe": {
       "columns": [],
