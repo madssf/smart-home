@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
 
     let server = api::start(
         api_sender,
-        "0.0.0.0".to_string(),
+        configuration.application_host,
         configuration.application_port,
         db_clients.clone(),
     )

@@ -1,6 +1,6 @@
 
 export type NewRequest<T> = Omit<T, 'id'>
-export const BASE_URL = "http://raspi-rust-api:8080/";
+export const BASE_URL =  process.env.NODE_ENV === 'production' ? "http://raspi-rust-api:8080/" : "http://127.0.0.1:8080/";
 
 export async function getRequest<T>(endpoint: string): Promise<T> {
     const response = await fetch(

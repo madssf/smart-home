@@ -21,7 +21,7 @@ pub async fn start(
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
 
-    info!("Starting API");
+    info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
         App::new()
             .app_data(sender.clone())

@@ -1,3 +1,4 @@
+use log::info;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
 use crate::observability::{get_app_environment, Environment};
@@ -7,6 +8,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
+    pub application_host: String,
 }
 #[derive(serde::Deserialize, Debug)]
 pub struct DatabaseSettings {
@@ -23,6 +25,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let configuration_directory = base_path.join("configuration");
 
     let environment = get_app_environment();
+    info!("Detected environment: {}", environment);
 
     let environment_filename = format!("{}.yaml", environment.to_string().to_lowercase());
     let settings = config::Config::builder()

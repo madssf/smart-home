@@ -6,6 +6,8 @@ use actix_web::HttpResponse;
 use actix_web::Responder;
 use actix_web::Scope;
 use log::error;
+use uuid::Uuid;
+use web::Path;
 
 use crate::db::temperature_logs::TemperatureLogsClient;
 
@@ -14,6 +16,7 @@ pub fn temperature_logs(temp_logs_client: Arc<TemperatureLogsClient>) -> Scope {
     web::scope("/temperature_logs")
         .app_data(temp_logs_client)
         .service(get_temperature_logs)
+        .service(get_room_temperature_logs)
 }
 
 #[get("/")]
@@ -21,6 +24,24 @@ async fn get_temperature_logs(
     temperature_logs_client: web::Data<Arc<TemperatureLogsClient>>,
 ) -> impl Responder {
     match temperature_logs_client.get_ref().get_temp_logs().await {
+        Ok(logs) => HttpResponse::Ok().json(logs),
+        Err(e) => {
+            error!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
+#[get("/{room_id}")]
+async fn get_room_temperature_logs(
+    room_id: Path<Uuid>,
+    temperature_logs_client: web::Data<Arc<TemperatureLogsClient>>,
+) -> impl Responder {
+    match temperature_logs_client
+        .get_ref()
+        .get_room_temp_logs(&room_id.into_inner())
+        .await
+    {
         Ok(logs) => HttpResponse::Ok().json(logs),
         Err(e) => {
             error!("{:?}", e);

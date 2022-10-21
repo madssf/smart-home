@@ -48,6 +48,9 @@ const RoomForm = ({room}: RoomFormProps) => {
                     <Text color="tomato">{errors.name}</Text>
                 }
             </div>
+            {room?.id &&
+                <p className="text-sm text-gray-400">{room.id}</p>
+            }
             <div className="mt-1">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
                         disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>

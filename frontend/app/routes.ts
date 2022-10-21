@@ -14,5 +14,6 @@ export const routes = {
     },
     TEMP_LOG: {
         ROOT: '/temp_log',
+        ROOM_ID: (room_id: string) => `/temp_log/${room_id}`,
     },
 };

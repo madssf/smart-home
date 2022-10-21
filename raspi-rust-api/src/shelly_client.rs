@@ -72,7 +72,7 @@ pub async fn execute_action(
         "http://{}:{}@{}/relay/0/command?turn={}",
         plug.username,
         plug.password,
-        plug.ip,
+        plug.ip.ip(),
         action.to_string().to_lowercase(),
     );
 

@@ -19,6 +19,22 @@ struct TemperatureLogEntity {
     time: NaiveDateTime,
 }
 
+fn to_domain(entities: Vec<TemperatureLogEntity>) -> Result<Vec<TemperatureLog>, DbError> {
+    entities
+        .iter()
+        .map(|entity| {
+            Ok(TemperatureLog {
+                room_id: entity.room_id,
+                time: entity.time,
+                temp: entity.temp.to_f64().context(format!(
+                    "Failed to parse floating point number: {}",
+                    entity.temp
+                ))?,
+            })
+        })
+        .collect()
+}
+
 impl TemperatureLogsClient {
     pub fn new(db_config: DbConfig) -> Self {
         Self { db_config }
@@ -29,19 +45,19 @@ impl TemperatureLogsClient {
             .fetch_all(&self.db_config.pool)
             .await?;
 
-        entities
-            .iter()
-            .map(|entity| {
-                Ok(TemperatureLog {
-                    room_id: entity.room_id,
-                    time: entity.time,
-                    temp: entity.temp.to_f64().context(format!(
-                        "Failed to parse floating point number: {}",
-                        entity.temp
-                    ))?,
-                })
-            })
-            .collect()
+        to_domain(entities)
+    }
+
+    pub async fn get_room_temp_logs(&self, room_id: &Uuid) -> Result<Vec<TemperatureLog>, DbError> {
+        let entities = sqlx::query_as!(
+            TemperatureLogEntity,
+            "SELECT * FROM temperature_logs WHERE room_id = $1",
+            room_id
+        )
+        .fetch_all(&self.db_config.pool)
+        .await?;
+
+        to_domain(entities)
     }
 
     pub async fn get_current_temps(&self, rooms: Vec<Room>) -> Result<HashMap<Uuid, f64>, DbError> {

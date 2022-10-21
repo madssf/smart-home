@@ -3,5 +3,5 @@ export const apiRoutes = {
     plugs: 'plugs/',
     schedules: 'schedules/',
     temp_actions: 'temp_actions/',
-    temperature_logs: 'temperature_logs/',
+    temperature_logs: (room_id: string) => `temperature_logs/${room_id}`,
 };

@@ -143,12 +143,15 @@ impl WorkHandler {
             .get_current_temps(rooms.clone())
             .await?;
 
+        info!("Current temperatures: {:?}", &current_temps);
+
         for room in rooms {
             let room_actions: Vec<&TempAction> = temp_actions
                 .iter()
                 .filter(|a| a.room_ids.contains(&room.id))
                 .sorted_by(|a, b| Ord::cmp(&a.expires_at, &b.expires_at))
                 .collect();
+
             let action = if let Some(action) = room_actions.first() {
                 action.action_type
             } else {
