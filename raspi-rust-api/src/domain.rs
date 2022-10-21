@@ -2,12 +2,12 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use chrono::{NaiveDateTime, NaiveTime, Weekday};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::types::ipnetwork::IpNetwork;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
-#[derive(Debug, EnumString, Display, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, EnumString, Display, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum PriceLevel {
     CHEAP,
     NORMAL,
@@ -49,7 +49,7 @@ impl Plug {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Schedule {
     pub id: Uuid,
     pub price_level: PriceLevel,
@@ -78,13 +78,13 @@ impl Schedule {
     }
 }
 
-#[derive(EnumString, Display, Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(EnumString, Display, Deserialize, Serialize, Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ActionType {
     ON,
     OFF,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct TempAction {
     pub id: Uuid,
     pub room_ids: Vec<Uuid>,
@@ -95,20 +95,19 @@ pub struct TempAction {
 impl TempAction {
     pub fn new(
         expires_at: &NaiveDateTime,
-        action_type: &str,
+        action_type: &ActionType,
         room_ids: Vec<Uuid>,
     ) -> Result<Self, anyhow::Error> {
         Ok(TempAction {
             id: Uuid::new_v4(),
             room_ids,
-            action_type: ActionType::from_str(action_type)
-                .context(format!("Could not parse as Action: {}", action_type))?,
+            action_type: *action_type,
             expires_at: *expires_at,
         })
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TemperatureLog {
     pub room_id: Uuid,
     pub time: NaiveDateTime,

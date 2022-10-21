@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     let schedules_client = Arc::new(SchedulesClient::new(db_config.clone()));
     let temp_actions_client = Arc::new(TempActionsClient::new(db_config.clone()));
     let temperature_logs_client = Arc::new(TemperatureLogsClient::new(db_config.clone()));
-    let shelly_client = ShellyClient::new();
+    let shelly_client = ShellyClient::default();
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
 
@@ -52,6 +52,9 @@ async fn main() -> std::io::Result<()> {
         api_sender,
         configuration.application_port,
         plugs_client.clone(),
+        schedules_client.clone(),
+        temp_actions_client.clone(),
+        temperature_logs_client.clone(),
     )
     .await
 }

@@ -8,25 +8,45 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::db::plugs::PlugsClient;
+use crate::db::schedules::SchedulesClient;
+use crate::db::temp_actions::TempActionsClient;
+use crate::db::temperature_logs::TemperatureLogsClient;
 use crate::domain::WorkMessage;
 use crate::routes::plugs::plugs;
+use crate::routes::rooms::rooms;
+use crate::routes::schedules::schedules;
+use crate::routes::temp_actions::temp_actions;
+use crate::routes::temperature_logs::temperature_logs;
 
 pub async fn start(
     sender: Sender<WorkMessage>,
     port: u16,
     plugs_client: Arc<PlugsClient>,
+    schedules_client: Arc<SchedulesClient>,
+    temp_actions_client: Arc<TempActionsClient>,
+    temperature_logs_client: Arc<TemperatureLogsClient>,
 ) -> Result<()> {
     let sender = web::Data::new(sender);
     let plugs_client = web::Data::new(plugs_client);
+    let schedules_client = web::Data::new(schedules_client);
+    let temp_actions_client = web::Data::new(temp_actions_client);
+    let temperature_logs_client = web::Data::new(temperature_logs_client);
     info!("Starting API");
     HttpServer::new(move || {
         App::new()
             .app_data(sender.clone())
             .app_data(plugs_client.clone())
+            .app_data(schedules_client.clone())
+            .app_data(temp_actions_client.clone())
+            .app_data(temperature_logs_client.clone())
             .service(refresh)
             .service(health)
             .service(report_temp)
             .service(plugs())
+            .service(rooms())
+            .service(schedules())
+            .service(temp_actions())
+            .service(temperature_logs())
     })
     .shutdown_timeout(1)
     .bind(("0.0.0.0", port))

@@ -7,24 +7,24 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4.2.1"
-chrono = "0.4.22"
-chrono-tz = "0.6.3"
-env_logger = "0.9.1"
-log = "0.4.17"
-reqwest = "0.11.11"
-serde = { version = "1.0.144", features = ["derive"] }
-serde_json = "1.0.85"
-strum = "0.24.1"
-strum_macros = "0.24.3"
-thiserror = "1.0.37"
-tibber = "0.4.0"
-tokio = { version = "1.21.1", features = ["time", "macros"] }
+actix-web = "4.2"
+chrono = {version = "0.4", features = ["serde"] }
+chrono-tz = "0.6"
+env_logger = "0.9"
+log = "0.4"
+reqwest = "0.11"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+strum = "0.24"
+strum_macros = "0.24"
+thiserror = "1.0"
+tibber = "0.4"
+tokio = { version = "1.21", features = ["time", "macros"] }
 config = "0.13"
 uuid = {version ="1.2", features = ["v4", "serde"] }
 anyhow = "1.0"
 serde-aux = "4.0"
-bigdecimal = "0.3.0"
+bigdecimal = "0.3"
 
 [dependencies.sqlx]
 version = "0.6"

@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
-use log::{error, info};
+use log::error;
 use sqlx::types::ipnetwork::IpNetwork;
 use uuid::Uuid;
 
@@ -19,7 +19,6 @@ pub fn plugs() -> Scope {
 
 #[get("/")]
 async fn get_plugs(plugs_client: web::Data<Arc<PlugsClient>>) -> impl Responder {
-    info!("plugs");
     match plugs_client.get_ref().get_plugs().await {
         Ok(plugs) => {
             let json: Vec<PlugResponse> = plugs.iter().map(|plug| plug.to_json()).collect();
@@ -89,13 +88,9 @@ async fn create_plug(
 #[post("/{id}")]
 async fn update_plug(
     plugs_client: web::Data<Arc<PlugsClient>>,
-    id: web::Path<String>,
+    id: web::Path<Uuid>,
     body: web::Json<PlugRequest>,
 ) -> impl Responder {
-    let id = match Uuid::from_str(&id.into_inner()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
     let ip = match IpNetwork::from_str(&body.ip) {
         Ok(ip) => ip,
         Err(_) => return HttpResponse::BadRequest().finish(),
@@ -104,7 +99,7 @@ async fn update_plug(
     match plugs_client
         .get_ref()
         .update_plug(Plug {
-            id,
+            id: id.into_inner(),
             ip,
             name: body.name.clone(),
             username: body.username.clone(),
@@ -113,7 +108,7 @@ async fn update_plug(
         })
         .await
     {
-        Ok(plugs) => HttpResponse::Ok().json(plugs),
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
@@ -121,13 +116,9 @@ async fn update_plug(
 #[delete("/{id}")]
 async fn delete_plug(
     plugs_client: web::Data<Arc<PlugsClient>>,
-    id: web::Path<String>,
+    id: web::Path<Uuid>,
 ) -> impl Responder {
-    let uuid = match Uuid::from_str(&id.into_inner()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-    match plugs_client.get_ref().delete_plug(&uuid).await {
+    match plugs_client.get_ref().delete_plug(&id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

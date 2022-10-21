@@ -10,6 +10,12 @@ pub struct ShellyClient {
     pub client: Client,
 }
 
+impl Default for ShellyClient {
+    fn default() -> Self {
+        ShellyClient::new()
+    }
+}
+
 impl ShellyClient {
     pub fn new() -> Self {
         let client = Client::builder()

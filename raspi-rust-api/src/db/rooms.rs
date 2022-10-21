@@ -38,6 +38,22 @@ impl RoomsClient {
         Ok(())
     }
 
+    pub async fn update_room(&self, room: &Room) -> Result<(), DbError> {
+        sqlx::query!(
+            r#"
+            UPDATE rooms
+            SET name = $2
+            WHERE id = $1
+            "#,
+            room.id,
+            room.name,
+        )
+        .execute(&self.db_config.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn delete_room(&self, id: &Uuid) -> Result<(), DbError> {
         sqlx::query!(
             r#"

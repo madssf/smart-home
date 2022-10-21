@@ -97,9 +97,9 @@ impl WorkHandler {
         let now = tz.from_utc_datetime(&utc).naive_local();
         self.temperature_logs_client
             .create_temp_log(TemperatureLog {
-                room_id: room_id.clone(),
+                room_id: *room_id,
                 time: now,
-                temp: temp.clone(),
+                temp: *temp,
             })
             .await?;
 

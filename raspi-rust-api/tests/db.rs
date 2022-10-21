@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use configuration::DatabaseTestConfig;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
-use rust_home::domain::{ActionType, Plug, PriceLevel, Schedule, TempAction, TemperatureLog};
+use rust_home::domain::{ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog};
 
 mod configuration;
 
@@ -33,7 +33,7 @@ fn schedule(room_ids: Vec<Uuid>) -> Schedule {
 fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
     TempAction::new(
         &NaiveDateTime::from_timestamp(1666291743, 0),
-        "ON",
+        &ActionType::ON,
         room_ids,
     )
     .expect("Failed to create temp_action")
@@ -48,7 +48,7 @@ fn temperature_log(room_id: Uuid) -> TemperatureLog {
 }
 
 #[tokio::test]
-async fn can_create_room() {
+async fn rooms() {
     let docker = Cli::default();
 
     let test_config = DatabaseTestConfig::new(&docker).await;
@@ -62,7 +62,19 @@ async fn can_create_room() {
 
     let result_room = result[0].clone();
 
-    assert_eq!(result_room.name, "test_room")
+    assert_eq!(result_room.name, "test_room");
+
+    rooms_client
+        .update_room(&Room {
+            id: result_room.id,
+            name: "test2".to_string(),
+        })
+        .await
+        .expect("Couldn't update room");
+
+    let result = rooms_client.get_rooms().await.expect("Can't get rooms");
+    let result_room = result[0].clone();
+    assert_eq!(result_room.name, "test2");
 }
 
 #[tokio::test]
@@ -92,6 +104,10 @@ async fn can_insert_plug() {
     let result_plug = result[0].clone();
 
     assert_eq!(result_plug, new_plug);
+
+    let should_fail = rooms_client.delete_room(&room_id).await;
+
+    assert!(should_fail.is_err())
 }
 
 #[tokio::test]
