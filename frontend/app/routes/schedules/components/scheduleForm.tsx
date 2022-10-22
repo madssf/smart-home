@@ -24,6 +24,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     const formRef = useRef<HTMLFormElement>(null);
 
     const [errors, setErrors] = useState<ScheduleFormErrors | null>(null);
+    const defaultTimeWindow: TimeWindow = ["16:00:00", "20:00:00"];
 
     useEffect(() => {
         if (actionData && !schedule && !actionData.id) {
@@ -39,7 +40,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
         if (!isCreating || !isUpdating) {
             formRef.current?.reset();
         }
-        setHoursList(schedule?.time_windows ?? []);
+        setHoursList(schedule?.time_windows ?? [defaultTimeWindow]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [transition]);
 
@@ -52,7 +53,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     };
 
     const addTimeWindow = () => {
-        setHoursList((prev) => prev.concat([["01:00:00", "02:00:00"]]));
+        setHoursList((prev) => prev.concat([defaultTimeWindow]));
     };
 
     return (
@@ -122,8 +123,8 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold">Temperature</label>
-                <Input type="number" min="1" max="30" step="1" name="temp" defaultValue={schedule?.temp}/>
+                <label className="font-bold mr-1">Temperature</label>
+                <Input style={{width: "150px"}} type="number" min="1" max="30" step="1" name="temp" defaultValue={schedule?.temp}/>
                 {
                     !!errors?.temp &&
                     <Text color="tomato">{errors.temp}</Text>
@@ -136,11 +137,15 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 <div className="ml-2 mb-1">
                     {
                         (hoursList).map((window, i) => {
-                            return <TimeForm key={i} window={window} handleRemove={() => handleRemoveTimeWindow(window)}/>;
+                            return <TimeForm
+                                key={i}
+                                window={window}
+                                handleRemove={() => handleRemoveTimeWindow(window)}
+                                handleAdd={i === hoursList.length - 1 ? () => addTimeWindow() : undefined}
+                            />;
                         })
                     }
                 </div>
-                <Button className="mb-1" size="sm" type="button" onClick={() => addTimeWindow()}>Add time window</Button>
                 </>
             }
                 {

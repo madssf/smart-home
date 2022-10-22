@@ -3,15 +3,14 @@ import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {requireUserId} from "~/utils/sessions.server";
 import {useLoaderData, useNavigate, useParams, useSearchParams} from "@remix-run/react";
-import {Line, LineChart, Tooltip, XAxis} from 'recharts';
+import {Line, LineChart, Tooltip, XAxis, YAxis} from 'recharts';
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
 import {Button} from "@chakra-ui/react";
 import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import {getRoomTemperatureLogs} from "~/routes/temp_log/temp_log.server";
+import {getNow} from "~/utils/time";
 
 type DatasetEntry = {timeString: string, temp: number}
 
@@ -42,17 +41,14 @@ export const loader: LoaderFunction = async ({request, params}) => {
 
     const tempLogs = await getRoomTemperatureLogs(room_id);
 
-    dayjs.extend(utc);
-    dayjs.extend(timezone);
-    const tz = process.env.TIMEZONE!;
-    const now = dayjs().tz(tz);
+    const now = getNow();
 
     const generateDataset = () => {
         const temps = tempLogs
             .map((entry) => {
                 return {
                     temp: entry.temp,
-                    time: dayjs(entry.time).tz(tz, true),
+                    time: dayjs(entry.time).tz(process.env.TIMEZONE, true),
                 };
             });
 
@@ -149,6 +145,9 @@ const TempLog = () => {
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const domainMin = Math.round(loaderData.dataset.reduce((a, b) => b.temp < a ? b.temp : a, Infinity)) - 3;
+    const domainMax = Math.round(loaderData.dataset.reduce((a, b) => b.temp > a ? b.temp : a, 0)) + 3;
+
 
     return (
         <div className="mt-4">
@@ -171,11 +170,15 @@ const TempLog = () => {
             </div>
             <div className="flex justify-center">
                 <ClientOnly>
-                    {() => <LineChart width={350} height={200} data={loaderData.dataset}>
-                        <Line type="monotone" dataKey={'temp'} stroke="#8884d8" />
-                        <XAxis dataKey="timeString" />
-                        <Tooltip />
-                    </LineChart>}
+                    {() =>
+                        <LineChart margin={{bottom: 40}} width={380} height={300} data={loaderData.dataset}>
+                            <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
+                            <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="timeString" tick={<CustomizedAxisTick />} />
+                            <YAxis type="number" padding={{bottom: 40}} mirror domain={[domainMin, domainMax]} />
+
+                            <Tooltip />
+                        </LineChart>
+                            }
                 </ClientOnly>
             </div>
 
@@ -183,5 +186,19 @@ const TempLog = () => {
         </div>
     );
 };
+
+
+function CustomizedAxisTick({ x, y, stroke, payload }: any) {
+
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <text x={12} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)">
+                {payload.value}
+            </text>
+        </g>
+    );
+
+}
+
 
 export default TempLog;

@@ -145,7 +145,7 @@ export default function App() {
                         )}`,
                     }}
                 />
-                <div className="mx-1 pb-8">
+                <div className="mx-3 pb-8">
                     <Outlet />
                 </div>
             </ChakraProvider>

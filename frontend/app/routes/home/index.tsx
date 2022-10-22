@@ -21,20 +21,18 @@ export const loader: LoaderFunction = async ({request}) => {
 
 export default function Index() {
 
-
     return (
         <div>
             <Heading className="flex justify-center">
                 Smart Home
             </Heading>
-            <div className="flex flex-col ml-4">
-                <Link className="mt-2" href={routes.ROOMS.ROOT}>Rooms</Link>
-                <Link className="mt-2" href={routes.PLUGS.ROOT}>Plugs</Link>
-                <Link className="mt-2" href={routes.SCHEDULES.ROOT}>Schedules</Link>
-                <Link className="mt-2" href={routes.TEMP_ACTIONS.ROOT}>Temp actions</Link>
-                <Link className="mt-2" href={routes.TEMP_LOG.ROOT}>Temperature log</Link>
+            <div className="flex flex-col ml-4 mt-4">
+                <Link className="my-2 text-xl" href={routes.ROOMS.ROOT}>Rooms</Link>
+                <Link className="my-2 text-xl" href={routes.PLUGS.ROOT}>Plugs</Link>
+                <Link className="my-2 text-xl" href={routes.SCHEDULES.ROOT}>Schedules</Link>
+                <Link className="my-2 text-xl" href={routes.TEMP_ACTIONS.ROOT}>Temp actions</Link>
+                <Link className="my-2 text-xl" href={routes.TEMP_LOG.ROOT}>Temperature log</Link>
             </div>
-
         </div>
     );
 }
