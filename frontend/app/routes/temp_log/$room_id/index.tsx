@@ -171,7 +171,7 @@ const TempLog = () => {
             <div className="flex justify-center">
                 <ClientOnly>
                     {() =>
-                        <LineChart margin={{bottom: 40}} width={380} height={300} data={loaderData.dataset}>
+                        <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
                             <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
                             <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="timeString" tick={<CustomizedAxisTick />} />
                             <YAxis type="number" padding={{bottom: 40}} mirror domain={[domainMin, domainMax]} />
