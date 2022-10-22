@@ -1,26 +1,56 @@
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use std::ops::{Add, Sub};
+
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use testcontainers::clients::Cli;
 use tokio::sync::mpsc;
+use wiremock::matchers::any;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use rust_home::db::DbClients;
-use rust_home::domain::{PriceLevel, WorkMessage};
+use rust_home::db::{DbClients, DbConfig};
+use rust_home::domain::{
+    ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog, WorkMessage,
+};
 use rust_home::prices::PriceInfo;
 use rust_home::shelly_client::ShellyClient;
-use rust_home::work_handler;
+use rust_home::work_handler::WorkHandler;
 
 use crate::configuration::DatabaseTestConfig;
 
 mod configuration;
+
+async fn setup(
+    db_config: &DbConfig,
+    num_rooms: u32,
+    shelly_port: Option<u16>,
+) -> (WorkHandler, Vec<Room>) {
+    let shelly_client = if let Some(shelly_port) = shelly_port {
+        ShellyClient::new_with_port(shelly_port)
+    } else {
+        ShellyClient::default()
+    };
+
+    let db_clients = DbClients::new(db_config);
+    let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
+    let handler = WorkHandler::new(shelly_client, sender.clone(), receiver, db_config);
+    let rooms_client = db_clients.rooms.clone();
+    for i in 0..num_rooms {
+        rooms_client
+            .create_room(&format!("test_room_{}", i))
+            .await
+            .expect("Failed to create room");
+    }
+
+    let rooms = rooms_client.get_rooms().await.expect("Failed to get rooms");
+    (handler, rooms)
+}
 
 #[tokio::test]
 async fn starts() {
     let shelly_client = ShellyClient::default();
     let docker = Cli::default();
     let test_config = DatabaseTestConfig::new(&docker).await;
-    let db_clients = DbClients::new(&test_config.db_config);
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
-    let handler =
-        work_handler::WorkHandler::new(shelly_client, sender, receiver, db_clients.clone());
+    let handler = WorkHandler::new(shelly_client, sender, receiver, &test_config.db_config);
 
     let price_info = PriceInfo {
         amount: 0.0,
@@ -39,23 +69,14 @@ async fn starts() {
 
 #[tokio::test]
 async fn handles_temp_log() {
-    let shelly_client = ShellyClient::default();
     let docker = Cli::default();
     let test_config = DatabaseTestConfig::new(&docker).await;
-    let db_clients = DbClients::new(&test_config.db_config);
-    let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
-    let handler =
-        work_handler::WorkHandler::new(shelly_client, sender.clone(), receiver, db_clients.clone());
+    let (handler, rooms) = setup(&test_config.db_config, 1, None).await;
 
-    let rooms_client = db_clients.rooms.clone();
-    rooms_client
-        .create_room("test")
-        .await
-        .expect("Failed to create room");
-    let rooms = rooms_client.get_rooms().await.expect("Failed to get rooms");
+    let db_clients = DbClients::new(&test_config.db_config);
     let room_id = rooms[0].id;
     handler
-        .temp_handler(&room_id, &20.0, sender.clone())
+        .temp_handler(&room_id, &20.0)
         .await
         .expect("Temp handler failed");
     let temp_logs_client = db_clients.temperature_logs.clone();
@@ -66,4 +87,198 @@ async fn handles_temp_log() {
     assert_eq!(temp_logs.len(), 1);
     assert_eq!(temp_logs[0].temp, 20.0);
     assert_eq!(temp_logs[0].room_id, room_id);
+}
+
+#[tokio::test]
+async fn temp_actions_work() {
+    let docker = Cli::default();
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let mock_server = MockServer::start().await;
+
+    let mock_ip = mock_server.address().ip().to_string();
+    let mock_port = mock_server.address().port();
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
+    let db_clients = DbClients::new(&test_config.db_config);
+    let now = NaiveDateTime::new(
+        NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+
+    db_clients
+        .temperature_logs
+        .create_temp_log(TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 19.0,
+            time: now.sub(Duration::minutes(30)),
+        })
+        .await
+        .expect("Failed to create temp log");
+
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+        .expect("Couldnt create plug");
+    db_clients
+        .plugs
+        .create_plug(new_plug)
+        .await
+        .expect("Couldnt insert plug");
+
+    let schedule = Schedule::new(
+        &PriceLevel::NORMAL,
+        vec![Weekday::Mon],
+        vec![(
+            NaiveTime::from_hms(00, 00, 00),
+            NaiveTime::from_hms(12, 0, 0),
+        )],
+        20.0,
+        vec![rooms[0].id],
+    )
+    .expect("Couldnt create schedule");
+
+    db_clients
+        .schedules
+        .create_schedule(schedule)
+        .await
+        .expect("Could insert schedule");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                level: PriceLevel::NORMAL,
+                amount: 20.0,
+                currency: "USD".to_string(),
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=on");
+    mock_server.reset().await;
+
+    db_clients
+        .temp_actions
+        .create_temp_action(
+            TempAction::new(
+                &now.add(Duration::hours(1)),
+                &ActionType::OFF,
+                vec![rooms[0].id],
+            )
+            .expect("Failed to create temp action"),
+        )
+        .await
+        .expect("Failed to insert temp action");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                level: PriceLevel::NORMAL,
+                amount: 20.0,
+                currency: "USD".to_string(),
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
+}
+
+#[tokio::test]
+async fn temp_actions_overridden_by_existing_schedule_temp() {
+    let docker = Cli::default();
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let mock_server = MockServer::start().await;
+
+    let mock_ip = mock_server.address().ip().to_string();
+    let mock_port = mock_server.address().port();
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
+    let db_clients = DbClients::new(&test_config.db_config);
+    let now = NaiveDateTime::new(
+        NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+
+    db_clients
+        .temperature_logs
+        .create_temp_log(TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 21.0,
+            time: now.sub(Duration::minutes(30)),
+        })
+        .await
+        .expect("Failed to create temp log");
+
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+        .expect("Couldnt create plug");
+    db_clients
+        .plugs
+        .create_plug(new_plug)
+        .await
+        .expect("Couldnt insert plug");
+
+    let schedule = Schedule::new(
+        &PriceLevel::NORMAL,
+        vec![Weekday::Mon],
+        vec![(
+            NaiveTime::from_hms(00, 00, 00),
+            NaiveTime::from_hms(12, 0, 0),
+        )],
+        20.0,
+        vec![rooms[0].id],
+    )
+    .expect("Couldnt create schedule");
+
+    db_clients
+        .schedules
+        .create_schedule(schedule)
+        .await
+        .expect("Could insert schedule");
+
+    db_clients
+        .temp_actions
+        .create_temp_action(
+            TempAction::new(
+                &now.add(Duration::hours(1)),
+                &ActionType::ON,
+                vec![rooms[0].id],
+            )
+            .expect("Failed to create temp action"),
+        )
+        .await
+        .expect("Failed to insert temp action");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                level: PriceLevel::NORMAL,
+                amount: 20.0,
+                currency: "USD".to_string(),
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
 }

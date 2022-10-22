@@ -1,7 +1,7 @@
 use log::info;
 use tokio::sync::mpsc;
 
-use rust_home::db::{DbClients, DbConfig};
+use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
 use rust_home::shelly_client::ShellyClient;
 use rust_home::{api, configuration::get_configuration, work_handler, work_handler::WorkHandler};
@@ -15,14 +15,11 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
-    let db_clients = DbClients::new(&db_config);
-
     let shelly_client = ShellyClient::default();
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
 
-    let work_handler =
-        WorkHandler::new(shelly_client, sender.clone(), receiver, db_clients.clone());
+    let work_handler = WorkHandler::new(shelly_client, sender.clone(), receiver, &db_config);
 
     let poll_sender = sender.clone();
     let api_sender = sender.clone();
@@ -34,7 +31,7 @@ async fn main() -> std::io::Result<()> {
         api_sender,
         configuration.application_host,
         configuration.application_port,
-        db_clients.clone(),
+        &db_config,
     )
     .await?;
 

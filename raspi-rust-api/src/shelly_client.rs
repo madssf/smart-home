@@ -8,6 +8,7 @@ use crate::domain::{ActionType, Plug};
 
 pub struct ShellyClient {
     pub client: Client,
+    port_suffix: Option<u16>,
 }
 
 impl Default for ShellyClient {
@@ -23,7 +24,62 @@ impl ShellyClient {
             .build()
             .expect("Failed to create client");
 
-        ShellyClient { client }
+        ShellyClient {
+            client,
+            port_suffix: None,
+        }
+    }
+
+    pub fn new_with_port(port_suffix: u16) -> Self {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("Failed to create client");
+
+        ShellyClient {
+            client,
+            port_suffix: Some(port_suffix),
+        }
+    }
+
+    pub async fn get_status(&self, plug: &Plug) -> Result<f64, ShellyClientError> {
+        let host_and_port = match self.port_suffix {
+            None => format!("{}", plug.ip.ip()),
+            Some(port) => format!("{}:{}", plug.ip.ip(), port),
+        };
+        let url = format!(
+            "http://{}:{}@{}/meter/0",
+            plug.username, plug.password, host_and_port
+        );
+        let resp = self
+            .client
+            .get(url)
+            .send()
+            .await?
+            .json::<PlugStatus>()
+            .await?;
+        Ok(resp.power)
+    }
+
+    pub async fn execute_action(
+        &self,
+        plug: &Plug,
+        action: &ActionType,
+    ) -> Result<(), ShellyClientError> {
+        let host_and_port = match self.port_suffix {
+            None => format!("{}", plug.ip.ip()),
+            Some(port) => format!("{}:{}", plug.ip.ip(), port),
+        };
+        let url = format!(
+            "http://{}:{}@{}/relay/0/command?turn={}",
+            plug.username,
+            plug.password,
+            host_and_port,
+            action.to_string().to_lowercase(),
+        );
+
+        self.client.get(url).send().await?.text().await?;
+        Ok(())
     }
 }
 
@@ -43,39 +99,4 @@ pub struct PlugStatus {
     counters: Vec<f32>,
     total: i32,
      */
-}
-
-pub async fn get_status(
-    shelly_client: &ShellyClient,
-    plug: &Plug,
-) -> Result<f64, ShellyClientError> {
-    let url = format!(
-        "http://{}:{}@{}/meter/0",
-        plug.username, plug.password, plug.ip
-    );
-    let resp = shelly_client
-        .client
-        .get(url)
-        .send()
-        .await?
-        .json::<PlugStatus>()
-        .await?;
-    Ok(resp.power)
-}
-
-pub async fn execute_action(
-    shelly_client: &ShellyClient,
-    plug: &Plug,
-    action: &ActionType,
-) -> Result<(), ShellyClientError> {
-    let url = format!(
-        "http://{}:{}@{}/relay/0/command?turn={}",
-        plug.username,
-        plug.password,
-        plug.ip.ip(),
-        action.to_string().to_lowercase(),
-    );
-
-    shelly_client.client.get(url).send().await?.text().await?;
-    Ok(())
 }

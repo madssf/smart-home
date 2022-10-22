@@ -5,7 +5,7 @@ use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use crate::db::DbClients;
+use crate::db::{DbClients, DbConfig};
 use crate::domain::WorkMessage;
 use crate::routes::plugs::plugs;
 use crate::routes::rooms::rooms;
@@ -17,10 +17,10 @@ pub async fn start(
     sender: Sender<WorkMessage>,
     host: String,
     port: u16,
-    db_clients: DbClients,
+    db_config: &DbConfig,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
-
+    let db_clients = DbClients::new(db_config);
     info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
         App::new()

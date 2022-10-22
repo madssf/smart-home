@@ -7,9 +7,24 @@
 - Raspberry Pi connected to network with static IP and the following installed:
   - SSH keys
   - Docker
+  - Cloudflared (for hosting on the web using a tunnel, see [guide to running cloudflared as a service](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/local/))
 
-### Running this
+### Setup
 
+#### Environment variables
+  - `.env.db`
+```
+POSTGRES_DB=<replace me>
+POSTGRES_USER=<replace me>
+POSTGRES_PASSWORD=<replace me>
+```
+- `raspi-rust-api/`: See [separate README](raspi-rust-api/README.md)
+- `frontend/`: See [separate README](frontend/README.md)
+
+### Running
+
+- Optional: If SQL queries/tables have been edited:
+`cd raspi-rust-api && cargo sqlx prepare`
 - From another machine:
   `sh transfer.sh`
 - On the Raspberry Pi (user root directory):
