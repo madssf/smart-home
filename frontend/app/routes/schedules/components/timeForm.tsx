@@ -14,9 +14,9 @@ const TimeForm = ({window, handleRemove, handleAdd}: TimeFormProps) => {
         <>
             <div className="flex flex-row items-baseline">
                 <label className="mr-1">From</label>
-                <input type='time' name="from" defaultValue={window[0].slice(0, 5)}/>
+                <input className="w-20" type='time' name="from" defaultValue={window[0].slice(0, 5)}/>
                 <label className="mx-1">To</label>
-                <input type='time' name="to" defaultValue={window[1].slice(0, 5)}/>
+                <input className="w-20" type='time' name="to" defaultValue={window[1].slice(0, 5)}/>
                 <Button className="mx-1" size="sm" variant="outline" type="button" onClick={() => {
                     handleRemove();
                 }}>

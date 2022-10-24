@@ -8,6 +8,8 @@ export interface IndexData {
     idToken?: string
 }
 
+export const handle = {hydrate: true};
+
 export const loader: LoaderFunction = async ({request}) => {
     const {idToken} = await getSessionData(request);
 

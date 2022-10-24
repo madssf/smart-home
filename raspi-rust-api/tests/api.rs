@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use actix_web::dev::Server;
 use testcontainers::clients::Cli;
 use tokio::sync::mpsc;
 
 use rust_home::api::start;
 use rust_home::domain::WorkMessage;
+use rust_home::prices::TibberClient;
 
 use crate::configuration::DatabaseTestConfig;
 
@@ -14,11 +17,13 @@ async fn spawn_api() -> Server {
 
     let (sender, _) = mpsc::channel::<WorkMessage>(32);
     let test_config = DatabaseTestConfig::new(&docker).await;
+    let tibber_client = Arc::new(TibberClient::new("dummy_token".to_string()));
 
     start(
         sender.clone(),
         "127.0.0.1".to_string(),
         8080,
+        tibber_client,
         &test_config.db_config,
     )
     .await

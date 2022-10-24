@@ -1,37 +1,43 @@
 import {requireUserId} from "~/utils/sessions.server";
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {Heading, Link} from "@chakra-ui/react";
-import {routes} from "~/routes";
+import {Heading} from "@chakra-ui/react";
+import {getCurrentPrice} from "~/routes/home/home.server";
+import {useLoaderData} from "@remix-run/react";
+import type {Price} from "./types";
+import {pageLinks} from "~/components/pageLinks";
 
 interface ResponseData {
-    name: string;
+    price: Price;
 }
 
+export const handle = {hydrate: true};
 
 export const loader: LoaderFunction = async ({request}) => {
 
-    const { name } = await requireUserId(request);
+    await requireUserId(request);
+    const price = await getCurrentPrice();
 
     return json<ResponseData>({
-        name: name,
+        price,
     });
 
 };
 
 export default function Index() {
 
+    const data = useLoaderData<ResponseData>();
+
     return (
-        <div>
+        <div className="ml-4">
             <Heading className="flex justify-center">
                 Smart Home
             </Heading>
-            <div className="flex flex-col ml-4 mt-4">
-                <Link className="my-2 text-xl" href={routes.ROOMS.ROOT}>Rooms</Link>
-                <Link className="my-2 text-xl" href={routes.PLUGS.ROOT}>Plugs</Link>
-                <Link className="my-2 text-xl" href={routes.SCHEDULES.ROOT}>Schedules</Link>
-                <Link className="my-2 text-xl" href={routes.TEMP_ACTIONS.ROOT}>Temp actions</Link>
-                <Link className="my-2 text-xl" href={routes.TEMP_LOG.ROOT}>Temperature log</Link>
+            <div className="mt-4">
+                <p><b>Current price: </b>{data.price.amount.toFixed(2)} {data.price.currency} - {data.price.level}</p>
+            </div>
+            <div className="flex flex-col mt-4">
+                {pageLinks}
             </div>
         </div>
     );

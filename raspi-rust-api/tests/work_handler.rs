@@ -1,4 +1,5 @@
 use std::ops::{Add, Sub};
+use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use testcontainers::clients::Cli;
@@ -10,7 +11,7 @@ use rust_home::db::{DbClients, DbConfig};
 use rust_home::domain::{
     ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog, WorkMessage,
 };
-use rust_home::prices::PriceInfo;
+use rust_home::prices::{PriceInfo, TibberClient};
 use rust_home::shelly_client::ShellyClient;
 use rust_home::work_handler::WorkHandler;
 
@@ -31,7 +32,14 @@ async fn setup(
 
     let db_clients = DbClients::new(db_config);
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
-    let handler = WorkHandler::new(shelly_client, sender.clone(), receiver, db_config);
+    let tibber_client = Arc::new(TibberClient::new("dummy_token".to_string()));
+    let handler = WorkHandler::new(
+        shelly_client,
+        tibber_client,
+        sender.clone(),
+        receiver,
+        db_config,
+    );
     let rooms_client = db_clients.rooms.clone();
     for i in 0..num_rooms {
         rooms_client
@@ -46,11 +54,9 @@ async fn setup(
 
 #[tokio::test]
 async fn starts() {
-    let shelly_client = ShellyClient::default();
     let docker = Cli::default();
     let test_config = DatabaseTestConfig::new(&docker).await;
-    let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
-    let handler = WorkHandler::new(shelly_client, sender, receiver, &test_config.db_config);
+    let (handler, _rooms) = setup(&test_config.db_config, 0, None).await;
 
     let price_info = PriceInfo {
         amount: 0.0,

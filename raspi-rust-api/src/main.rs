@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
 use log::info;
 use tokio::sync::mpsc;
 
 use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
+use rust_home::prices::TibberClient;
 use rust_home::shelly_client::ShellyClient;
-use rust_home::{api, configuration::get_configuration, work_handler, work_handler::WorkHandler};
+use rust_home::{
+    api, configuration::get_configuration, env_var, work_handler, work_handler::WorkHandler,
+};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -15,11 +20,18 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
+    let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
     let shelly_client = ShellyClient::default();
 
-    let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
+    let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
 
-    let work_handler = WorkHandler::new(shelly_client, sender.clone(), receiver, &db_config);
+    let work_handler = WorkHandler::new(
+        shelly_client,
+        tibber_client.clone(),
+        sender.clone(),
+        receiver,
+        &db_config,
+    );
 
     let poll_sender = sender.clone();
     let api_sender = sender.clone();
@@ -31,6 +43,7 @@ async fn main() -> std::io::Result<()> {
         api_sender,
         configuration.application_host,
         configuration.application_port,
+        tibber_client,
         &db_config,
     )
     .await?;

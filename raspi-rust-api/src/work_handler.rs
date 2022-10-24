@@ -18,9 +18,9 @@ use crate::db::temp_actions::TempActionsClient;
 use crate::db::temperature_logs::TemperatureLogsClient;
 use crate::db::{DbClients, DbConfig, DbError};
 use crate::domain::{ActionType, Room, TempAction, TemperatureLog, WorkMessage};
-use crate::prices::{PriceError, PriceInfo};
+use crate::prices::{PriceError, PriceInfo, TibberClient};
 use crate::shelly_client::ShellyClient;
-use crate::{now, prices, scheduling};
+use crate::{now, scheduling};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -34,6 +34,7 @@ pub enum WorkHandlerError {
 
 pub struct WorkHandler {
     shelly_client: ShellyClient,
+    tibber_client: Arc<TibberClient>,
     sender: Sender<WorkMessage>,
     receiver: Receiver<WorkMessage>,
     rooms_client: Arc<RoomsClient>,
@@ -46,6 +47,7 @@ pub struct WorkHandler {
 impl WorkHandler {
     pub fn new(
         shelly_client: ShellyClient,
+        tibber_client: Arc<TibberClient>,
         sender: Sender<WorkMessage>,
         receiver: Receiver<WorkMessage>,
         db_config: &DbConfig,
@@ -53,6 +55,7 @@ impl WorkHandler {
         let db_clients = DbClients::new(db_config);
         WorkHandler {
             shelly_client,
+            tibber_client,
             sender,
             receiver,
             rooms_client: db_clients.rooms,
@@ -71,7 +74,7 @@ impl WorkHandler {
                 match message {
                     WorkMessage::REFRESH | WorkMessage::POLL => {
                         let now = now();
-                        match prices::get_current_price().await {
+                        match self.tibber_client.get_current_price().await {
                             Ok(price) => {
                                 match self.main_handler(&price, &now).await {
                                     Ok(_) => {

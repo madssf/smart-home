@@ -1,6 +1,6 @@
-use std::env;
 use std::fmt::{Display, Formatter};
 
+use serde::Serialize;
 use thiserror::Error;
 use tibber::{PriceInfo as TPriceInfo, PriceLevel as TPriceLevel, TibberSession};
 use tokio::task::JoinError;
@@ -22,6 +22,7 @@ impl PriceLevel {
     }
 }
 
+#[derive(Serialize)]
 pub struct PriceInfo {
     pub amount: f64,
     pub currency: String,
@@ -61,30 +62,39 @@ pub enum PriceError {
     ThreadError(JoinError),
 }
 
-pub async fn get_current_price() -> Result<PriceInfo, PriceError> {
-    let api_token = env::var("TIBBER_API_TOKEN").expect("Missing TIBBER_API_TOKEN env var");
+#[derive(Clone)]
+pub struct TibberClient {
+    api_token: String,
+}
 
-    let res = tokio::task::spawn_blocking(|| {
-        let conn = TibberSession::new(api_token);
+impl TibberClient {
+    pub fn new(api_token: String) -> Self {
+        Self { api_token }
+    }
 
-        let user = match conn.get_user() {
-            Ok(user) => user,
-            Err(_) => return Err(PriceError::FailedToGetUser),
-        };
+    pub async fn get_current_price(&self) -> Result<PriceInfo, PriceError> {
+        let token = self.api_token.clone();
+        let res = tokio::task::spawn_blocking(|| {
+            let conn = TibberSession::new(token);
+            let user = match conn.get_user() {
+                Ok(user) => user,
+                Err(_) => return Err(PriceError::FailedToGetUser),
+            };
 
-        if user.homes.is_empty() {
-            return Err(PriceError::UserHasNoHome);
+            if user.homes.is_empty() {
+                return Err(PriceError::UserHasNoHome);
+            }
+
+            match conn.get_current_price(&user.homes[0]) {
+                Ok(price_info) => Ok(PriceInfo::from_tibber_price_info(&price_info)),
+                Err(_) => Err(PriceError::FailedToGetPrice),
+            }
+        })
+        .await;
+
+        match res {
+            Ok(result) => result,
+            Err(e) => Err(ThreadError(e)),
         }
-
-        match conn.get_current_price(&user.homes[0]) {
-            Ok(price_info) => Ok(PriceInfo::from_tibber_price_info(&price_info)),
-            Err(_) => Err(PriceError::FailedToGetPrice),
-        }
-    })
-    .await;
-
-    match res {
-        Ok(result) => result,
-        Err(e) => Err(ThreadError(e)),
     }
 }

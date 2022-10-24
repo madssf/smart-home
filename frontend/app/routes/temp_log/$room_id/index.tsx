@@ -5,7 +5,7 @@ import {requireUserId} from "~/utils/sessions.server";
 import {useLoaderData, useNavigate, useParams, useSearchParams} from "@remix-run/react";
 import {Line, LineChart, Tooltip, XAxis, YAxis} from 'recharts';
 import dayjs from "dayjs";
-import {Button} from "@chakra-ui/react";
+import {Button, useColorMode} from "@chakra-ui/react";
 import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
@@ -148,6 +148,22 @@ const TempLog = () => {
     const domainMin = Math.round(loaderData.dataset.reduce((a, b) => b.temp < a ? b.temp : a, Infinity)) - 3;
     const domainMax = Math.round(loaderData.dataset.reduce((a, b) => b.temp > a ? b.temp : a, 0)) + 3;
 
+    const {colorMode} = useColorMode();
+
+    const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+
+    function CustomizedAxisTick({ x, y, stroke, payload }: any) {
+
+        return (
+            <g transform={`translate(${x},${y})`}>
+                <text x={12} y={0} dy={16} textAnchor="end" fill={color} transform="rotate(-35)">
+                    {payload.value}
+                </text>
+            </g>
+        );
+
+    }
+
 
     return (
         <div className="mt-4">
@@ -174,7 +190,7 @@ const TempLog = () => {
                         <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
                             <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
                             <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="timeString" tick={<CustomizedAxisTick />} />
-                            <YAxis type="number" padding={{bottom: 40}} mirror domain={[domainMin, domainMax]} />
+                            <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
 
                             <Tooltip />
                         </LineChart>
@@ -188,17 +204,6 @@ const TempLog = () => {
 };
 
 
-function CustomizedAxisTick({ x, y, stroke, payload }: any) {
-
-    return (
-        <g transform={`translate(${x},${y})`}>
-            <text x={12} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)">
-                {payload.value}
-            </text>
-        </g>
-    );
-
-}
 
 
 export default TempLog;

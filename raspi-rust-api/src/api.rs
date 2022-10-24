@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::dev::Server;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
@@ -7,7 +9,9 @@ use uuid::Uuid;
 
 use crate::db::{DbClients, DbConfig};
 use crate::domain::WorkMessage;
+use crate::prices::TibberClient;
 use crate::routes::plugs::plugs;
+use crate::routes::prices::prices;
 use crate::routes::rooms::rooms;
 use crate::routes::schedules::schedules;
 use crate::routes::temp_actions::temp_actions;
@@ -17,10 +21,12 @@ pub async fn start(
     sender: Sender<WorkMessage>,
     host: String,
     port: u16,
+    tibber_client: Arc<TibberClient>,
     db_config: &DbConfig,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
     let db_clients = DbClients::new(db_config);
+    let tibber_client = web::Data::new(tibber_client);
     info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
         App::new()
@@ -33,6 +39,7 @@ pub async fn start(
             .service(schedules(db_clients.schedules.clone()))
             .service(temp_actions(db_clients.temp_actions.clone()))
             .service(temperature_logs(db_clients.temperature_logs.clone()))
+            .service(prices(tibber_client.clone()))
     })
     .shutdown_timeout(1)
     .bind((host, port))?

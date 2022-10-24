@@ -2,14 +2,14 @@ import {useShouldHydrate} from "remix-utils";
 import {commitSession} from "~/utils/sessions.server";
 import {getSessionData} from "./utils/auth.server";
 import styles from "./styles/app.css";
-import {routes} from "~/routes";
 import type {ActionFunction, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useFetcher, useLoaderData} from "@remix-run/react";
+import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData} from "@remix-run/react";
 import {ClientStyleContext, ServerStyleContext} from './context';
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
-import {Button, ChakraProvider, ColorModeScript, extendTheme, Link, withDefaultColorScheme} from "@chakra-ui/react";
+import {Box, ChakraProvider, ColorModeScript, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
+import Nav from "~/components/nav";
 
 interface LoaderData {
     isLoggedIn: boolean;
@@ -109,35 +109,13 @@ const Document = withEmotionCache(
 
 
 export default function App() {
-    const fetcher = useFetcher();
 
     const {isLoggedIn, ENV} = useLoaderData<LoaderData>();
     return (
         <Document>
-            <ColorModeScript />
+            <ColorModeScript initialColorMode={'dark'} />
             <ChakraProvider theme={theme}>
-                <nav
-                    className="flex align-middle justify-between m-2"
-                >
-                    {/* We use fetcher.Form instead of Form because we dont want navigation events */}
-                    {isLoggedIn ? (
-                        <>
-                            <div>
-                                <Link className="mr-2" href={routes.HOME}>Home</Link>
-                             </div>
-                            <fetcher.Form action="/logout" method="post" replace>
-                                <Button variant="outline" size="sm" type="submit">Logout</Button>
-                            </fetcher.Form>
-                        </>
-                    ) : (
-                        <>
-                            <a href="/">Front page</a>
-                            <fetcher.Form action="/" method="post" replace>
-                                <Button variant="outline" size="sm" type="submit">Login</Button>
-                            </fetcher.Form>
-                        </>
-                    )}
-                </nav>
+                <Nav isLoggedIn={isLoggedIn} />
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `window.ENV = ${JSON.stringify(
@@ -145,9 +123,9 @@ export default function App() {
                         )}`,
                     }}
                 />
-                <div className="mx-3 pb-8">
+                <Box className="mx-3 pb-8">
                     <Outlet />
-                </div>
+                </Box>
             </ChakraProvider>
         </Document>
     );
