@@ -21,8 +21,6 @@ ENVIRONMENT=production
 APP_DATABASE__USERNAME=<prod db username>
 APP_DATABASE__PASSWORD=<prod db password>
 APP_DATABASE__DATABASE_NAME=<prod db name>
-
-
 ```
 
 ### SQLX Offline Mode
