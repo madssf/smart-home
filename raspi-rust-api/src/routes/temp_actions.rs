@@ -1,18 +1,15 @@
-use std::sync::Arc;
-
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use chrono::NaiveDateTime;
 use log::error;
 use serde::Deserialize;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::temp_actions::TempActionsClient;
+use crate::db;
 use crate::domain::{ActionType, TempAction};
 
-pub fn temp_actions(temp_actions_client: Arc<TempActionsClient>) -> Scope {
-    let temp_actions_client = web::Data::new(temp_actions_client);
+pub fn temp_actions() -> Scope {
     web::scope("/temp_actions")
-        .app_data(temp_actions_client)
         .service(get_temp_actions)
         .service(create_temp_action)
         .service(update_temp_action)
@@ -20,10 +17,8 @@ pub fn temp_actions(temp_actions_client: Arc<TempActionsClient>) -> Scope {
 }
 
 #[get("/")]
-async fn get_temp_actions(
-    temp_actions_client: web::Data<Arc<TempActionsClient>>,
-) -> impl Responder {
-    match temp_actions_client.get_ref().get_temp_actions().await {
+async fn get_temp_actions(pool: web::Data<PgPool>) -> impl Responder {
+    match db::temp_actions::get_temp_actions(pool.get_ref()).await {
         Ok(temp_actions) => HttpResponse::Ok().json(temp_actions),
         Err(e) => {
             error!("{:?}", e);
@@ -49,7 +44,7 @@ impl TryInto<TempAction> for TempActionRequest {
 
 #[post("/")]
 async fn create_temp_action(
-    temp_actions_client: web::Data<Arc<TempActionsClient>>,
+    pool: web::Data<PgPool>,
     body: web::Json<TempActionRequest>,
 ) -> impl Responder {
     let new_action = match body.into_inner().try_into() {
@@ -60,11 +55,7 @@ async fn create_temp_action(
         }
     };
 
-    match temp_actions_client
-        .get_ref()
-        .create_temp_action(new_action)
-        .await
-    {
+    match db::temp_actions::create_temp_action(pool.get_ref(), new_action).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -72,19 +63,20 @@ async fn create_temp_action(
 
 #[post("/{id}")]
 async fn update_temp_action(
-    temp_actions_client: web::Data<Arc<TempActionsClient>>,
+    pool: web::Data<PgPool>,
     id: web::Path<Uuid>,
     body: web::Json<TempActionRequest>,
 ) -> impl Responder {
-    match temp_actions_client
-        .get_ref()
-        .update_temp_action(TempAction {
+    match db::temp_actions::update_temp_action(
+        pool.get_ref(),
+        TempAction {
             id: id.into_inner(),
             room_ids: body.room_ids.clone(),
             action_type: body.action_type,
             expires_at: body.expires_at,
-        })
-        .await
+        },
+    )
+    .await
     {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -92,15 +84,8 @@ async fn update_temp_action(
 }
 
 #[delete("/{id}")]
-async fn delete_temp_action(
-    temp_actions_client: web::Data<Arc<TempActionsClient>>,
-    id: web::Path<Uuid>,
-) -> impl Responder {
-    match temp_actions_client
-        .get_ref()
-        .delete_temp_action(&id.into_inner())
-        .await
-    {
+async fn delete_temp_action(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Responder {
+    match db::temp_actions::delete_temp_action(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

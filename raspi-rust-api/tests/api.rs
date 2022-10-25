@@ -24,7 +24,7 @@ async fn spawn_api() -> Server {
         "127.0.0.1".to_string(),
         8080,
         tibber_client,
-        &test_config.db_config,
+        test_config.db_config.pool,
     )
     .await
     .expect("Failed to start api")

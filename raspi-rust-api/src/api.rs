@@ -4,10 +4,10 @@ use actix_web::dev::Server;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
 use serde::Deserialize;
+use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use crate::db::{DbClients, DbConfig};
 use crate::domain::WorkMessage;
 use crate::prices::TibberClient;
 use crate::routes::plugs::plugs;
@@ -22,23 +22,24 @@ pub async fn start(
     host: String,
     port: u16,
     tibber_client: Arc<TibberClient>,
-    db_config: &DbConfig,
+    pool: PgPool,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
-    let db_clients = DbClients::new(db_config);
+    let pool = web::Data::new(pool);
     let tibber_client = web::Data::new(tibber_client);
     info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
         App::new()
             .app_data(sender.clone())
+            .app_data(pool.clone())
             .service(refresh)
             .service(health)
             .service(report_temp)
-            .service(plugs(db_clients.plugs.clone()))
-            .service(rooms(db_clients.rooms.clone()))
-            .service(schedules(db_clients.schedules.clone()))
-            .service(temp_actions(db_clients.temp_actions.clone()))
-            .service(temperature_logs(db_clients.temperature_logs.clone()))
+            .service(plugs())
+            .service(rooms())
+            .service(schedules())
+            .service(temp_actions())
+            .service(temperature_logs())
             .service(prices(tibber_client.clone()))
     })
     .shutdown_timeout(1)

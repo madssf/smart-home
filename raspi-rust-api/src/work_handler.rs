@@ -6,21 +6,17 @@ use std::time::Duration;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use log::{error, info};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
-use crate::db::plugs::PlugsClient;
-use crate::db::rooms::RoomsClient;
-use crate::db::schedules::SchedulesClient;
-use crate::db::temp_actions::TempActionsClient;
-use crate::db::temperature_logs::TemperatureLogsClient;
-use crate::db::{DbClients, DbConfig, DbError};
+use crate::db::DbError;
 use crate::domain::{ActionType, Room, TempAction, TemperatureLog, WorkMessage};
 use crate::prices::{PriceError, PriceInfo, TibberClient};
 use crate::shelly_client::ShellyClient;
-use crate::{now, scheduling};
+use crate::{db, now, scheduling};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -35,13 +31,9 @@ pub enum WorkHandlerError {
 pub struct WorkHandler {
     shelly_client: ShellyClient,
     tibber_client: Arc<TibberClient>,
+    pool: Arc<PgPool>,
     sender: Sender<WorkMessage>,
     receiver: Receiver<WorkMessage>,
-    rooms_client: Arc<RoomsClient>,
-    plugs_client: Arc<PlugsClient>,
-    temp_actions_client: Arc<TempActionsClient>,
-    schedules_client: Arc<SchedulesClient>,
-    temperature_logs_client: Arc<TemperatureLogsClient>,
 }
 
 impl WorkHandler {
@@ -50,19 +42,14 @@ impl WorkHandler {
         tibber_client: Arc<TibberClient>,
         sender: Sender<WorkMessage>,
         receiver: Receiver<WorkMessage>,
-        db_config: &DbConfig,
+        pool: Arc<PgPool>,
     ) -> Self {
-        let db_clients = DbClients::new(db_config);
         WorkHandler {
             shelly_client,
             tibber_client,
+            pool,
             sender,
             receiver,
-            rooms_client: db_clients.rooms,
-            plugs_client: db_clients.plugs,
-            temp_actions_client: db_clients.temp_actions,
-            schedules_client: db_clients.schedules,
-            temperature_logs_client: db_clients.temperature_logs,
         }
     }
 
@@ -102,13 +89,15 @@ impl WorkHandler {
 
     pub async fn temp_handler(&self, room_id: &Uuid, temp: &f64) -> Result<(), WorkHandlerError> {
         let now = now();
-        self.temperature_logs_client
-            .create_temp_log(TemperatureLog {
+        db::temperature_logs::create_temp_log(
+            &self.pool,
+            TemperatureLog {
                 room_id: *room_id,
                 time: now,
                 temp: *temp,
-            })
-            .await?;
+            },
+        )
+        .await?;
         match self.sender.send(WorkMessage::REFRESH).await {
             Ok(_) => Ok(()),
             Err(_) => Err(WorkHandlerError::SendError),
@@ -123,13 +112,11 @@ impl WorkHandler {
         info!("Current local time: {}", &now);
         info!("Current price: {}", price);
 
-        let all_actions = self.temp_actions_client.get_temp_actions().await?;
+        let all_actions = db::temp_actions::get_temp_actions(&self.pool).await?;
         let mut temp_actions = vec![];
         for action in all_actions {
             if action.expires_at < *now {
-                self.temp_actions_client
-                    .delete_temp_action(&action.id)
-                    .await?;
+                db::temp_actions::delete_temp_action(&self.pool, &action.id).await?;
             } else {
                 temp_actions.push(action)
             }
@@ -137,11 +124,9 @@ impl WorkHandler {
 
         info!("Found temp actions {:?}", temp_actions);
 
-        let rooms = self.rooms_client.get_rooms().await?;
-        let current_temps = self
-            .temperature_logs_client
-            .get_current_temps(rooms.clone())
-            .await?;
+        let rooms = db::rooms::get_rooms(&self.pool).await?;
+        let current_temps =
+            db::temperature_logs::get_current_temps(&self.pool, rooms.clone()).await?;
 
         info!("Current temperatures: {:?}", &current_temps);
 
@@ -164,7 +149,7 @@ impl WorkHandler {
                     .await?
             };
 
-            let room_plugs = self.plugs_client.get_room_plugs(&room.id).await?;
+            let room_plugs = db::plugs::get_room_plugs(&self.pool, &room.id).await?;
 
             for plug in room_plugs {
                 let result = self.shelly_client.execute_action(&plug, &action).await;
@@ -187,7 +172,7 @@ impl WorkHandler {
         current_temps: &HashMap<Uuid, f64>,
         temp_on: bool,
     ) -> Result<ActionType, DbError> {
-        let room_schedules = self.schedules_client.get_room_schedules(&room.id).await?;
+        let room_schedules = db::schedules::get_room_schedules(&self.pool, &room.id).await?;
         let matching_schedule =
             scheduling::find_matching_schedule(room_schedules, &price.level, now);
         let current_temp = current_temps.get(&room.id);

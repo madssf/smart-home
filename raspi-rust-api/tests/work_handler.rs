@@ -7,7 +7,8 @@ use tokio::sync::mpsc;
 use wiremock::matchers::any;
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use rust_home::db::{DbClients, DbConfig};
+use rust_home::db;
+use rust_home::db::DbConfig;
 use rust_home::domain::{
     ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog, WorkMessage,
 };
@@ -30,7 +31,6 @@ async fn setup(
         ShellyClient::default()
     };
 
-    let db_clients = DbClients::new(db_config);
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
     let tibber_client = Arc::new(TibberClient::new("dummy_token".to_string()));
     let handler = WorkHandler::new(
@@ -38,17 +38,17 @@ async fn setup(
         tibber_client,
         sender.clone(),
         receiver,
-        db_config,
+        Arc::new(db_config.pool.clone()),
     );
-    let rooms_client = db_clients.rooms.clone();
     for i in 0..num_rooms {
-        rooms_client
-            .create_room(&format!("test_room_{}", i))
+        db::rooms::create_room(&db_config.pool, &format!("test_room_{}", i))
             .await
             .expect("Failed to create room");
     }
 
-    let rooms = rooms_client.get_rooms().await.expect("Failed to get rooms");
+    let rooms = db::rooms::get_rooms(&db_config.pool)
+        .await
+        .expect("Failed to get rooms");
     (handler, rooms)
 }
 
@@ -79,15 +79,12 @@ async fn handles_temp_log() {
     let test_config = DatabaseTestConfig::new(&docker).await;
     let (handler, rooms) = setup(&test_config.db_config, 1, None).await;
 
-    let db_clients = DbClients::new(&test_config.db_config);
     let room_id = rooms[0].id;
     handler
         .temp_handler(&room_id, &20.0)
         .await
         .expect("Temp handler failed");
-    let temp_logs_client = db_clients.temperature_logs.clone();
-    let temp_logs = temp_logs_client
-        .get_temp_logs()
+    let temp_logs = db::temperature_logs::get_temp_logs(&test_config.db_config.pool)
         .await
         .expect("Failed to get temp_logs");
     assert_eq!(temp_logs.len(), 1);
@@ -110,27 +107,25 @@ async fn temp_actions_work() {
         .await;
 
     let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
-    let db_clients = DbClients::new(&test_config.db_config);
     let now = NaiveDateTime::new(
         NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
         NaiveTime::from_hms(1, 0, 0),
     );
 
-    db_clients
-        .temperature_logs
-        .create_temp_log(TemperatureLog {
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
             room_id: rooms[0].id,
             temp: 19.0,
             time: now.sub(Duration::minutes(30)),
-        })
-        .await
-        .expect("Failed to create temp log");
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
 
     let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
         .expect("Couldnt create plug");
-    db_clients
-        .plugs
-        .create_plug(new_plug)
+    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
         .await
         .expect("Couldnt insert plug");
 
@@ -146,9 +141,7 @@ async fn temp_actions_work() {
     )
     .expect("Couldnt create schedule");
 
-    db_clients
-        .schedules
-        .create_schedule(schedule)
+    db::schedules::create_schedule(&test_config.db_config.pool, schedule)
         .await
         .expect("Could insert schedule");
 
@@ -170,18 +163,17 @@ async fn temp_actions_work() {
     assert_eq!(query_param, "turn=on");
     mock_server.reset().await;
 
-    db_clients
-        .temp_actions
-        .create_temp_action(
-            TempAction::new(
-                &now.add(Duration::hours(1)),
-                &ActionType::OFF,
-                vec![rooms[0].id],
-            )
-            .expect("Failed to create temp action"),
+    db::temp_actions::create_temp_action(
+        &test_config.db_config.pool,
+        TempAction::new(
+            &now.add(Duration::hours(1)),
+            &ActionType::OFF,
+            vec![rooms[0].id],
         )
-        .await
-        .expect("Failed to insert temp action");
+        .expect("Failed to create temp action"),
+    )
+    .await
+    .expect("Failed to insert temp action");
 
     handler
         .main_handler(
@@ -216,27 +208,25 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
         .await;
 
     let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
-    let db_clients = DbClients::new(&test_config.db_config);
     let now = NaiveDateTime::new(
         NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
         NaiveTime::from_hms(1, 0, 0),
     );
 
-    db_clients
-        .temperature_logs
-        .create_temp_log(TemperatureLog {
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
             room_id: rooms[0].id,
             temp: 21.0,
             time: now.sub(Duration::minutes(30)),
-        })
-        .await
-        .expect("Failed to create temp log");
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
 
     let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
         .expect("Couldnt create plug");
-    db_clients
-        .plugs
-        .create_plug(new_plug)
+    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
         .await
         .expect("Couldnt insert plug");
 
@@ -252,24 +242,21 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
     )
     .expect("Couldnt create schedule");
 
-    db_clients
-        .schedules
-        .create_schedule(schedule)
+    db::schedules::create_schedule(&test_config.db_config.pool, schedule)
         .await
         .expect("Could insert schedule");
 
-    db_clients
-        .temp_actions
-        .create_temp_action(
-            TempAction::new(
-                &now.add(Duration::hours(1)),
-                &ActionType::ON,
-                vec![rooms[0].id],
-            )
-            .expect("Failed to create temp action"),
+    db::temp_actions::create_temp_action(
+        &test_config.db_config.pool,
+        TempAction::new(
+            &now.add(Duration::hours(1)),
+            &ActionType::ON,
+            vec![rooms[0].id],
         )
-        .await
-        .expect("Failed to insert temp action");
+        .expect("Failed to create temp action"),
+    )
+    .await
+    .expect("Failed to insert temp action");
 
     handler
         .main_handler(

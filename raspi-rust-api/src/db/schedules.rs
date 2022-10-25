@@ -4,14 +4,11 @@ use anyhow::Context;
 use bigdecimal::{FromPrimitive, ToPrimitive};
 use chrono::{NaiveTime, Weekday};
 use sqlx::types::BigDecimal;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::{DbConfig, DbError};
+use crate::db::DbError;
 use crate::domain::{PriceLevel, Schedule};
-
-pub struct SchedulesClient {
-    db_config: DbConfig,
-}
 
 #[derive(Copy, Clone)]
 struct RoomScheduleEntity {
@@ -75,71 +72,115 @@ impl ScheduleEntity {
     }
 }
 
-impl SchedulesClient {
-    pub fn new(db_config: DbConfig) -> Self {
-        Self { db_config }
-    }
-
-    pub async fn get_schedules(&self) -> Result<Vec<Schedule>, DbError> {
-        let entities: Vec<ScheduleEntity> =
-            sqlx::query_as!(ScheduleEntity, "SELECT * FROM schedules")
-                .fetch_all(&self.db_config.pool)
-                .await?;
-
-        let room_schedules: Vec<RoomScheduleEntity> =
-            sqlx::query_as!(RoomScheduleEntity, "SELECT * FROM room_schedules")
-                .fetch_all(&self.db_config.pool)
-                .await?;
-
-        entities
-            .iter()
-            .map(|entity| entity.to_domain(room_schedules.clone()))
-            .collect()
-    }
-
-    pub async fn get_room_schedules(&self, room_id: &Uuid) -> Result<Vec<Schedule>, DbError> {
-        let room_schedules: Vec<RoomScheduleEntity> = sqlx::query_as!(
-            RoomScheduleEntity,
-            "SELECT * FROM room_schedules WHERE room_id = $1",
-            room_id
-        )
-        .fetch_all(&self.db_config.pool)
+pub async fn get_schedules(pool: &PgPool) -> Result<Vec<Schedule>, DbError> {
+    let entities: Vec<ScheduleEntity> = sqlx::query_as!(ScheduleEntity, "SELECT * FROM schedules")
+        .fetch_all(pool)
         .await?;
 
-        let sched_ids: Vec<Uuid> = room_schedules.iter().map(|r| r.schedule_id).collect();
+    let room_schedules: Vec<RoomScheduleEntity> =
+        sqlx::query_as!(RoomScheduleEntity, "SELECT * FROM room_schedules")
+            .fetch_all(pool)
+            .await?;
 
-        let entities: Vec<ScheduleEntity> = sqlx::query_as!(
-            ScheduleEntity,
-            "SELECT * FROM schedules WHERE id = any($1)",
-            &sched_ids
-        )
-        .fetch_all(&self.db_config.pool)
-        .await?;
+    entities
+        .iter()
+        .map(|entity| entity.to_domain(room_schedules.clone()))
+        .collect()
+}
 
-        entities
-            .iter()
-            .map(|entity| entity.to_domain(room_schedules.clone()))
-            .collect()
-    }
+pub async fn get_room_schedules(pool: &PgPool, room_id: &Uuid) -> Result<Vec<Schedule>, DbError> {
+    let room_schedules: Vec<RoomScheduleEntity> = sqlx::query_as!(
+        RoomScheduleEntity,
+        "SELECT * FROM room_schedules WHERE room_id = $1",
+        room_id
+    )
+    .fetch_all(pool)
+    .await?;
 
-    pub async fn create_schedule(&self, new_schedule: Schedule) -> Result<(), DbError> {
-        let mut tx = self.db_config.pool.begin().await?;
-        let entity = ScheduleEntity::from_domain(&new_schedule)?;
+    let sched_ids: Vec<Uuid> = room_schedules.iter().map(|r| r.schedule_id).collect();
+
+    let entities: Vec<ScheduleEntity> = sqlx::query_as!(
+        ScheduleEntity,
+        "SELECT * FROM schedules WHERE id = any($1)",
+        &sched_ids
+    )
+    .fetch_all(pool)
+    .await?;
+
+    entities
+        .iter()
+        .map(|entity| entity.to_domain(room_schedules.clone()))
+        .collect()
+}
+
+pub async fn create_schedule(pool: &PgPool, new_schedule: Schedule) -> Result<(), DbError> {
+    let mut tx = pool.begin().await?;
+    let entity = ScheduleEntity::from_domain(&new_schedule)?;
+    sqlx::query!(
+        r#"
+    INSERT INTO schedules (id, temp, price_level, days, time_windows)
+    VALUES ($1, $2, $3, $4, $5)
+    "#,
+        new_schedule.id,
+        entity.temp,
+        entity.price_level,
+        &entity.days,
+        &entity.time_windows
+    )
+    .execute(&mut tx)
+    .await?;
+
+    for room_id in new_schedule.room_ids {
         sqlx::query!(
             r#"
-        INSERT INTO schedules (id, temp, price_level, days, time_windows)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO room_schedules (room_id, schedule_id)
+        VALUES ($1, $2)
         "#,
-            new_schedule.id,
-            entity.temp,
-            entity.price_level,
-            &entity.days,
-            &entity.time_windows
+            room_id,
+            entity.id,
         )
         .execute(&mut tx)
         .await?;
+    }
 
-        for room_id in new_schedule.room_ids {
+    tx.commit().await?;
+
+    Ok(())
+}
+
+pub async fn update_schedule(pool: &PgPool, schedule: Schedule) -> Result<(), DbError> {
+    let mut tx = pool.begin().await?;
+
+    let entity = ScheduleEntity::from_domain(&schedule)?;
+
+    sqlx::query!(
+        r#"
+        UPDATE schedules
+        SET temp = $2, price_level = $3, days = $4, time_windows = $5
+        WHERE id = $1
+        "#,
+        entity.id,
+        entity.temp,
+        entity.price_level,
+        &entity.days,
+        &entity.time_windows,
+    )
+    .execute(&mut tx)
+    .await?;
+
+    let existing_room_schedules: Vec<RoomScheduleEntity> = sqlx::query_as!(
+        RoomScheduleEntity,
+        "SELECT * FROM room_schedules WHERE schedule_id = $1",
+        schedule.id
+    )
+    .fetch_all(&mut tx)
+    .await?;
+
+    for room_id in &schedule.room_ids {
+        if !existing_room_schedules
+            .iter()
+            .any(|x| x.room_id == *room_id)
+        {
             sqlx::query!(
                 r#"
             INSERT INTO room_schedules (room_id, schedule_id)
@@ -151,92 +192,41 @@ impl SchedulesClient {
             .execute(&mut tx)
             .await?;
         }
-
-        tx.commit().await?;
-
-        Ok(())
     }
 
-    pub async fn update_schedule(&self, schedule: Schedule) -> Result<(), DbError> {
-        let mut tx = self.db_config.pool.begin().await?;
+    for existing in existing_room_schedules {
+        if !schedule.room_ids.contains(&existing.room_id) {
+            sqlx::query!(
+                r#"
+                DELETE FROM room_schedules WHERE room_id = $1 AND schedule_id = $2
+                "#,
+                existing.room_id,
+                schedule.id
+            )
+            .execute(&mut tx)
+            .await?;
+        }
+    }
 
-        let entity = ScheduleEntity::from_domain(&schedule)?;
+    tx.commit().await?;
 
-        sqlx::query!(
-            r#"
-            UPDATE schedules
-            SET temp = $2, price_level = $3, days = $4, time_windows = $5
-            WHERE id = $1
-            "#,
-            entity.id,
-            entity.temp,
-            entity.price_level,
-            &entity.days,
-            &entity.time_windows,
-        )
+    Ok(())
+}
+
+pub async fn delete_schedule(pool: &PgPool, id: &Uuid) -> Result<(), DbError> {
+    let mut tx = pool.begin().await?;
+
+    sqlx::query!("DELETE FROM room_schedules WHERE schedule_id = $1", id)
         .execute(&mut tx)
         .await?;
 
-        let existing_room_schedules: Vec<RoomScheduleEntity> = sqlx::query_as!(
-            RoomScheduleEntity,
-            "SELECT * FROM room_schedules WHERE schedule_id = $1",
-            schedule.id
-        )
-        .fetch_all(&mut tx)
+    sqlx::query!("DELETE FROM schedules WHERE id = $1", id)
+        .execute(&mut tx)
         .await?;
 
-        for room_id in &schedule.room_ids {
-            if !existing_room_schedules
-                .iter()
-                .any(|x| x.room_id == *room_id)
-            {
-                sqlx::query!(
-                    r#"
-                INSERT INTO room_schedules (room_id, schedule_id)
-                VALUES ($1, $2)
-                "#,
-                    room_id,
-                    entity.id,
-                )
-                .execute(&mut tx)
-                .await?;
-            }
-        }
+    tx.commit().await?;
 
-        for existing in existing_room_schedules {
-            if !schedule.room_ids.contains(&existing.room_id) {
-                sqlx::query!(
-                    r#"
-                    DELETE FROM room_schedules WHERE room_id = $1 AND schedule_id = $2
-                    "#,
-                    existing.room_id,
-                    schedule.id
-                )
-                .execute(&mut tx)
-                .await?;
-            }
-        }
-
-        tx.commit().await?;
-
-        Ok(())
-    }
-
-    pub async fn delete_schedule(&self, id: &Uuid) -> Result<(), DbError> {
-        let mut tx = self.db_config.pool.begin().await?;
-
-        sqlx::query!("DELETE FROM room_schedules WHERE schedule_id = $1", id)
-            .execute(&mut tx)
-            .await?;
-
-        sqlx::query!("DELETE FROM schedules WHERE id = $1", id)
-            .execute(&mut tx)
-            .await?;
-
-        tx.commit().await?;
-
-        Ok(())
-    }
+    Ok(())
 }
 
 fn parse_weekdays(day_entities: Vec<String>) -> Result<Vec<Weekday>, DbError> {

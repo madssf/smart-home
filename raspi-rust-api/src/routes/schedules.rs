@@ -1,17 +1,14 @@
-use std::sync::Arc;
-
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use chrono::{NaiveTime, Weekday};
 use log::error;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::schedules::SchedulesClient;
+use crate::db;
 use crate::domain::{PriceLevel, Schedule};
 
-pub fn schedules(schedules_client: Arc<SchedulesClient>) -> Scope {
-    let schedules_client = web::Data::new(schedules_client);
+pub fn schedules() -> Scope {
     web::scope("/schedules")
-        .app_data(schedules_client)
         .service(get_schedules)
         .service(create_schedule)
         .service(update_schedule)
@@ -19,8 +16,8 @@ pub fn schedules(schedules_client: Arc<SchedulesClient>) -> Scope {
 }
 
 #[get("/")]
-async fn get_schedules(schedules_client: web::Data<Arc<SchedulesClient>>) -> impl Responder {
-    match schedules_client.get_ref().get_schedules().await {
+async fn get_schedules(pool: web::Data<PgPool>) -> impl Responder {
+    match db::schedules::get_schedules(pool.get_ref()).await {
         Ok(schedules) => HttpResponse::Ok().json(schedules),
         Err(e) => {
             error!("{:?}", e);
@@ -54,7 +51,7 @@ impl TryInto<Schedule> for ScheduleRequest {
 
 #[post("/")]
 async fn create_schedule(
-    schedules_client: web::Data<Arc<SchedulesClient>>,
+    pool: web::Data<PgPool>,
     body: web::Json<ScheduleRequest>,
 ) -> impl Responder {
     let new_schedule = match body.into_inner().try_into() {
@@ -64,11 +61,7 @@ async fn create_schedule(
             return HttpResponse::BadRequest().finish();
         }
     };
-    match schedules_client
-        .get_ref()
-        .create_schedule(new_schedule)
-        .await
-    {
+    match db::schedules::create_schedule(pool.get_ref(), new_schedule).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(e) => {
             error!("{}", e.to_string());
@@ -79,21 +72,22 @@ async fn create_schedule(
 
 #[post("/{id}")]
 async fn update_schedule(
-    schedules_client: web::Data<Arc<SchedulesClient>>,
+    pool: web::Data<PgPool>,
     id: web::Path<Uuid>,
     body: web::Json<ScheduleRequest>,
 ) -> impl Responder {
-    match schedules_client
-        .get_ref()
-        .update_schedule(Schedule {
+    match db::schedules::update_schedule(
+        pool.get_ref(),
+        Schedule {
             id: id.into_inner(),
             price_level: body.price_level,
             days: body.days.clone(),
             time_windows: body.time_windows.clone(),
             temp: body.temp,
             room_ids: body.room_ids.clone(),
-        })
-        .await
+        },
+    )
+    .await
     {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -101,15 +95,8 @@ async fn update_schedule(
 }
 
 #[delete("/{id}")]
-async fn delete_schedule(
-    schedules_client: web::Data<Arc<SchedulesClient>>,
-    id: web::Path<Uuid>,
-) -> impl Responder {
-    match schedules_client
-        .get_ref()
-        .delete_schedule(&id.into_inner())
-        .await
-    {
+async fn delete_schedule(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Responder {
+    match db::schedules::delete_schedule(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

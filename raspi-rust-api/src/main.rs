@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
         tibber_client.clone(),
         sender.clone(),
         receiver,
-        &db_config,
+        Arc::new(db_config.pool.clone()),
     );
 
     let poll_sender = sender.clone();
@@ -44,7 +44,7 @@ async fn main() -> std::io::Result<()> {
         configuration.application_host,
         configuration.application_port,
         tibber_client,
-        &db_config,
+        db_config.pool.clone(),
     )
     .await?;
 
