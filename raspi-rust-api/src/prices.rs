@@ -2,25 +2,11 @@ use std::fmt::{Display, Formatter};
 
 use serde::Serialize;
 use thiserror::Error;
-use tibber::{PriceInfo as TPriceInfo, PriceLevel as TPriceLevel, TibberSession};
+use tibber::{PriceInfo as TPriceInfo, TibberSession};
 use tokio::task::JoinError;
 
 use crate::domain::PriceLevel;
 use crate::prices::PriceError::ThreadError;
-
-impl PriceLevel {
-    fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {
-        match tibber_price_level {
-            TPriceLevel::VeryCheap => PriceLevel::CHEAP,
-            TPriceLevel::Cheap => PriceLevel::CHEAP,
-            TPriceLevel::Normal => PriceLevel::NORMAL,
-            TPriceLevel::Expensive => PriceLevel::EXPENSIVE,
-            TPriceLevel::VeryExpensive => PriceLevel::EXPENSIVE,
-            TPriceLevel::Other(_) => PriceLevel::NORMAL,
-            TPriceLevel::None => PriceLevel::NORMAL,
-        }
-    }
-}
 
 #[derive(Serialize)]
 pub struct PriceInfo {

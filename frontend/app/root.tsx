@@ -1,22 +1,11 @@
 import {useShouldHydrate} from "remix-utils";
-import {commitSession} from "~/utils/sessions.server";
-import {getSessionData} from "./utils/auth.server";
 import styles from "./styles/app.css";
-import type {ActionFunction, LoaderFunction} from "@remix-run/node";
-import {json, redirect} from "@remix-run/node";
-import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData} from "@remix-run/react";
+import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration} from "@remix-run/react";
 import {ClientStyleContext, ServerStyleContext} from './context';
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
-import {Box, ChakraProvider, ColorModeScript, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
-import Nav from "~/components/nav";
-
-interface LoaderData {
-    isLoggedIn: boolean;
-    ENV: {
-        FIREBASE_CONFIG?: string
-    }
-}
+import {Box, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
+import Layout from "~/components/layout";
 
 export const theme = extendTheme(
     withDefaultColorScheme({ colorScheme: 'teal' }),
@@ -25,29 +14,6 @@ export const theme = extendTheme(
 export function links() {
     return [{rel: "stylesheet", href: styles}];
 }
-
-// Setup CSRF token only if they are heading to the login page.
-// Usually we would assign a CSRF token to everyone but
-// with Firebase Hosting caching is tied to the cookie.
-// If someone isn't logged in we want them to hit the public cache
-// https://firebase.google.com/docs/hosting/manage-cache
-export const action: ActionFunction = async ({request}) => {
-    const {session} = await getSessionData(request);
-    return redirect("/login", {
-        headers: {"Set-Cookie": await commitSession(session)},
-    });
-};
-
-export const loader: LoaderFunction = async ({request}) => {
-    const {idToken} = await getSessionData(request);
-    return json<LoaderData>({
-        isLoggedIn: !!idToken,
-        ENV: {
-            FIREBASE_CONFIG: process.env.FIREBASE_CONFIG,
-        },
-    });
-};
-
 
 interface DocumentProps {
     children: React.ReactNode;
@@ -110,23 +76,27 @@ const Document = withEmotionCache(
 
 export default function App() {
 
-    const {isLoggedIn, ENV} = useLoaderData<LoaderData>();
     return (
         <Document>
-            <ColorModeScript initialColorMode={'dark'} />
-            <ChakraProvider theme={theme}>
-                <Nav isLoggedIn={isLoggedIn} />
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `window.ENV = ${JSON.stringify(
-                            ENV,
-                        )}`,
-                    }}
-                />
+            <Layout>
                 <Box className="mx-3 pb-8">
                     <Outlet />
                 </Box>
-            </ChakraProvider>
+            </Layout>
         </Document>
+    );
+}
+
+
+export function ErrorBoundary({error}: { error: Error }) {
+    console.error(error);
+
+    return (
+        <Document>
+            <Layout>
+                <p className="text-center">{error.message}</p>
+            </Layout>
+        </Document>
+
     );
 }

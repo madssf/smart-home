@@ -4,9 +4,6 @@
 
 `.env/.envrc`
 ```
-FIREBASE_ADMIN_SERVICE_ACCOUNT=<base64 encoded firebase service account json>
-COOKIE_SECRET=<replace me>
-FIREBASE_CONFIG=<base64 encoded firebase config>
 TIMEZONE=<replace me>
 ```
 

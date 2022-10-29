@@ -46,7 +46,7 @@ pub async fn get_room_temp_logs(
 ) -> Result<Vec<TemperatureLog>, DbError> {
     let entities = sqlx::query_as!(
         TemperatureLogEntity,
-        "SELECT * FROM temperature_logs WHERE room_id = $1",
+        "SELECT * FROM temperature_logs WHERE room_id = $1 ORDER BY time ASC",
         room_id
     )
     .fetch_all(pool)

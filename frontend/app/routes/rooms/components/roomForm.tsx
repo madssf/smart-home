@@ -4,8 +4,7 @@ import {Form, useActionData, useTransition} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {RoomFormErrors} from "~/routes/rooms";
 import {routes} from "~/routes";
-import {Input} from "@chakra-ui/input";
-import {Button, Text} from "@chakra-ui/react";
+import {Button, Input, Text} from "@chakra-ui/react";
 
 export interface RoomFormProps {
     room?: Room

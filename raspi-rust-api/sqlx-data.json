@@ -529,7 +529,7 @@
     },
     "query": "\n                DELETE FROM room_schedules WHERE room_id = $1 AND schedule_id = $2\n                "
   },
-  "ba582ad002ced6f27f453b31f8f5b281d95932a45b7b633271cd2a41da03c74f": {
+  "bdcbcbee26dfa3ce64a51ce8ec46ee1db4b948362dd54dd0e3387dba338f2769": {
     "describe": {
       "columns": [
         {
@@ -559,7 +559,7 @@
         ]
       }
     },
-    "query": "SELECT * FROM temperature_logs WHERE room_id = $1"
+    "query": "SELECT * FROM temperature_logs WHERE room_id = $1 ORDER BY time ASC"
   },
   "c8a82336b390d97dc3a5df392c6b0b3b84a4147d2875e9795d95410627948467": {
     "describe": {

@@ -2,7 +2,6 @@ import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import type {PriceLevel, Schedule, Weekday} from "~/routes/schedules/types";
 import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types";
-import {requireUserId} from "~/utils/sessions.server";
 import ScheduleForm from "~/routes/schedules/components/scheduleForm";
 import {routes} from "~/routes";
 import {validateDays, validatePriceLevel, validateTimeWindows} from "~/routes/schedules/utils/utils";
@@ -37,8 +36,6 @@ export type ScheduleFormErrors = FormErrors<Schedule>
 export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
-
-    await requireUserId(request);
 
     const body = await request.formData();
     const id = body.get("id")?.toString();
@@ -97,9 +94,7 @@ export async function action({request}: ActionArgs) {
     return redirect(routes.SCHEDULES.ROOT);
 }
 
-export const loader: LoaderFunction = async ({request}) => {
-
-    await requireUserId(request);
+export const loader: LoaderFunction = async () => {
 
     const schedules = await getSchedules();
     const sorted = schedules

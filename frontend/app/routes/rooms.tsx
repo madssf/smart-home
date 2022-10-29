@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import type {ActionFunction, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import {requireUserId} from "~/utils/sessions.server";
 import {createRoom, deleteRoom, getRooms, updateRoom} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
 import type {FormErrors} from "~/utils/types";
@@ -23,7 +22,6 @@ export const handle = {hydrate: true};
 
 
 export const action: ActionFunction = async ({request}) => {
-    await requireUserId(request);
 
     const body = await request.formData();
 
@@ -64,8 +62,7 @@ export const action: ActionFunction = async ({request}) => {
 
 };
 
-export const loader: LoaderFunction = async ({request}) => {
-    await requireUserId(request);
+export const loader: LoaderFunction = async () => {
 
     const rooms = await getRooms();
     

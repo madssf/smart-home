@@ -5,11 +5,10 @@ import TimeForm from "~/routes/schedules/components/timeForm";
 import {routes} from "~/routes";
 import type {ScheduleFormErrors} from "~/routes/schedules";
 import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
+import {Button, Checkbox, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import {capitalizeAndRemoveUnderscore} from '~/utils/formattingUtils';
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {Room} from "~/routes/rooms/types";
-import {Input} from "@chakra-ui/input";
 
 export interface ScheduleFormProps {
     schedule?: Schedule

@@ -1,7 +1,6 @@
 import React from 'react';
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {requireUserId} from "~/utils/sessions.server";
 import {Link, Outlet, useLoaderData, useParams} from "@remix-run/react";
 import {Heading} from "@chakra-ui/react";
 import {routes} from "~/routes";
@@ -12,9 +11,7 @@ type ResponseData = {
     rooms: Room[]
 }
 
-export const loader: LoaderFunction = async ({request}) => {
-
-    await requireUserId(request);
+export const loader: LoaderFunction = async () => {
 
     return json<ResponseData>({
         rooms: await getRooms(),

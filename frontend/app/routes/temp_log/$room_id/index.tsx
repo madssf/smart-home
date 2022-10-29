@@ -1,27 +1,23 @@
 import React from 'react';
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {requireUserId} from "~/utils/sessions.server";
 import {useLoaderData, useNavigate, useParams, useSearchParams} from "@remix-run/react";
 import {Line, LineChart, Tooltip, XAxis, YAxis} from 'recharts';
-import dayjs from "dayjs";
 import {Button, useColorMode} from "@chakra-ui/react";
 import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import {getRoomTemperatureLogs} from "~/routes/temp_log/temp_log.server";
-import {getNow} from "~/utils/time";
 
-type DatasetEntry = {timeString: string, temp: number}
+type DatasetEntry = {label: string, temp: number}
 
 type ResponseData = {
     dataset: DatasetEntry[]
 }
 
 export type TempLogType = {
-    room: string,
-    temp: string,
-    time: string,
+    label: string,
+    temp: number,
 }
 
 export enum TimePeriod {
@@ -32,108 +28,15 @@ export enum TimePeriod {
 
 export const loader: LoaderFunction = async ({request, params}) => {
 
-    await requireUserId(request);
 
     const room_id = params.room_id!;
 
     const url = new URL(request.url);
     const period: TimePeriod = TimePeriod[(url.searchParams.get("period")  ?? 'day') as keyof typeof TimePeriod];
 
-    const tempLogs = await getRoomTemperatureLogs(room_id);
+    const tempLogs = await getRoomTemperatureLogs(room_id, period);
 
-    const now = getNow();
-
-    const generateDataset = () => {
-        const temps = tempLogs
-            .map((entry) => {
-                return {
-                    temp: entry.temp,
-                    time: dayjs(entry.time).tz(process.env.TIMEZONE, true),
-                };
-            });
-
-        const length = () => {
-            switch (period) {
-                case TimePeriod.day:
-                    return 24;
-                case TimePeriod.week:
-                    return 7;
-                case TimePeriod.month:
-                    return 30;
-            }
-        };
-
-        const gap = () => {
-            switch (period) {
-                case TimePeriod.day:
-                    return 'hour';
-                case TimePeriod.month:
-                case TimePeriod.week:
-                    return 'day';
-            }
-        };
-
-        const format = () => {
-            switch (period) {
-                case TimePeriod.day:
-                    return 'HH:mm';
-                case TimePeriod.week:
-                    return 'ddd';
-                case TimePeriod.month:
-                    return 'DD/MM';
-            }
-        };
-
-        const getTempValue = (time: dayjs.Dayjs) => {
-            switch (period) {
-                case TimePeriod.day:
-                    return Number(temps.reduce((prev, curr) => {
-                        return (Math.abs(curr.time.diff(time)) < Math.abs(prev.time.diff(time)) ? curr : prev);
-                    }).temp);
-                case TimePeriod.week:
-                case TimePeriod.month:
-                    const dayTemps = temps
-                        .filter((entry) =>
-                            entry.time.date() === time.date() && time.month() === entry.time.month() && entry.time.year() === time.year());
-                    if (dayTemps.length === 0) {
-                        return null;
-                    }
-                    const day = [...Array(24).keys()].map((i) => {
-                        const hour = time.startOf('day').add(i, 'hour');
-                        return Number(dayTemps.reduce((prev, curr) => {
-                            return (Math.abs(curr.time.diff(hour)) < Math.abs(prev.time.diff(hour)) ? curr : prev);
-                        }).temp);
-                    });
-                    return day.reduce((acc, curr) => acc + curr, 0) / day.length;
-            }
-
-        };
-
-        function notEmpty(value: DatasetEntry | { timeString: string, temp: number | null }): value is DatasetEntry {
-            return value.temp !== null;
-        }
-
-        return [...Array(length()).keys()].map((i) => {
-            const time = now.subtract(i, gap());
-            return {
-                timeString: time.format(format()),
-                temp: getTempValue(time),
-            };
-        })
-            .filter(notEmpty)
-            .reverse();
-
-    };
-
-    if (tempLogs.length === 0) {
-        return json({
-            dataset: [],
-        });
-    }
-
-    return json<ResponseData>({
-        dataset: generateDataset().map((entry) => {return {temp: Math.round(entry.temp * 10) / 10, timeString: entry.timeString}}),
-    });
+    return json<ResponseData>({dataset: tempLogs});
 
 };
 
@@ -164,6 +67,18 @@ const TempLog = () => {
 
     }
 
+    function CustomTooltip({ active, payload, label }: any) {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip">
+                    <p className="label">{`${label} : ${payload[0].value} °C`}</p>
+                </div>
+            );
+        }
+
+        return null;
+    }
+
 
     return (
         <div className="mt-4">
@@ -186,16 +101,18 @@ const TempLog = () => {
             </div>
             <div className="flex justify-center">
                 <ClientOnly>
-                    {() =>
-                        <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
-                            <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
-                            <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="timeString" tick={<CustomizedAxisTick />} />
-                            <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
+                    {
+                        () =>
+                            <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
+                                <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
+                                <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
+                                <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
 
-                            <Tooltip />
-                        </LineChart>
-                            }
+                                <Tooltip content={CustomTooltip} />
+                            </LineChart>
+                    }
                 </ClientOnly>
+
             </div>
 
 

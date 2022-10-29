@@ -15,8 +15,9 @@ use uuid::Uuid;
 use crate::db::DbError;
 use crate::domain::{ActionType, Room, TempAction, TemperatureLog, WorkMessage};
 use crate::prices::{PriceError, PriceInfo, TibberClient};
+use crate::service::scheduling;
 use crate::shelly_client::ShellyClient;
-use crate::{db, now, scheduling};
+use crate::{db, now};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {

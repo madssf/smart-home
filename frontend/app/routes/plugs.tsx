@@ -4,7 +4,6 @@ import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import {requireUserId} from "~/utils/sessions.server";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button, Heading} from "@chakra-ui/react";
@@ -24,8 +23,6 @@ export type PlugFormErrors = FormErrors<Plug>;
 export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
-
-    await requireUserId(request);
 
     const body = await request.formData();
 
@@ -83,9 +80,7 @@ export async function action({request}: ActionArgs) {
     return redirect(routes.PLUGS.ROOT);
 }
 
-export const loader: LoaderFunction = async ({request}) => {
-
-    await requireUserId(request);
+export const loader: LoaderFunction = async () => {
 
     const plugs = await getPlugs();
     const rooms = await getRooms();

@@ -3,7 +3,6 @@ import {routes} from "~/routes";
 import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import {requireUserId} from "~/utils/sessions.server";
 import {useLoaderData} from "@remix-run/react";
 import {Button, Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
@@ -29,8 +28,6 @@ export type TempActionErrors = FormErrors<TempAction>;
 export const handle = {hydrate: true};
 
 export async function action({request}: ActionArgs) {
-
-    await requireUserId(request);
 
     const body = await request.formData();
 
@@ -82,9 +79,7 @@ export async function action({request}: ActionArgs) {
     return redirect(routes.TEMP_ACTIONS.ROOT);
 }
 
-export const loader: LoaderFunction = async ({request}) => {
-
-    await requireUserId(request);
+export const loader: LoaderFunction = async () => {
 
     const rooms = await getRooms();
     const tempActions = await getTempActions();

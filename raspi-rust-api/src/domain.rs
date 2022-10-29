@@ -5,6 +5,7 @@ use chrono::{NaiveDateTime, NaiveTime, Weekday};
 use serde::{Deserialize, Serialize};
 use sqlx::types::ipnetwork::IpNetwork;
 use strum_macros::{Display, EnumString};
+use tibber::PriceLevel as TPriceLevel;
 use uuid::Uuid;
 
 #[derive(Debug, EnumString, Display, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
@@ -12,6 +13,20 @@ pub enum PriceLevel {
     CHEAP,
     NORMAL,
     EXPENSIVE,
+}
+
+impl PriceLevel {
+    pub(crate) fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {
+        match tibber_price_level {
+            TPriceLevel::VeryCheap => PriceLevel::CHEAP,
+            TPriceLevel::Cheap => PriceLevel::CHEAP,
+            TPriceLevel::Normal => PriceLevel::NORMAL,
+            TPriceLevel::Expensive => PriceLevel::EXPENSIVE,
+            TPriceLevel::VeryExpensive => PriceLevel::EXPENSIVE,
+            TPriceLevel::Other(_) => PriceLevel::NORMAL,
+            TPriceLevel::None => PriceLevel::NORMAL,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

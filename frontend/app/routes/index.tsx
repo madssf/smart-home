@@ -1,50 +1,43 @@
-import {getSessionData} from "~/utils/auth.server";
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {Link, useLoaderData} from "@remix-run/react";
+import {Heading} from "@chakra-ui/react";
+import {getCurrentPrice} from "~/routes/index.server";
+import {useLoaderData} from "@remix-run/react";
+import type {Price} from "./types";
+import {pageLinks} from "~/components/pageLinks";
 import React from "react";
 
-export interface IndexData {
-    idToken?: string
+interface ResponseData {
+    price: Price;
 }
 
 export const handle = {hydrate: true};
 
-export const loader: LoaderFunction = async ({request}) => {
-    const {idToken} = await getSessionData(request);
+export const loader: LoaderFunction = async () => {
 
-    return json<IndexData>({
-        idToken,
+    const price = await getCurrentPrice();
+
+    return json<ResponseData>({
+        price,
     });
+
 };
 
 export default function Index() {
 
-    const data = useLoaderData<IndexData>();
+    const data = useLoaderData<ResponseData>();
 
     return (
-        <div>
-            <h1 className="text-4xl mb-5">
+        <div className="ml-4">
+            <Heading className="flex justify-center">
                 Smart Home
-            </h1>
-            {
-                data.idToken ?
-                    <Link to={"/home"}>
-                        Home
-                    </Link>
-                    :
-                    <p>Please log in!</p>
-            }
-        </div>
-    );
-}
-
-export function ErrorBoundary({error}: { error: Error }) {
-    console.error(error);
-
-    return (
-        <div>
-            <p>{error.message}</p>
+            </Heading>
+            <div className="mt-4">
+                <p><b>Current price: </b>{data.price.amount.toFixed(2)} {data.price.currency} - {data.price.level}</p>
+            </div>
+            <div className="flex flex-col mt-4">
+                {pageLinks}
+            </div>
         </div>
     );
 }

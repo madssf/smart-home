@@ -10,9 +10,9 @@ pub mod domain;
 pub mod observability;
 pub mod prices;
 pub mod routes;
-pub mod scheduling;
 pub mod shelly_client;
 pub mod work_handler;
+pub mod service;
 
 pub fn env_var(name: &str) -> String {
     env::var(name)
