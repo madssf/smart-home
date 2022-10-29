@@ -103,13 +103,22 @@ const TempLog = () => {
                 <ClientOnly>
                     {
                         () =>
-                            <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
-                                <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
-                                <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
-                                <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
+                        {
+                            if (loaderData.dataset.length === 0) {
+                                return <p> No temperature data here..!</p>;
+                            } else {
+                                return (
+                                    <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
+                                        <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
+                                        <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
+                                        <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
 
-                                <Tooltip content={CustomTooltip} />
-                            </LineChart>
+                                        <Tooltip content={CustomTooltip} />
+                                    </LineChart>
+                                );
+                            }
+                        }
+
                     }
                 </ClientOnly>
 

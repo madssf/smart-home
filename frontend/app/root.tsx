@@ -1,11 +1,12 @@
 import {useShouldHydrate} from "remix-utils";
 import styles from "./styles/app.css";
-import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration} from "@remix-run/react";
+import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useNavigate} from "@remix-run/react";
 import {ClientStyleContext, ServerStyleContext} from './context';
 import React, {useContext, useEffect} from "react";
 import {withEmotionCache} from "@emotion/react";
-import {Box, extendTheme, withDefaultColorScheme} from "@chakra-ui/react";
+import {Box, Button, ButtonGroup, extendTheme, Heading, withDefaultColorScheme} from "@chakra-ui/react";
 import Layout from "~/components/layout";
+import {routes} from "~/routes";
 
 export const theme = extendTheme(
     withDefaultColorScheme({ colorScheme: 'teal' }),
@@ -91,10 +92,27 @@ export default function App() {
 export function ErrorBoundary({error}: { error: Error }) {
     console.error(error);
 
+    const navigate = useNavigate();
+
     return (
         <Document>
             <Layout>
-                <p className="text-center">{error.message}</p>
+                <Box className="flex flex-col items-center text-center">
+
+                    <Heading size="md" pb={4}>
+                        Oops!
+                    </Heading>
+
+                    <p className="text-center pb-4">{error.message}</p>
+                    <ButtonGroup>
+                        <Button p={1} onClick={() => window.location.reload()}>
+                            Reload
+                        </Button>
+                        <Button p={1} variant="outline" onClick={() => navigate(routes.HOME)}>
+                            Home
+                        </Button>
+                    </ButtonGroup>
+                </Box>
             </Layout>
         </Document>
 
