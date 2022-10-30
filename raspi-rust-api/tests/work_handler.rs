@@ -7,13 +7,14 @@ use tokio::sync::mpsc;
 use wiremock::matchers::any;
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use rust_home::clients::shelly_client::ShellyClient;
+use rust_home::clients::tibber_client::TibberClient;
 use rust_home::db;
 use rust_home::db::DbConfig;
 use rust_home::domain::{
-    ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog, WorkMessage,
+    ActionType, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TemperatureLog,
+    WorkMessage,
 };
-use rust_home::prices::{PriceInfo, TibberClient};
-use rust_home::shelly_client::ShellyClient;
 use rust_home::work_handler::WorkHandler;
 
 use crate::configuration::DatabaseTestConfig;

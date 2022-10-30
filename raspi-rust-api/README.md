@@ -15,6 +15,7 @@ DATABASE_URL=postgres://postgres:password@localhost:5432/smarthome
 `.env.prod`
 ```
 TIBBER_API_TOKEN=<replace me>
+TIBBER_HOME_ID=<replace me>
 TIME_ZONE=<replace me>
 RUST_LOG=<set this or don't!>
 ENVIRONMENT=production

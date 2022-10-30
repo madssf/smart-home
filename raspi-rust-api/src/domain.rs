@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use anyhow::Context;
@@ -5,8 +6,12 @@ use chrono::{NaiveDateTime, NaiveTime, Weekday};
 use serde::{Deserialize, Serialize};
 use sqlx::types::ipnetwork::IpNetwork;
 use strum_macros::{Display, EnumString};
-use tibber::PriceLevel as TPriceLevel;
+use tibber::{
+    Consumption as TConsumption, EnergyUnits, PriceInfo as TPriceInfo, PriceLevel as TPriceLevel,
+};
 use uuid::Uuid;
+
+use crate::clients::tibber_client::TibberClientError;
 
 #[derive(Debug, EnumString, Display, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum PriceLevel {
@@ -16,7 +21,7 @@ pub enum PriceLevel {
 }
 
 impl PriceLevel {
-    pub(crate) fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {
+    pub fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {
         match tibber_price_level {
             TPriceLevel::VeryCheap => PriceLevel::CHEAP,
             TPriceLevel::Cheap => PriceLevel::CHEAP,
@@ -26,6 +31,58 @@ impl PriceLevel {
             TPriceLevel::Other(_) => PriceLevel::NORMAL,
             TPriceLevel::None => PriceLevel::NORMAL,
         }
+    }
+}
+
+#[derive(Serialize)]
+pub struct PriceInfo {
+    pub amount: f64,
+    pub currency: String,
+    pub level: PriceLevel,
+}
+
+impl Display for PriceInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "Price: {} {} - Level: {}",
+            &self.amount,
+            &self.currency,
+            &self.level.to_string()
+        ))
+    }
+}
+
+impl PriceInfo {
+    pub(crate) fn from_tibber_price_info(tibber_price_info: &TPriceInfo) -> Self {
+        PriceInfo {
+            amount: tibber_price_info.total,
+            currency: String::from(&tibber_price_info.currency),
+            level: PriceLevel::from_tibber_price_level(&tibber_price_info.level),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct Consumption {
+    from: NaiveDateTime,
+    to: NaiveDateTime,
+    kwh: Option<f64>,
+    cost: f64,
+}
+
+impl TryFrom<&TConsumption> for Consumption {
+    type Error = TibberClientError;
+
+    fn try_from(value: &TConsumption) -> Result<Self, Self::Error> {
+        Ok(Self {
+            from: value.from.naive_local(),
+            to: value.to.naive_local(),
+            kwh: match value.energy {
+                EnergyUnits::kWh(kwh) => Some(kwh),
+                EnergyUnits::None => None,
+            },
+            cost: value.cost,
+        })
     }
 }
 

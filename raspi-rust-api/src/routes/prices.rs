@@ -3,7 +3,7 @@ use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use log::error;
 
-use crate::prices::TibberClient;
+use crate::clients::tibber_client::TibberClient;
 
 pub fn prices(tibber_client: web::Data<Arc<TibberClient>>) -> Scope {
     web::scope("/prices")

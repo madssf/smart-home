@@ -27,6 +27,8 @@ serde-aux = "4.0"
 bigdecimal = "0.3"
 itertools = "0.10"
 
+async-tungstenite = { version = "0.18.0", features = ["tokio-runtime", "tokio-native-tls"] }
+
 [dependencies.sqlx]
 version = "0.6"
 default-features = false

@@ -4,15 +4,14 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 
 pub mod api;
+pub mod clients;
 pub mod configuration;
 pub mod db;
 pub mod domain;
 pub mod observability;
-pub mod prices;
 pub mod routes;
-pub mod shelly_client;
-pub mod work_handler;
 pub mod service;
+pub mod work_handler;
 
 pub fn env_var(name: &str) -> String {
     env::var(name)

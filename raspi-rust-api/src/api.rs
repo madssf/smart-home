@@ -8,8 +8,8 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+use crate::clients::tibber_client::TibberClient;
 use crate::domain::WorkMessage;
-use crate::prices::TibberClient;
 use crate::routes::plugs::plugs;
 use crate::routes::prices::prices;
 use crate::routes::rooms::rooms;

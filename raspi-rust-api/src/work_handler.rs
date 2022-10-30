@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 
 use chrono::NaiveDateTime;
@@ -10,19 +9,20 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::time::sleep;
 use uuid::Uuid;
 
+use crate::clients::shelly_client::ShellyClient;
+use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
-use crate::domain::{ActionType, Room, TempAction, TemperatureLog, WorkMessage};
-use crate::prices::{PriceError, PriceInfo, TibberClient};
+use crate::domain::{ActionType, PriceInfo, Room, TempAction, TemperatureLog, WorkMessage};
 use crate::service::scheduling;
-use crate::shelly_client::ShellyClient;
 use crate::{db, now};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
     #[error("PriceError: {0}")]
-    PriceError(#[from] PriceError),
+    PriceError(#[from] TibberClientError),
     #[error("DbError: {0}")]
     DbError(#[from] DbError),
     #[error("SendError")]
@@ -84,7 +84,7 @@ impl WorkHandler {
                     }
                 }
             }
-            sleep(Duration::from_secs(1))
+            sleep(Duration::from_secs(1)).await
         }
     }
 
@@ -204,11 +204,11 @@ pub async fn poll(
                     "Sent message, sleeping for {} minutes",
                     sleep_duration_in_minutes
                 );
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 60))
+                sleep(Duration::from_secs(sleep_duration_in_minutes * 60)).await
             }
             Err(e) => {
                 error!("Failed to send message, error {}", e);
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 10))
+                sleep(Duration::from_secs(sleep_duration_in_minutes * 10)).await
             }
         }
     }

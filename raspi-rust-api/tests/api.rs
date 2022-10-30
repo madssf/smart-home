@@ -5,8 +5,8 @@ use testcontainers::clients::Cli;
 use tokio::sync::mpsc;
 
 use rust_home::api::start;
+use rust_home::clients::tibber_client::TibberClient;
 use rust_home::domain::WorkMessage;
-use rust_home::prices::TibberClient;
 
 use crate::configuration::DatabaseTestConfig;
 
