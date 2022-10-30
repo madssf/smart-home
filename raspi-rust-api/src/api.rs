@@ -6,6 +6,7 @@ use log::info;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::clients::tibber_client::TibberClient;
@@ -16,17 +17,20 @@ use crate::routes::rooms::rooms;
 use crate::routes::schedules::schedules;
 use crate::routes::temp_actions::temp_actions;
 use crate::routes::temperature_logs::temperature_logs;
+use crate::service::consumption_cache::ConsumptionCache;
 
 pub async fn start(
     sender: Sender<WorkMessage>,
     host: String,
     port: u16,
     tibber_client: Arc<TibberClient>,
+    consumption_cache: Arc<Mutex<ConsumptionCache>>,
     pool: PgPool,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
     let pool = web::Data::new(pool);
     let tibber_client = web::Data::new(tibber_client);
+    let consumption_cache = web::Data::new(consumption_cache);
     info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
         App::new()
@@ -40,7 +44,7 @@ pub async fn start(
             .service(schedules())
             .service(temp_actions())
             .service(temperature_logs())
-            .service(prices(tibber_client.clone()))
+            .service(prices(tibber_client.clone(), consumption_cache.clone()))
     })
     .shutdown_timeout(1)
     .bind((host, port))?

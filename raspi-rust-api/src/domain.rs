@@ -64,10 +64,10 @@ impl PriceInfo {
 
 #[derive(Serialize)]
 pub struct Consumption {
-    from: NaiveDateTime,
-    to: NaiveDateTime,
-    kwh: Option<f64>,
-    cost: f64,
+    pub from: NaiveDateTime,
+    pub to: NaiveDateTime,
+    pub kwh: Option<f64>,
+    pub cost: f64,
 }
 
 impl TryFrom<&TConsumption> for Consumption {
@@ -84,6 +84,11 @@ impl TryFrom<&TConsumption> for Consumption {
             cost: value.cost,
         })
     }
+}
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Serialize)]
+pub struct LiveConsumption {
+    pub timestamp: NaiveDateTime,
+    pub power: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]

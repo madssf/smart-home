@@ -9,3 +9,13 @@ export enum PriceLevel {
     NORMAL = 'NORMAL',
     EXPENSIVE = 'EXPENSIVE',
 }
+
+export interface Consumption {
+    label: string,
+    kwh: number,
+}
+
+export interface LiveConsumption {
+    timestamp: string,
+    power: number,
+}

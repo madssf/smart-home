@@ -28,7 +28,6 @@ export enum TimePeriod {
 
 export const loader: LoaderFunction = async ({request, params}) => {
 
-
     const room_id = params.room_id!;
 
     const url = new URL(request.url);

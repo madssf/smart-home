@@ -8,5 +8,7 @@ export const apiRoutes = {
     temperature_logs: (room_id: string, time_period: TimePeriod) => `temperature_logs/${room_id}/${time_period}`,
     prices: {
         current: 'prices/current',
+        consumption: 'prices/consumption',
+        live_consumption: 'prices/live_consumption',
     },
 };

@@ -1,4 +1,5 @@
 use std::net::TcpStream;
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_tungstenite::tungstenite::stream::MaybeTlsStream;
@@ -6,12 +7,16 @@ use async_tungstenite::tungstenite::{
     client::IntoClientRequest, connect, http::HeaderValue, Error as WSClientError, Message,
     WebSocket,
 };
-use log::{debug, error, info, warn};
+use chrono::NaiveDateTime;
+use log::{debug, error, warn};
 use serde::Deserialize;
 use thiserror::Error;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 
+use crate::domain::LiveConsumption;
 use crate::env_var;
+use crate::service::consumption_cache::ConsumptionCache;
 
 #[derive(Error, Debug)]
 pub enum PowerSubscriberError {
@@ -21,16 +26,20 @@ pub enum PowerSubscriberError {
     NoAckReceived,
     #[error("JSON Deserialize Error: {0}")]
     JSONDeserializeError(#[from] serde_json::Error),
+    #[error("Chrono parse error: {0}")]
+    ChronoParseError(#[from] chrono::ParseError),
 }
 
-pub async fn live_power_subscriber() {
+pub async fn live_power_subscriber(consumption_cache: Arc<Mutex<ConsumptionCache>>) {
     loop {
-        let subscriber = start_subscriber().await;
+        let subscriber = start_subscriber(consumption_cache.clone()).await;
         error!("Subscriber failed, restarting - error: {:?}", subscriber);
     }
 }
 
-async fn start_subscriber() -> Result<(), PowerSubscriberError> {
+async fn start_subscriber(
+    consumption_cache: Arc<Mutex<ConsumptionCache>>,
+) -> Result<(), PowerSubscriberError> {
     let mut socket = establish_subscription().await?;
 
     loop {
@@ -54,11 +63,18 @@ async fn start_subscriber() -> Result<(), PowerSubscriberError> {
                 continue;
             }
         };
-        info!(
+        debug!(
             "{} - {}",
             response.payload.data.live_measurement.timestamp,
             response.payload.data.live_measurement.power
         );
+        consumption_cache.lock().await.add(LiveConsumption {
+            timestamp: NaiveDateTime::parse_from_str(
+                &response.payload.data.live_measurement.timestamp,
+                "%Y-%m-%dT%H:%M:%S%.f%z",
+            )?,
+            power: response.payload.data.live_measurement.power,
+        });
         sleep(Duration::from_millis(500)).await
     }
 }
