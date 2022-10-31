@@ -131,13 +131,18 @@ impl TimePeriod {
     }
 
     fn find_closest_temp(time: NaiveDateTime, logs: &[&TemperatureLog]) -> f64 {
-        let log_entry = logs.iter().fold(&logs[0], |prev, curr| {
-            if (prev.time - time).num_seconds().abs() > (curr.time - time).num_seconds().abs() {
-                curr
-            } else {
-                prev
-            }
-        });
+        let log_entry =
+            logs.iter()
+                .filter(|entry| entry.time < time)
+                .fold(&logs[0], |prev, curr| {
+                    if (prev.time - time).num_seconds().abs()
+                        > (curr.time - time).num_seconds().abs()
+                    {
+                        curr
+                    } else {
+                        prev
+                    }
+                });
         (log_entry.temp * 10.0).round() / 10.0
     }
 }
