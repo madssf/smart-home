@@ -47,7 +47,7 @@ const Nav = () => {
                 </Menu>
             </div>
             <div className="flex">
-                <Button className="mr-4" size="sm" onClick={toggleColorMode} variant='outline'>
+                <Button size="sm" onClick={toggleColorMode} variant='outline'>
                     {colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
                 </Button>
             </div>

@@ -45,7 +45,7 @@ export default function Index() {
     }, [fetchTrigger]);
 
     return (
-        <div className="ml-4">
+        <div>
             <Heading>
                 Smart Home
             </Heading>
