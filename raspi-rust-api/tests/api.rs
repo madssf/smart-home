@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use actix_web::dev::Server;
 use testcontainers::clients::Cli;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 
 use rust_home::api::start;
 use rust_home::clients::tibber_client::TibberClient;
 use rust_home::domain::WorkMessage;
+use rust_home::service::consumption_cache::ConsumptionCache;
 
 use crate::configuration::DatabaseTestConfig;
 
@@ -24,6 +25,7 @@ async fn spawn_api() -> Server {
         "127.0.0.1".to_string(),
         8080,
         tibber_client,
+        Arc::new(Mutex::new(ConsumptionCache::default())),
         test_config.db_config.pool,
     )
     .await

@@ -4,7 +4,7 @@ import {getLiveConsumption} from "~/routes/index.server";
 import type {LiveConsumption} from "~/routes/types";
 
 export interface LiveConsumptionData {
-    liveConsumption: LiveConsumption
+    liveConsumption: LiveConsumption[]
 }
 
 export const loader: LoaderFunction = async () => {

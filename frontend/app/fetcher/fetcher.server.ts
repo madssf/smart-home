@@ -84,18 +84,18 @@ async function fetchWithRetry(url: RequestInfo, options: RequestInit, attempt = 
                 if (attempt > 5) {
                     return response;
                 } else {
-                    console.log(`Fetch failed (status 500), current attempt: ${attempt}`);
+                    console.log(`Fetch failed (status 500), url: ${url}, current attempt: ${attempt}`);
                     return fetchWithRetry(url, options, attempt + 1);
                 }
             } else {
-                throw new Error(`Request failed with status ${response.status} after ${attempt} attempts`);
+                throw new Error(`Request failed with status ${response.status} after ${attempt} attempts, url: ${url}`);
             }
         })
         .catch((e) => {
             if (attempt > 5) {
                 throw new Error(e);
             } else {
-                console.log(`Caught exception during fetch, current attempt: ${attempt}`);
+                console.log(`Caught exception during fetch, url: ${url}, current attempt: ${attempt}`);
                 return fetchWithRetry(url, options, attempt + 1);
             }
         });

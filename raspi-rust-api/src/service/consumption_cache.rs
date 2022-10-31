@@ -4,6 +4,7 @@ use crate::domain::LiveConsumption;
 
 const MAX_CACHE_SIZE: i32 = 100;
 
+#[derive(Debug)]
 pub struct ConsumptionCache {
     consumption: VecDeque<LiveConsumption>,
 }
@@ -26,8 +27,11 @@ impl ConsumptionCache {
         self.consumption.push_front(value)
     }
 
-    pub fn get_latest(&self) -> Option<&LiveConsumption> {
-        self.consumption.front()
+    pub fn get_latest(&self, num: i32) -> Vec<&LiveConsumption> {
+        if self.consumption.len() < num as usize {
+            return self.consumption.iter().collect();
+        }
+        self.consumption.range(0..num as usize).collect()
     }
 }
 
@@ -66,10 +70,30 @@ mod tests {
             })
         });
         assert_eq!(
-            cache.get_latest(),
-            Some(&LiveConsumption {
+            cache.get_latest(1).get(0),
+            Some(&&LiveConsumption {
                 timestamp: NaiveDateTime::from_timestamp(1_000_000_000 + 1000 * 5, 0),
                 power: 1000,
+            })
+        )
+    }
+
+    #[test]
+    fn should_allow_getting_more_than_exists() {
+        let mut cache = ConsumptionCache::default();
+        (0..=2).for_each(|i| {
+            cache.add(LiveConsumption {
+                timestamp: NaiveDateTime::from_timestamp(1_000_000_000 + i * 5, 0),
+                power: i,
+            })
+        });
+        assert_eq!(cache.get_latest(100).get(50), None);
+        dbg!(&cache);
+        assert_eq!(
+            cache.get_latest(3).get(2),
+            Some(&&LiveConsumption {
+                timestamp: NaiveDateTime::from_timestamp(1_000_000_000, 0),
+                power: 0
             })
         )
     }

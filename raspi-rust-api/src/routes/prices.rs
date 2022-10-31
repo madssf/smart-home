@@ -66,5 +66,5 @@ async fn get_live_consumption(
     consumption_cache: web::Data<Arc<Mutex<ConsumptionCache>>>,
 ) -> impl Responder {
     let cache = consumption_cache.lock().await;
-    HttpResponse::Ok().json(cache.get_latest())
+    HttpResponse::Ok().json(cache.get_latest(3))
 }
