@@ -42,23 +42,45 @@ impl ShellyClient {
         }
     }
 
-    pub async fn get_status(&self, plug: &Plug) -> Result<f64, ShellyClientError> {
-        let host_and_port = match self.port_suffix {
+    fn host(&self, plug: &Plug) -> String {
+        match self.port_suffix {
             None => format!("{}", plug.ip.ip()),
             Some(port) => format!("{}:{}", plug.ip.ip(), port),
-        };
+        }
+    }
+
+    pub async fn get_meter_values(&self, plug: &Plug) -> Result<MeterValues, ShellyClientError> {
         let url = format!(
             "http://{}:{}@{}/meter/0",
-            plug.username, plug.password, host_and_port
+            plug.username,
+            plug.password,
+            self.host(plug)
         );
         let resp = self
             .client
             .get(url)
             .send()
             .await?
-            .json::<PlugStatus>()
+            .json::<MeterValues>()
             .await?;
-        Ok(resp.power)
+        Ok(resp)
+    }
+
+    pub async fn get_plug_status(&self, plug: &Plug) -> Result<RelayStatus, ShellyClientError> {
+        let url = format!(
+            "http://{}:{}@{}/relay/0",
+            plug.username,
+            plug.password,
+            self.host(plug)
+        );
+        let resp = self
+            .client
+            .get(url)
+            .send()
+            .await?
+            .json::<RelayStatus>()
+            .await?;
+        Ok(resp)
     }
 
     pub async fn execute_action(
@@ -66,15 +88,11 @@ impl ShellyClient {
         plug: &Plug,
         action: &ActionType,
     ) -> Result<(), ShellyClientError> {
-        let host_and_port = match self.port_suffix {
-            None => format!("{}", plug.ip.ip()),
-            Some(port) => format!("{}:{}", plug.ip.ip(), port),
-        };
         let url = format!(
             "http://{}:{}@{}/relay/0/command?turn={}",
             plug.username,
             plug.password,
-            host_and_port,
+            self.host(plug),
             action.to_string().to_lowercase(),
         );
 
@@ -90,13 +108,24 @@ pub enum ShellyClientError {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct PlugStatus {
+#[allow(dead_code)]
+pub struct MeterValues {
     power: f64,
-    /*
     overpower: f32,
     is_valid: bool,
     timestamp: i32,
     counters: Vec<f32>,
     total: i32,
-     */
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+pub struct RelayStatus {
+    pub ison: bool,
+    pub has_timer: bool,
+    pub timer_started: i64,
+    pub timer_duration: i64,
+    pub timer_remaining: i64,
+    pub overpower: bool,
+    pub source: String,
 }
