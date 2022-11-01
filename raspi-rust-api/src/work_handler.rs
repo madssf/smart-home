@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::thread::sleep;
 use std::time::Duration;
 
 use chrono::NaiveDateTime;
@@ -9,7 +10,6 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::time::sleep;
 use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
@@ -84,7 +84,7 @@ impl WorkHandler {
                     }
                 }
             }
-            sleep(Duration::from_millis(200)).await
+            sleep(Duration::from_millis(200))
         }
     }
 
@@ -204,11 +204,11 @@ pub async fn poll(
                     "Sent message, sleeping for {} minutes",
                     sleep_duration_in_minutes
                 );
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 60)).await
+                sleep(Duration::from_secs(sleep_duration_in_minutes * 60))
             }
             Err(e) => {
                 error!("Failed to send message, error {}", e);
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 10)).await
+                sleep(Duration::from_secs(sleep_duration_in_minutes * 10))
             }
         }
     }
