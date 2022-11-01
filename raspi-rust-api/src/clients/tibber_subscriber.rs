@@ -1,6 +1,5 @@
 use std::net::TcpStream;
 use std::sync::Arc;
-use std::time::Duration;
 
 use async_tungstenite::tungstenite::stream::MaybeTlsStream;
 use async_tungstenite::tungstenite::{
@@ -12,7 +11,6 @@ use log::{debug, error, warn};
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::Mutex;
-use tokio::time::sleep;
 
 use crate::domain::LiveConsumption;
 use crate::env_var;
@@ -75,7 +73,6 @@ async fn start_subscriber(
             )?,
             power: response.payload.data.live_measurement.power,
         });
-        sleep(Duration::from_millis(500)).await
     }
 }
 
