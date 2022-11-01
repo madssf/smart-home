@@ -60,6 +60,7 @@ const ConsumptionGraph = ({consumption}: ConsumptionGraphProps) => {
                                     <Area type="monotone" dataKey="kwh" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
                                     <XAxis padding={{right: 4}} interval="preserveEnd" dataKey="label" tick={<CustomizedAxisTick />} />
                                     <YAxis
+                                        allowDecimals={false}
                                         type="number"
                                         unit=" kWh"
                                         padding={{bottom: 40}}
