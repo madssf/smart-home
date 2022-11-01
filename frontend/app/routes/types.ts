@@ -19,3 +19,8 @@ export interface LiveConsumption {
     timestamp: string,
     power: number,
 }
+
+export interface RoomTemp {
+    room_name: string,
+    temp: number
+}

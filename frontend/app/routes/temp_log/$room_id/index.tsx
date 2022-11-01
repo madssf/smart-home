@@ -2,7 +2,7 @@ import React from 'react';
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {useLoaderData, useNavigate, useParams, useSearchParams} from "@remix-run/react";
-import {Line, LineChart, Tooltip, XAxis, YAxis} from 'recharts';
+import {Area, AreaChart, Tooltip, XAxis, YAxis} from 'recharts';
 import {Button, useColorMode} from "@chakra-ui/react";
 import {ClientOnly} from "remix-utils";
 import {routes} from "~/routes";
@@ -85,7 +85,8 @@ const TempLog = () => {
                 <div className='grid grid-cols-3 px-8 pb-8'>
                     {Object.values(TimePeriod).map((period) => {
                         return <Button
-                            size='md'
+                            size='sm'
+                            variant="outline"
                             className='w'
                             key={period}
                             id="period"
@@ -107,13 +108,26 @@ const TempLog = () => {
                                 return <p> No temperature data here..!</p>;
                             } else {
                                 return (
-                                    <LineChart margin={{bottom: 40}} width={360} height={300} data={loaderData.dataset}>
-                                        <Line type="monotone" dataKey={'temp'} stroke="#8884d8" strokeWidth={1.5} />
+                                    <AreaChart margin={{bottom: 40}} width={350} height={300} data={loaderData.dataset}>
+                                        <defs>
+                                            <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <Area type="monotone" dataKey="temp" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
                                         <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
-                                        <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[domainMin, domainMax]} />
+                                        <YAxis
+                                            type="number"
+                                            unit=" °C"
+                                            padding={{bottom: 40}}
+                                            tick={{fill: color}}
+                                            mirror
+                                            domain={[domainMin, domainMax]}
+                                        />
 
                                         <Tooltip content={CustomTooltip} />
-                                    </LineChart>
+                                    </AreaChart>
                                 );
                             }
                         }

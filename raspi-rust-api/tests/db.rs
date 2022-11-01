@@ -401,7 +401,7 @@ async fn latest_temp_logs() {
         }
     }
 
-    let current_temps = temperature_logs::get_current_temps(&pool, rooms)
+    let current_temps = temperature_logs::get_current_temps(&pool, &rooms)
         .await
         .expect("Couldn't get latest temps");
     assert_eq!(current_temps.len(), 4);
@@ -418,7 +418,7 @@ async fn latest_temp_logs() {
         .find(|room| room.name == "dummy")
         .expect("Couldnt find room");
 
-    let current_non_existing = temperature_logs::get_current_temps(&pool, vec![new_room.clone()])
+    let current_non_existing = temperature_logs::get_current_temps(&pool, &vec![new_room.clone()])
         .await
         .expect("Couldnt get temps");
     assert_eq!(current_non_existing.get(&new_room.id), None)

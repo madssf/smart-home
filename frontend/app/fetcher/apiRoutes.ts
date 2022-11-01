@@ -5,7 +5,10 @@ export const apiRoutes = {
     plugs: 'plugs/',
     schedules: 'schedules/',
     temp_actions: 'temp_actions/',
-    temperature_logs: (room_id: string, time_period: TimePeriod) => `temperature_logs/${room_id}/${time_period}`,
+    temperature_logs: {
+        room_id: (room_id: string, time_period: TimePeriod) => `temperature_logs/${room_id}/${time_period}`,
+        current: 'temperature_logs/current',
+    },
     prices: {
         current: 'prices/current',
         consumption: 'prices/consumption',

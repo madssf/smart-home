@@ -1,7 +1,7 @@
 import React from 'react';
 import type {Consumption} from "~/routes/types";
 import {ClientOnly} from "remix-utils";
-import {Line, LineChart, Tooltip, XAxis, YAxis} from "recharts";
+import {Area, AreaChart, Tooltip, XAxis, YAxis} from "recharts";
 import {useColorMode} from "@chakra-ui/react";
 
 export interface ConsumptionGraphProps {
@@ -50,13 +50,26 @@ const ConsumptionGraph = ({consumption}: ConsumptionGraphProps) => {
                             return <p>No consumption data</p>;
                         } else {
                             return (
-                                <LineChart margin={{bottom: 40}} width={360} height={300} data={consumption}>
-                                    <Line type="monotone" dataKey="kwh" stroke="#8884d8" strokeWidth={1.5} />
-                                    <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
-                                    <YAxis type="number" padding={{bottom: 40}} tick={{fill: color}} mirror domain={[0, domainMax]} />
+                                <AreaChart margin={{bottom: 40}} width={350} height={300} data={consumption}>
+                                    <defs>
+                                        <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="kwh" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
+                                    <XAxis padding={{right: 4}} interval="preserveEnd" dataKey="label" tick={<CustomizedAxisTick />} />
+                                    <YAxis
+                                        type="number"
+                                        unit=" kWh"
+                                        padding={{bottom: 40}}
+                                        tick={{fill: color}}
+                                        mirror
+                                        domain={[0, domainMax]}
+                                    />
 
                                     <Tooltip content={CustomTooltip} />
-                                </LineChart>
+                                </AreaChart>
                             );
                         }
                     }

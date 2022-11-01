@@ -57,7 +57,7 @@ pub async fn get_room_temp_logs(
 
 pub async fn get_current_temps(
     pool: &PgPool,
-    rooms: Vec<Room>,
+    rooms: &Vec<Room>,
 ) -> Result<HashMap<Uuid, f64>, DbError> {
     let mut temps = HashMap::new();
 

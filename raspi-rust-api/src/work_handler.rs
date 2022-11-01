@@ -125,8 +125,7 @@ impl WorkHandler {
         info!("Found temp actions {:?}", temp_actions);
 
         let rooms = db::rooms::get_rooms(&self.pool).await?;
-        let current_temps =
-            db::temperature_logs::get_current_temps(&self.pool, rooms.clone()).await?;
+        let current_temps = db::temperature_logs::get_current_temps(&self.pool, &rooms).await?;
 
         info!("Current temperatures: {:?}", &current_temps);
 

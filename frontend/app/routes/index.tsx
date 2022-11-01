@@ -1,9 +1,9 @@
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {Badge, Heading} from "@chakra-ui/react";
-import {getConsumption, getCurrentPrice} from "~/routes/index.server";
+import {Badge, Heading, Text} from "@chakra-ui/react";
+import {getConsumption, getCurrentPrice, getRoomTemps} from "~/routes/index.server";
 import {useFetcher, useLoaderData} from "@remix-run/react";
-import type {Consumption, LiveConsumption, Price} from "./types";
+import type {Consumption, LiveConsumption, Price, RoomTemp} from "./types";
 import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
@@ -13,18 +13,23 @@ import {ClientOnly} from "remix-utils";
 interface ResponseData {
     price: Price;
     consumption: Consumption[];
+    roomTemps: RoomTemp[];
 }
 
 export const handle = {hydrate: true};
 
 export const loader: LoaderFunction = async () => {
 
-    const price = await getCurrentPrice();
-    const consumption = await getConsumption();
+    const [price, consumption, roomTemps] = await Promise.all([
+        getCurrentPrice(),
+        getConsumption(),
+        getRoomTemps(),
+    ]);
 
     return json<ResponseData>({
         price,
         consumption,
+        roomTemps,
     });
 
 };
@@ -79,19 +84,25 @@ export default function Index() {
             <Heading>
                 Smart Home
             </Heading>
-            <div className="mt-4 flex flex-col">
-                <div className="flex flex-col">
-                    <div className="grid grid-cols-[110px_auto] p-4">
+            <div className="flex flex-col">
+                <div className="my-4 flex flex-col">
+                    <div className="grid grid-cols-[110px_auto] p-1">
                         <b>Power usage</b>
                         <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={consumptionColor}>{consumption ?? '-'} W</Badge>
                     </div>
-                    <div className="grid grid-cols-[110px_auto] p-4">
+                    <div className="grid grid-cols-[110px_auto] p-1">
                         <b>Current price</b>
                         <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorScheme(data.price.level)}>
                             {data.price.amount.toFixed(2)} {data.price.currency} - {data.price.level}
                         </Badge>
                     </div>
-
+                    <div className="my-1">
+                    {
+                        data.roomTemps.map((roomTemp) => {
+                            return <Text key={roomTemp.room_name} ml={1}><b>{roomTemp.room_name}: </b>{roomTemp.temp} °C</Text>;
+                        })
+                    }
+                    </div>
                 </div>
                 <ClientOnly>
                     {
