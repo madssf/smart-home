@@ -5,8 +5,4 @@ node_modules
 /public
 .env
 .envrc
-copy-env-files.sh
-.firebase
-
-firebase.json
-.firebaserc
+/app/styles/app.css
