@@ -24,13 +24,13 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
 
     let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
-    let shelly_client = ShellyClient::default();
+    let shelly_client = Arc::new(ShellyClient::default());
     let consumption_cache = Arc::new(Mutex::new(ConsumptionCache::default()));
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
 
     let work_handler = WorkHandler::new(
-        shelly_client,
+        shelly_client.clone(),
         tibber_client.clone(),
         sender.clone(),
         receiver,
@@ -50,6 +50,7 @@ async fn main() -> std::io::Result<()> {
         configuration.application_host,
         configuration.application_port,
         tibber_client,
+        shelly_client,
         consumption_cache.clone(),
         db_config.pool.clone(),
     )

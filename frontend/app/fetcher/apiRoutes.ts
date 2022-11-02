@@ -3,6 +3,7 @@ import type {TimePeriod} from "~/routes/temp_log/$room_id";
 export const apiRoutes = {
     rooms: 'rooms/',
     plugs: 'plugs/',
+    plug_status: 'plugs/status',
     schedules: 'schedules/',
     temp_actions: 'temp_actions/',
     temperature_logs: {

@@ -30,7 +30,7 @@ pub enum WorkHandlerError {
 }
 
 pub struct WorkHandler {
-    shelly_client: ShellyClient,
+    shelly_client: Arc<ShellyClient>,
     tibber_client: Arc<TibberClient>,
     pool: Arc<PgPool>,
     sender: Sender<WorkMessage>,
@@ -39,7 +39,7 @@ pub struct WorkHandler {
 
 impl WorkHandler {
     pub fn new(
-        shelly_client: ShellyClient,
+        shelly_client: Arc<ShellyClient>,
         tibber_client: Arc<TibberClient>,
         sender: Sender<WorkMessage>,
         receiver: Receiver<WorkMessage>,
@@ -168,7 +168,7 @@ impl WorkHandler {
         now: &NaiveDateTime,
         price: &PriceInfo,
         room: &Room,
-        current_temps: &HashMap<Uuid, f64>,
+        current_temps: &HashMap<Uuid, TemperatureLog>,
         temp_on: bool,
     ) -> Result<ActionType, DbError> {
         let room_schedules = db::schedules::get_room_schedules(&self.pool, &room.id).await?;
@@ -177,7 +177,7 @@ impl WorkHandler {
         let current_temp = current_temps.get(&room.id);
         let action = if let (Some(schedule), Some(current_temp)) = (matching_schedule, current_temp)
         {
-            if current_temp < &schedule.temp {
+            if current_temp.temp < schedule.temp {
                 ActionType::ON
             } else {
                 ActionType::OFF

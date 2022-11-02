@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::sync::Arc;
 
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use log::error;
@@ -6,15 +7,18 @@ use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db;
+use crate::clients::shelly_client::ShellyClient;
 use crate::domain::Plug;
+use crate::{db, service};
 
-pub fn plugs() -> Scope {
+pub fn plugs(shelly_client: web::Data<Arc<ShellyClient>>) -> Scope {
     web::scope("/plugs")
+        .app_data(shelly_client)
         .service(get_plugs)
         .service(create_plug)
         .service(update_plug)
         .service(delete_plug)
+        .service(get_plug_statuses)
 }
 
 #[get("/")]
@@ -119,5 +123,26 @@ async fn delete_plug(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Respo
     match db::plugs::delete_plug(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+#[get("/status")]
+async fn get_plug_statuses(
+    pool: web::Data<PgPool>,
+    shelly_client: web::Data<Arc<ShellyClient>>,
+) -> impl Responder {
+    let plugs = match db::plugs::get_plugs(pool.get_ref()).await {
+        Ok(plugs) => plugs,
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    match service::plugs::get_plug_statuses(&plugs, shelly_client.get_ref()).await {
+        Ok(plug_statuses) => HttpResponse::Ok().json(plug_statuses),
+        Err(e) => {
+            error!("{:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }

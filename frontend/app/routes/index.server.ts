@@ -1,6 +1,6 @@
 import {getRequest} from "~/fetcher/fetcher.server";
 import {apiRoutes} from "~/fetcher/apiRoutes";
-import type {Consumption, LiveConsumption, Price, RoomTemp} from "~/routes/types";
+import type {Consumption, LiveConsumption, PlugStatus, Price, RoomTemp} from "~/routes/types";
 
 export async function getCurrentPrice(): Promise<Price> {
     return await getRequest<Price>(apiRoutes.prices.current);
@@ -16,4 +16,8 @@ export async function getLiveConsumption(): Promise<LiveConsumption[]> {
 
 export async function getRoomTemps(): Promise<RoomTemp[]> {
     return await getRequest<RoomTemp[]>(apiRoutes.temperature_logs.current);
+}
+
+export async function getPlugStatuses(): Promise<PlugStatus[]> {
+    return await getRequest<PlugStatus[]>(apiRoutes.plug_status);
 }

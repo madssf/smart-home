@@ -110,12 +110,12 @@ pub enum ShellyClientError {
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct MeterValues {
-    power: f64,
-    overpower: f32,
-    is_valid: bool,
-    timestamp: i32,
-    counters: Vec<f32>,
-    total: i32,
+    pub power: f64,
+    pub overpower: f32,
+    pub is_valid: bool,
+    pub timestamp: i32,
+    pub counters: Vec<f32>,
+    pub total: i32,
 }
 
 #[derive(Debug, Deserialize)]

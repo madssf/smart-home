@@ -3,6 +3,7 @@ use actix_web::web;
 use actix_web::HttpResponse;
 use actix_web::Responder;
 use actix_web::Scope;
+use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -57,6 +58,7 @@ async fn get_room_temperature_logs(
 struct RoomTemp {
     room_name: String,
     temp: f64,
+    time: NaiveDateTime,
 }
 
 #[get("/current")]
@@ -72,11 +74,12 @@ async fn get_current_temps(pool: web::Data<PgPool>) -> impl Responder {
     match db::temperature_logs::get_current_temps(pool.get_ref(), &rooms).await {
         Ok(temps) => {
             let mut room_temps: Vec<RoomTemp> = vec![];
-            temps.iter().for_each(|(room_id, temp)| {
+            temps.iter().for_each(|(room_id, room_temp)| {
                 if let Some(room) = rooms.iter().find(|room| &room.id == room_id) {
                     room_temps.push(RoomTemp {
                         room_name: room.name.clone(),
-                        temp: *temp,
+                        temp: room_temp.temp,
+                        time: room_temp.time,
                     });
                 }
             });

@@ -9,6 +9,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
+use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::WorkMessage;
 use crate::routes::plugs::plugs;
@@ -24,12 +25,14 @@ pub async fn start(
     host: String,
     port: u16,
     tibber_client: Arc<TibberClient>,
+    shelly_client: Arc<ShellyClient>,
     consumption_cache: Arc<Mutex<ConsumptionCache>>,
     pool: PgPool,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
     let pool = web::Data::new(pool);
     let tibber_client = web::Data::new(tibber_client);
+    let shelly_client = web::Data::new(shelly_client);
     let consumption_cache = web::Data::new(consumption_cache);
     info!("Starting API on host {}, port {}", host, port);
     let server = HttpServer::new(move || {
@@ -39,7 +42,7 @@ pub async fn start(
             .service(refresh)
             .service(health)
             .service(report_temp)
-            .service(plugs())
+            .service(plugs(shelly_client.clone()))
             .service(rooms())
             .service(schedules())
             .service(temp_actions())

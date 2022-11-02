@@ -58,7 +58,7 @@ pub async fn get_room_temp_logs(
 pub async fn get_current_temps(
     pool: &PgPool,
     rooms: &Vec<Room>,
-) -> Result<HashMap<Uuid, f64>, DbError> {
+) -> Result<HashMap<Uuid, TemperatureLog>, DbError> {
     let mut temps = HashMap::new();
 
     for room in rooms {
@@ -75,7 +75,14 @@ pub async fn get_current_temps(
                 "Failed to parse floating point number: {}",
                 entry.temp
             ))?;
-            temps.insert(room.id, temp);
+            temps.insert(
+                room.id,
+                TemperatureLog {
+                    room_id: room.id,
+                    temp,
+                    time: entry.time,
+                },
+            );
         }
     }
 

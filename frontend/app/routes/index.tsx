@@ -1,9 +1,9 @@
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {Badge, Heading} from "@chakra-ui/react";
-import {getConsumption, getCurrentPrice, getRoomTemps} from "~/routes/index.server";
+import {getConsumption, getCurrentPrice, getPlugStatuses, getRoomTemps} from "~/routes/index.server";
 import {useFetcher, useLoaderData} from "@remix-run/react";
-import type {Consumption, LiveConsumption, Price, RoomTemp} from "./types";
+import type {Consumption, LiveConsumption, PlugStatus, Price, RoomTemp} from "./types";
 import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
@@ -19,22 +19,25 @@ interface ResponseData {
     price: Price;
     consumption: Consumption[];
     roomTemps: RoomTemp[];
+    plugStatuses: PlugStatus[];
 }
 
 export const handle = {hydrate: true};
 
 export const loader: LoaderFunction = async () => {
 
-    const [price, consumption, roomTemps] = await Promise.all([
+    const [price, consumption, roomTemps, plugStatuses] = await Promise.all([
         getCurrentPrice(),
         getConsumption(),
         getRoomTemps(),
+        getPlugStatuses(),
     ]);
 
     return json<ResponseData>({
         price,
         consumption,
         roomTemps,
+        plugStatuses,
     });
 
 };
@@ -124,9 +127,30 @@ export default function Index() {
                     {
                         data.roomTemps.sort((a, b) => a.room_name.localeCompare(b.room_name)).map((roomTemp) => {
                             return (
-                                <div key={roomTemp.room_name} className="grid grid-cols-[150px_auto] p-1">
+                                <div key={roomTemp.room_name} className="grid grid-cols-[130px_80px_auto] gap-1 p-1">
                                     <b>{roomTemp.room_name}</b>
                                     <Badge maxW={"max-content"} ml={1} fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
+                                    <p className={"ml-1"}>{dayjs(roomTemp.time).fromNow()}</p>
+                                </div>
+                            );
+                        })
+                    }
+                </div>
+                <div className="my-1">
+                    <Heading size='md' mb={1}>Plugs</Heading>
+                    {
+                        data.plugStatuses.sort((a, b) => a.name.localeCompare(b.name)).map((plugStatus) => {
+                            return (
+                                <div key={plugStatus.name} className="grid grid-cols-[130px_80px_auto] gap-1 p-1">
+                                    <b>{plugStatus.name}</b>
+                                    <Badge
+                                        maxW={"max-content"}
+                                        ml={1}
+                                        fontSize="md"
+                                        colorScheme={plugStatus.is_on ? 'blue' : 'gray'}
+                                    >
+                                        {plugStatus.is_on ? `${formatNumber(plugStatus.power, 1, 1)} W` : 'OFF'}
+                                    </Badge>
                                 </div>
                             );
                         })

@@ -23,4 +23,11 @@ export interface LiveConsumption {
 export interface RoomTemp {
     room_name: string,
     temp: number
+    time: string,
+}
+
+export interface PlugStatus {
+    name: string,
+    is_on: boolean,
+    power: number
 }

@@ -405,8 +405,8 @@ async fn latest_temp_logs() {
         .await
         .expect("Couldn't get latest temps");
     assert_eq!(current_temps.len(), 4);
-    for temp in current_temps {
-        assert_eq!(temp.1, 10.0)
+    for (_, room_temp) in current_temps {
+        assert_eq!(room_temp.temp, 10.0)
     }
 
     rooms::create_room(&pool, "dummy")
