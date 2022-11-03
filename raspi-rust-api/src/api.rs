@@ -6,7 +6,7 @@ use log::info;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
@@ -26,7 +26,7 @@ pub async fn start(
     port: u16,
     tibber_client: Arc<TibberClient>,
     shelly_client: Arc<ShellyClient>,
-    consumption_cache: Arc<Mutex<ConsumptionCache>>,
+    consumption_cache: Arc<RwLock<ConsumptionCache>>,
     pool: PgPool,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);

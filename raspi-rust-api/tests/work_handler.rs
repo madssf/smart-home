@@ -34,6 +34,7 @@ async fn setup(
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(32);
     let tibber_client = Arc::new(TibberClient::new("dummy_token".to_string()));
+    let shelly_client = Arc::new(shelly_client);
     let handler = WorkHandler::new(
         shelly_client,
         tibber_client,

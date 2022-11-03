@@ -3,7 +3,7 @@ use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use log::error;
 use serde::Serialize;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::Consumption;
@@ -11,7 +11,7 @@ use crate::service::consumption_cache::ConsumptionCache;
 
 pub fn prices(
     tibber_client: web::Data<Arc<TibberClient>>,
-    consumption_cache: web::Data<Arc<Mutex<ConsumptionCache>>>,
+    consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>,
 ) -> Scope {
     web::scope("/prices")
         .app_data(tibber_client)
@@ -63,8 +63,8 @@ async fn get_consumption(tibber_client: web::Data<Arc<TibberClient>>) -> impl Re
 
 #[get("/live_consumption")]
 async fn get_live_consumption(
-    consumption_cache: web::Data<Arc<Mutex<ConsumptionCache>>>,
+    consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>,
 ) -> impl Responder {
-    let cache = consumption_cache.lock().await;
+    let cache = consumption_cache.read().await;
     HttpResponse::Ok().json(cache.get_latest(3))
 }

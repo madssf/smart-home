@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
 use log::info;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, RwLock};
 
 use rust_home::clients::{
-    shelly_client::ShellyClient, tibber_client::TibberClient,
-    tibber_subscriber::live_power_subscriber,
+    shelly_client::ShellyClient, tibber_client::TibberClient, tibber_subscriber::TibberSubscriber,
 };
 use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
@@ -25,7 +24,7 @@ async fn main() -> std::io::Result<()> {
 
     let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
     let shelly_client = Arc::new(ShellyClient::default());
-    let consumption_cache = Arc::new(Mutex::new(ConsumptionCache::default()));
+    let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::default()));
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
 
@@ -43,7 +42,7 @@ async fn main() -> std::io::Result<()> {
 
     tokio::spawn(async { work_handler.start().await });
     tokio::spawn(async { work_handler::poll(poll_sender, 1).await });
-    tokio::spawn(async { live_power_subscriber(subscriber_cache).await });
+    tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
 
     let server = api::start(
         api_sender,
