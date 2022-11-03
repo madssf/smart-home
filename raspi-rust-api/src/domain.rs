@@ -11,8 +11,6 @@ use tibber::{
 };
 use uuid::Uuid;
 
-use crate::clients::tibber_client::TibberClientError;
-
 #[derive(Debug, EnumString, Display, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum PriceLevel {
     CHEAP,
@@ -20,9 +18,9 @@ pub enum PriceLevel {
     EXPENSIVE,
 }
 
-impl PriceLevel {
-    pub fn from_tibber_price_level(tibber_price_level: &TPriceLevel) -> Self {
-        match tibber_price_level {
+impl From<TPriceLevel> for PriceLevel {
+    fn from(value: TPriceLevel) -> Self {
+        match value {
             TPriceLevel::VeryCheap => PriceLevel::CHEAP,
             TPriceLevel::Cheap => PriceLevel::CHEAP,
             TPriceLevel::Normal => PriceLevel::NORMAL,
@@ -39,6 +37,7 @@ pub struct PriceInfo {
     pub amount: f64,
     pub currency: String,
     pub level: PriceLevel,
+    pub starts_at: NaiveDateTime,
 }
 
 impl Display for PriceInfo {
@@ -52,12 +51,13 @@ impl Display for PriceInfo {
     }
 }
 
-impl PriceInfo {
-    pub(crate) fn from_tibber_price_info(tibber_price_info: &TPriceInfo) -> Self {
-        PriceInfo {
-            amount: tibber_price_info.total,
-            currency: String::from(&tibber_price_info.currency),
-            level: PriceLevel::from_tibber_price_level(&tibber_price_info.level),
+impl From<TPriceInfo> for PriceInfo {
+    fn from(value: TPriceInfo) -> Self {
+        Self {
+            amount: value.total,
+            currency: value.currency,
+            level: value.level.into(),
+            starts_at: value.starts_at.naive_local(),
         }
     }
 }
@@ -70,11 +70,9 @@ pub struct Consumption {
     pub cost: f64,
 }
 
-impl TryFrom<&TConsumption> for Consumption {
-    type Error = TibberClientError;
-
-    fn try_from(value: &TConsumption) -> Result<Self, Self::Error> {
-        Ok(Self {
+impl From<&TConsumption> for Consumption {
+    fn from(value: &TConsumption) -> Self {
+        Self {
             from: value.from.naive_local(),
             to: value.to.naive_local(),
             kwh: match value.energy {
@@ -82,7 +80,7 @@ impl TryFrom<&TConsumption> for Consumption {
                 EnergyUnits::None => None,
             },
             cost: value.cost,
-        })
+        }
     }
 }
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Serialize)]

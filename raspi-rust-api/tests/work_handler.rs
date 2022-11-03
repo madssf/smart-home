@@ -1,7 +1,7 @@
 use std::ops::{Add, Sub};
 use std::sync::Arc;
 
-use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Weekday};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
 use testcontainers::clients::Cli;
 use tokio::sync::mpsc;
 use wiremock::matchers::any;
@@ -64,6 +64,7 @@ async fn starts() {
         amount: 0.0,
         currency: "NOK".to_string(),
         level: PriceLevel::CHEAP,
+        starts_at: Utc::now().naive_local(),
     };
 
     let now = NaiveDateTime::new(
@@ -153,6 +154,7 @@ async fn temp_actions_work() {
                 level: PriceLevel::NORMAL,
                 amount: 20.0,
                 currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
             },
             &now,
         )
@@ -183,6 +185,7 @@ async fn temp_actions_work() {
                 level: PriceLevel::NORMAL,
                 amount: 20.0,
                 currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
             },
             &now,
         )
@@ -266,6 +269,7 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
                 level: PriceLevel::NORMAL,
                 amount: 20.0,
                 currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
             },
             &now,
         )
