@@ -66,5 +66,5 @@ async fn get_live_consumption(
     consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>,
 ) -> impl Responder {
     let cache = consumption_cache.read().await;
-    HttpResponse::Ok().json(cache.get_latest(3))
+    HttpResponse::Ok().json(cache.get_all())
 }

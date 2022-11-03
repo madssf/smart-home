@@ -58,7 +58,7 @@ const TempLog = () => {
 
         return (
             <g transform={`translate(${x},${y})`}>
-                <text x={12} y={0} dy={16} textAnchor="end" fill={color} transform="rotate(-35)">
+                <text fontSize="small" x={12} y={0} dy={16} textAnchor="end" fill={color} transform="rotate(-35)">
                     {payload.value}
                 </text>
             </g>
@@ -111,16 +111,17 @@ const TempLog = () => {
                                     <AreaChart margin={{bottom: 40}} width={350} height={300} data={loaderData.dataset}>
                                         <defs>
                                             <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.3}/>
                                                 <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
                                             </linearGradient>
                                         </defs>
-                                        <Area type="monotone" dataKey="temp" stroke="#8884d8" fillOpacity={1} fill="url(#color)" />
+                                        <Area type="monotone" dataKey="temp" stroke="#8884d8" fill="url(#color)" />
                                         <XAxis padding={{right: 4}} interval={'preserveEnd'} dataKey="label" tick={<CustomizedAxisTick />} />
                                         <YAxis
+                                            fontSize="small"
                                             type="number"
                                             unit=" °C"
-                                            padding={{bottom: 40}}
+                                            padding={{bottom: 20, top: 10}}
                                             tick={{fill: color}}
                                             mirror
                                             domain={[domainMin, domainMax]}

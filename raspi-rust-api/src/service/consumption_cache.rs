@@ -2,7 +2,8 @@ use std::collections::VecDeque;
 
 use crate::domain::LiveConsumption;
 
-const MAX_CACHE_SIZE: i32 = 100;
+// 24 per minute (2.5 sec intervals)
+const MAX_CACHE_SIZE: i32 = 24 * 15;
 
 #[derive(Debug)]
 pub struct ConsumptionCache {
@@ -32,6 +33,10 @@ impl ConsumptionCache {
             return self.consumption.iter().collect();
         }
         self.consumption.range(0..num as usize).collect()
+    }
+
+    pub fn get_all(&self) -> Vec<&LiveConsumption> {
+        self.consumption.iter().collect()
     }
 }
 

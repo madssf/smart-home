@@ -1,5 +1,7 @@
 use std::net::TcpStream;
 use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 
 use async_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use async_tungstenite::tungstenite::protocol::CloseFrame;
@@ -14,7 +16,6 @@ use reqwest::header::InvalidHeaderValue;
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration};
 
 use crate::domain::LiveConsumption;
 use crate::env_var;
@@ -52,7 +53,7 @@ impl TibberSubscriber {
                 "Subscriber failed, restarting in 3 seconds - error: {:?}",
                 subscription
             );
-            sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(3));
             info!("Restarting subscriber now!")
         }
     }

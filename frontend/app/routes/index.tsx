@@ -3,17 +3,17 @@ import {json} from "@remix-run/node";
 import {Badge, Heading} from "@chakra-ui/react";
 import {getConsumption, getCurrentPrice, getPlugStatuses, getRoomTemps} from "~/routes/index.server";
 import {useFetcher, useLoaderData} from "@remix-run/react";
-import type {Consumption, LiveConsumption, PlugStatus, Price, RoomTemp} from "./types";
+import type {Consumption, PlugStatus, Price, RoomTemp} from "./types";
 import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
-import type {LiveConsumptionData} from "~/routes/liveData";
+import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData";
 import {ClientOnly} from "remix-utils";
 import {formatNumber} from "~/utils/formattingUtils";
-import type {Dayjs} from "dayjs";
 import dayjs from "dayjs";
 
 import relativeTime from "dayjs/plugin/relativeTime";
+import LiveConsumptionGraph from "~/components/liveConsumptionGraph";
 
 interface ResponseData {
     price: Price;
@@ -49,7 +49,6 @@ export default function Index() {
     const [fetchTrigger, setFetchTrigger] = useState(0);
     dayjs.extend(relativeTime);
 
-
     useEffect(() => {
         liveFetcher.load("/liveData");
         const interval = setInterval(() => {
@@ -59,7 +58,7 @@ export default function Index() {
 
     }, [fetchTrigger]);
 
-    const getColorScheme = (priceLevel: PriceLevel) => {
+    const getColorForPrice = (priceLevel: PriceLevel) => {
         switch (priceLevel) {
             case PriceLevel.CHEAP:
                 return 'green';
@@ -71,25 +70,21 @@ export default function Index() {
         }
     };
 
-    const getLiveConsumption = (
-        data?: LiveConsumption[],
-    ): { consumption: number | null, consumptionColor: string, consumptionTime: Dayjs | null } => {
-        if (data === undefined || data.length === 0) {
-            return { consumption: null, consumptionColor: 'gray', consumptionTime: null };
-        } else if (data.length === 1) {
-            return { consumption: data[0].power, consumptionColor: 'gray', consumptionTime: dayjs(data[0].timestamp) };
-        } else {
-            return {
-                consumption: data[0].power,
-                consumptionColor: data[0].power === data[1].power ? 'gray' :
-                    data[0].power > data[1].power ?
-                        'red' : 'green',
-                consumptionTime: dayjs(data[0].timestamp),
-            };
+    const getColorForConsumptionChange = (change?: LiveConsumptionChange) => {
+        switch (change) {
+            case "UP":
+                return 'red';
+            case "DOWN":
+                return 'green';
+            case "NONE":
+            case undefined:
+                return 'gray';
+
         }
     };
 
-    const { consumption, consumptionColor, consumptionTime } = getLiveConsumption(liveFetcher.data?.liveConsumption);
+    const consumptionGraphData = liveFetcher.data?.liveConsumption;
+    const consumptionStats = liveFetcher.data?.liveConsumptionStats;
 
     return (
         <div>
@@ -99,19 +94,33 @@ export default function Index() {
             <div className="flex flex-col">
                 <div className="my-4 flex flex-col">
                     <Heading size='md' mb={1}>Power</Heading>
+                    <div className="my-2">
+                        <ClientOnly>
+                            {
+                                () => <LiveConsumptionGraph liveConsumption={consumptionGraphData} />
+
+                            }
+                        </ClientOnly>
+                    </div>
                     <div className="grid grid-cols-[110px_auto_auto] p-1">
                         <b>Consumption</b>
                         <div className="flex flex-row">
-                            <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={consumptionColor}>{consumption ?? '-'} W</Badge>
-                            {consumptionTime && Math.abs(consumptionTime.diff(dayjs(), 'seconds')) > 10 &&
-                                <p className={"ml-1"}>{dayjs(consumptionTime).fromNow()}</p>
+                            <Badge
+                                maxW={"max-content"}
+                                ml={1}
+                                fontSize="md"
+                                colorScheme={getColorForConsumptionChange(consumptionStats?.consumptionChange)}
+                            >
+                                {consumptionStats?.consumption ?? '-'} W
+                            </Badge>
+                            {consumptionStats?.consumptionTime && Math.abs(dayjs(consumptionStats.consumptionTime).diff(dayjs(), 'seconds')) > 10 &&
+                                <p className={"ml-1"}>{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
                             }
                         </div>
-
                     </div>
                     <div className="grid grid-cols-[110px_auto] p-1">
                         <b>Current price</b>
-                        <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorScheme(data.price.level)}>
+                        <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorForPrice(data.price.level)}>
                             {data.price.amount.toFixed(2)} {data.price.currency} - {data.price.level}
                         </Badge>
                     </div>
@@ -119,7 +128,12 @@ export default function Index() {
                 </div>
                 <ClientOnly>
                     {
-                        () => <ConsumptionGraph consumption={data.consumption} />
+                        () => {
+                            return data.consumption.length === 0 ?
+                                <p>No consumption data</p>
+                                :
+                                <ConsumptionGraph consumption={data.consumption} />;
+                        }
                     }
                 </ClientOnly>
                 <div className="my-1">
@@ -127,9 +141,9 @@ export default function Index() {
                     {
                         data.roomTemps.sort((a, b) => a.room_name.localeCompare(b.room_name)).map((roomTemp) => {
                             return (
-                                <div key={roomTemp.room_name} className="grid grid-cols-[130px_80px_auto] gap-1 p-1">
+                                <div key={roomTemp.room_name} className="grid grid-cols-[130px_70px_auto] gap-1 p-1">
                                     <b>{roomTemp.room_name}</b>
-                                    <Badge maxW={"max-content"} ml={1} fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
+                                    <Badge ml={1} className="text-left w-16" fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
                                     <p className={"ml-1"}>{dayjs(roomTemp.time).fromNow()}</p>
                                 </div>
                             );
