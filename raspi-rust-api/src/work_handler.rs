@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use log::{error, info};
+use log::{debug, error, info};
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
@@ -58,7 +58,7 @@ impl WorkHandler {
         info!("Starting work handler");
         loop {
             while let Ok(message) = self.receiver.try_recv() {
-                info!("Got message {}", message.to_string());
+                debug!("Got message {}", message.to_string());
                 match message {
                     WorkMessage::REFRESH | WorkMessage::POLL => {
                         let now = now();
@@ -66,7 +66,7 @@ impl WorkHandler {
                             Ok(price) => {
                                 match self.main_handler(&price, &now).await {
                                     Ok(_) => {
-                                        info!("Work handled.")
+                                        debug!("Work handled.")
                                     }
                                     Err(e) => error!("Work failed, error: {}", e),
                                 };
@@ -110,8 +110,8 @@ impl WorkHandler {
         price: &PriceInfo,
         now: &NaiveDateTime,
     ) -> Result<(), WorkHandlerError> {
-        info!("Current local time: {}", &now);
-        info!("Current price: {}", price);
+        debug!("Current local time: {}", &now);
+        debug!("Current price: {}", price);
 
         let all_actions = db::temp_actions::get_temp_actions(&self.pool).await?;
         let mut temp_actions = vec![];
@@ -123,12 +123,12 @@ impl WorkHandler {
             }
         }
 
-        info!("Found temp actions {:?}", temp_actions);
+        debug!("Found temp actions {:?}", temp_actions);
 
         let rooms = db::rooms::get_rooms(&self.pool).await?;
         let current_temps = db::temperature_logs::get_current_temps(&self.pool, &rooms).await?;
 
-        info!("Current temperatures: {:?}", &current_temps);
+        debug!("Current temperatures: {:?}", &current_temps);
 
         for room in rooms {
             let room_temp_actions: Vec<&TempAction> = temp_actions
@@ -154,7 +154,7 @@ impl WorkHandler {
             for plug in room_plugs {
                 let result = self.shelly_client.execute_action(&plug, &action).await;
                 if result.is_ok() {
-                    info!("Turned plug {} {}", plug.name, action.to_string())
+                    debug!("Turned plug {} {}", plug.name, action.to_string())
                 } else {
                     error!("Failed to turn plug {} {}", plug.name, action.to_string())
                 }
@@ -199,7 +199,7 @@ pub async fn poll(
     loop {
         match sender.send(WorkMessage::POLL).await {
             Ok(_) => {
-                info!(
+                debug!(
                     "Sent message, sleeping for {} minutes",
                     sleep_duration_in_minutes
                 );
