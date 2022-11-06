@@ -16,7 +16,6 @@ use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
 use crate::domain::{ActionType, PriceInfo, Room, TempAction, TemperatureLog, WorkMessage};
-use crate::service::scheduling;
 use crate::{db, now};
 
 #[derive(Error, Debug)]
@@ -170,20 +169,19 @@ impl WorkHandler {
         price: &PriceInfo,
         room: &Room,
         current_temps: &HashMap<Uuid, TemperatureLog>,
-        temp_on: bool,
+        temp_action_on: bool,
     ) -> Result<ActionType, DbError> {
-        let room_schedules = db::schedules::get_room_schedules(&self.pool, &room.id).await?;
         let matching_schedule =
-            scheduling::find_matching_schedule(room_schedules, &price.level, now);
+            db::schedules::get_matching_schedule(&self.pool, &room.id, now).await?;
         let current_temp = current_temps.get(&room.id);
         let action = if let (Some(schedule), Some(current_temp)) = (matching_schedule, current_temp)
         {
-            if current_temp.temp < schedule.temp {
+            if current_temp.temp < schedule.get_temp(&price.level) {
                 ActionType::ON
             } else {
                 ActionType::OFF
             }
-        } else if temp_on {
+        } else if temp_action_on {
             ActionType::ON
         } else {
             ActionType::OFF

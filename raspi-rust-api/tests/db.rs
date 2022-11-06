@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::ops::Add;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -11,24 +13,11 @@ use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog};
 
 mod configuration;
+mod setup;
 
 fn plug(room_id: &Uuid) -> Plug {
     Plug::new("test_plug", "127.0.0.1", "username", "password", room_id)
         .expect("Could not create plug")
-}
-
-fn schedule(room_ids: Vec<Uuid>) -> Schedule {
-    Schedule::new(
-        &PriceLevel::NORMAL,
-        vec![Weekday::Mon, Weekday::Tue],
-        vec![(
-            NaiveTime::from_hms(12, 00, 00),
-            NaiveTime::from_hms(13, 00, 00),
-        )],
-        20.0,
-        room_ids,
-    )
-    .expect("Could not create schedule")
 }
 
 fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
@@ -194,10 +183,9 @@ async fn schedules() {
         .expect("Could not insert room");
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
-    let room_id_1 = rooms[0].clone().id;
     let room_id_2 = rooms[1].clone().id;
 
-    let new_schedule = schedule(vec![room_id_1]);
+    let new_schedule = setup::schedule(vec![&rooms[0]]);
 
     schedules::create_schedule(&pool, new_schedule.clone())
         .await
@@ -211,10 +199,12 @@ async fn schedules() {
 
     let update_expected = Schedule {
         id: stored_schedule.id,
-        price_level: PriceLevel::CHEAP,
+        temps: HashMap::from([
+            (PriceLevel::VeryCheap, 18.0),
+            (PriceLevel::VeryExpensive, 22.0),
+        ]),
         days: vec![Weekday::Fri],
         time_windows: vec![(NaiveTime::from_hms(1, 0, 0), NaiveTime::from_hms(2, 0, 0))],
-        temp: 2.0,
         room_ids: vec![room_id_2],
     };
 
@@ -233,7 +223,30 @@ async fn schedules() {
     let room_schedules = schedules::get_room_schedules(&pool, &room_id_2)
         .await
         .expect("Cant get room schedules");
-    assert_eq!(room_schedules[0], stored_schedule)
+    assert_eq!(room_schedules[0], stored_schedule);
+
+    let current_active = schedules::get_matching_schedule(
+        &pool,
+        &room_id_2,
+        &NaiveDateTime::new(
+            NaiveDate::from_weekday_of_month(2020, 11, Weekday::Fri, 1),
+            NaiveTime::from_hms(1, 30, 0),
+        ),
+    )
+    .await
+    .expect("Couldn't fetch schedule");
+    assert_eq!(current_active, Some(update_expected));
+    let current_active = schedules::get_matching_schedule(
+        &pool,
+        &room_id_2,
+        &NaiveDateTime::new(
+            NaiveDate::from_weekday_of_month(2020, 11, Weekday::Sat, 1),
+            NaiveTime::from_hms(1, 30, 0),
+        ),
+    )
+    .await
+    .expect("Couldn't fetch schedule");
+    assert_eq!(current_active, None)
 }
 
 #[tokio::test]
@@ -247,9 +260,8 @@ async fn can_delete_schedule() {
         .expect("Could not insert room");
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
-    let room_id = rooms[0].clone().id;
 
-    let new_schedule = schedule(vec![room_id]);
+    let new_schedule = setup::schedule(vec![&rooms[0]]);
 
     schedules::create_schedule(&pool, new_schedule.clone())
         .await
@@ -270,6 +282,51 @@ async fn can_delete_schedule() {
         .expect("Can't get schedules");
 
     assert_eq!(stored.len(), 0);
+}
+
+#[tokio::test]
+async fn schedules_constraints() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let pool = Arc::new(test_config.db_config.pool);
+    rooms::create_room(&pool, "test_room")
+        .await
+        .expect("Could not insert room");
+
+    let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
+
+    let new_schedule = setup::schedule(vec![&rooms[0]]);
+
+    schedules::create_schedule(&pool, new_schedule.clone())
+        .await
+        .expect("Could not insert schedule");
+
+    let stored = schedules::get_schedules(&pool)
+        .await
+        .expect("Can't get schedules");
+
+    assert_eq!(stored[0], new_schedule);
+
+    let mut time_windows = stored[0].time_windows.clone();
+    time_windows.push((
+        time_windows[0].0,
+        time_windows[0].1.add(Duration::minutes(1)),
+    ));
+
+    let duplicate_times = schedules::update_schedule(
+        &pool,
+        Schedule {
+            id: stored[0].id,
+            temps: stored[0].temps.clone(),
+            days: stored[0].days.clone(),
+            time_windows,
+            room_ids: stored[0].room_ids.clone(),
+        },
+    )
+    .await;
+
+    assert!(duplicate_times.is_err());
 }
 
 #[tokio::test]

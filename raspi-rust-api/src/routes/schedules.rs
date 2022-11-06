@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use chrono::{NaiveTime, Weekday};
 use log::error;
@@ -28,24 +30,17 @@ async fn get_schedules(pool: web::Data<PgPool>) -> impl Responder {
 
 #[derive(serde::Deserialize)]
 pub struct ScheduleRequest {
-    price_level: PriceLevel,
-    days: Vec<Weekday>,
-    time_windows: Vec<(NaiveTime, NaiveTime)>,
-    temp: f64,
-    room_ids: Vec<Uuid>,
+    pub temps: HashMap<PriceLevel, f64>,
+    pub days: Vec<Weekday>,
+    pub time_windows: Vec<(NaiveTime, NaiveTime)>,
+    pub room_ids: Vec<Uuid>,
 }
 
 impl TryInto<Schedule> for ScheduleRequest {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<Schedule, Self::Error> {
-        Schedule::new(
-            &self.price_level,
-            self.days,
-            self.time_windows,
-            self.temp,
-            self.room_ids,
-        )
+        Schedule::new(self.temps, self.days, self.time_windows, self.room_ids)
     }
 }
 
@@ -80,10 +75,9 @@ async fn update_schedule(
         pool.get_ref(),
         Schedule {
             id: id.into_inner(),
-            price_level: body.price_level,
+            temps: body.temps.clone(),
             days: body.days.clone(),
             time_windows: body.time_windows.clone(),
-            temp: body.temp,
             room_ids: body.room_ids.clone(),
         },
     )

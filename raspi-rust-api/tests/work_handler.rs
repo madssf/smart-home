@@ -12,14 +12,14 @@ use rust_home::clients::tibber_client::TibberClient;
 use rust_home::db;
 use rust_home::db::DbConfig;
 use rust_home::domain::{
-    ActionType, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TemperatureLog,
-    WorkMessage,
+    ActionType, Plug, PriceInfo, PriceLevel, Room, TempAction, TemperatureLog, WorkMessage,
 };
 use rust_home::work_handler::WorkHandler;
 
 use crate::configuration::DatabaseTestConfig;
 
 mod configuration;
+mod setup;
 
 async fn setup(
     db_config: &DbConfig,
@@ -63,7 +63,7 @@ async fn starts() {
     let price_info = PriceInfo {
         amount: 0.0,
         currency: "NOK".to_string(),
-        level: PriceLevel::CHEAP,
+        level: PriceLevel::Cheap,
         starts_at: Utc::now().naive_local(),
     };
 
@@ -119,7 +119,7 @@ async fn temp_actions_work() {
         &test_config.db_config.pool,
         TemperatureLog {
             room_id: rooms[0].id,
-            temp: 19.0,
+            temp: 18.5,
             time: now.sub(Duration::minutes(30)),
         },
     )
@@ -132,17 +132,7 @@ async fn temp_actions_work() {
         .await
         .expect("Couldnt insert plug");
 
-    let schedule = Schedule::new(
-        &PriceLevel::NORMAL,
-        vec![Weekday::Mon],
-        vec![(
-            NaiveTime::from_hms(00, 00, 00),
-            NaiveTime::from_hms(12, 0, 0),
-        )],
-        20.0,
-        vec![rooms[0].id],
-    )
-    .expect("Couldnt create schedule");
+    let schedule = setup::schedule(vec![&rooms[0]]);
 
     db::schedules::create_schedule(&test_config.db_config.pool, schedule)
         .await
@@ -151,7 +141,7 @@ async fn temp_actions_work() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::NORMAL,
+                level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
@@ -182,7 +172,7 @@ async fn temp_actions_work() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::NORMAL,
+                level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
@@ -235,17 +225,7 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
         .await
         .expect("Couldnt insert plug");
 
-    let schedule = Schedule::new(
-        &PriceLevel::NORMAL,
-        vec![Weekday::Mon],
-        vec![(
-            NaiveTime::from_hms(00, 00, 00),
-            NaiveTime::from_hms(12, 0, 0),
-        )],
-        20.0,
-        vec![rooms[0].id],
-    )
-    .expect("Couldnt create schedule");
+    let schedule = setup::schedule(vec![&rooms[0]]);
 
     db::schedules::create_schedule(&test_config.db_config.pool, schedule)
         .await
@@ -266,7 +246,7 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::NORMAL,
+                level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
