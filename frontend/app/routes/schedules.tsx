@@ -1,10 +1,10 @@
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import type {PriceLevel, Schedule, Weekday} from "~/routes/schedules/types";
-import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types";
+import type {Schedule, Weekday} from "~/routes/schedules/types";
+import {WEEKDAYS} from "~/routes/schedules/types";
 import ScheduleForm from "~/routes/schedules/components/scheduleForm";
 import {routes} from "~/routes";
-import {validateDays, validatePriceLevel, validateTimeWindows} from "~/routes/schedules/utils/utils";
+import {validateDays, validateTemps, validateTimeWindows} from "~/routes/schedules/utils/utils";
 import type {FormErrors} from "~/utils/types";
 import {useLoaderData} from "@remix-run/react";
 import React, {useState} from "react";
@@ -18,14 +18,16 @@ import {
     Button,
     Checkbox,
     Heading,
+    Link,
 } from "@chakra-ui/react";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createSchedule, deleteSchedule, getSchedules, updateSchedule} from "~/routes/schedules/schedules.server";
-import {validateNonEmptyList, validateTemp} from "~/utils/validation";
+import {validateNonEmptyList} from "~/utils/validation";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import {CheckCircleIcon} from "@chakra-ui/icons";
+import {PriceLevel} from "~/routes/types";
 
 interface ResponseData {
     schedules: Schedule[];
@@ -39,12 +41,16 @@ export async function action({request}: ActionArgs) {
 
     const body = await request.formData();
     const id = body.get("id")?.toString();
-    const priceLevel = body.get("price_level")?.toString();
     const days = body.getAll("days").map((day) => day.toString());
     const from = body.getAll("from").map((naiveTime) => naiveTime.toString());
     const to = body.getAll("to").map((naiveTime) => naiveTime.toString());
     const room_ids = body.getAll("room_ids").map((room_id) => room_id.toString());
-    const temp = body.get("temp")?.toString();
+    const temps = Object.values(PriceLevel).map((priceLevel) => {
+        return {
+            priceLevel: priceLevel as PriceLevel,
+            temp: body.get(`temp_${priceLevel}`)?.toString(),
+        };
+    });
 
     const intent = body.get("intent")?.toString();
 
@@ -55,22 +61,20 @@ export async function action({request}: ActionArgs) {
     }
 
     const validated = {
-        priceLevel: validatePriceLevel(priceLevel),
+        temps: validateTemps(temps),
         days: validateDays(days),
         time_windows: validateTimeWindows(from, to),
         room_ids: validateNonEmptyList(room_ids),
-        temp: validateTemp(temp),
     };
 
-    if (!validated.temp.valid || !validated.days.valid || !validated.time_windows.valid || !validated.priceLevel.valid || !validated.room_ids.valid) {
+    if (!validated.temps.valid || !validated.days.valid || !validated.time_windows.valid || !validated.room_ids.valid) {
         return json<ScheduleFormErrors>(
             {
                 id,
                 days: !validated.days.valid ? validated.days.error : undefined,
                 time_windows: !validated.time_windows.valid ? validated.time_windows.error : undefined,
-                price_level: !validated.priceLevel.valid ? validated.priceLevel.error : undefined,
+                temps: !validated.temps.valid ? validated.temps.error : undefined,
                 room_ids: !validated.room_ids.valid ? validated.room_ids.error : undefined,
-                temp: !validated.temp.valid ? validated.temp.error : undefined,
             },
         );
     }
@@ -78,10 +82,14 @@ export async function action({request}: ActionArgs) {
     const document: Omit<Schedule, 'id'> = {
         days: validated.days.data,
         time_windows: validated.time_windows.data,
-        price_level: validated.priceLevel.data,
         room_ids: validated.room_ids.data,
-        temp: validated.temp.data,
+        temps: validated.temps.data,
     };
+
+    console.log(validated.temps.data);
+    console.log(JSON.stringify(validated.temps.data));
+
+    console.log(JSON.stringify(document));
 
     if (!id) {
         await createSchedule(document);
@@ -99,9 +107,6 @@ export const loader: LoaderFunction = async () => {
     const schedules = await getSchedules();
     const sorted = schedules
         .sort((a, b) => {
-        if (a.days.length === b.days.length) {
-            return PRICE_LEVELS.indexOf(a.price_level) - PRICE_LEVELS.indexOf(b.price_level);
-        }
         return b.days.length - a.days.length;
     });
 
@@ -118,17 +123,12 @@ const Schedules = () => {
 
     const loaderData = useLoaderData<ResponseData>();
     const [showNew, setShowNew] = useState( loaderData.schedules.length === 0);
-    const [priceLevelFilters, setPriceLevelFilters] = useState<PriceLevel[]>([]);
     const [roomFilters, setRoomFilters] = useState<string[]>([]);
     const [dayFilters, setDayFilters] = useState<Weekday[]>([]);
-    const activeFilters = priceLevelFilters.length > 0 || roomFilters.length > 0 || dayFilters.length > 0;
+    const activeFilters = roomFilters.length > 0 || dayFilters.length > 0;
 
     const generateFilters = (): ((schedule: Schedule) => boolean)[] => {
         const filters = [];
-
-        if (priceLevelFilters.length > 0) {
-            filters.push((schedule: Schedule) => priceLevelFilters.includes(schedule.price_level));
-        }
 
         if (roomFilters.length > 0) {
             filters.push((schedule: Schedule) => schedule.room_ids.some(id => roomFilters.includes(id)));
@@ -174,28 +174,6 @@ const Schedules = () => {
                         </AccordionButton>
                     </h2>
                     <AccordionPanel pb={4}>
-                        <div className="flex flex-col">
-                            <label className="font-bold">Price levels</label>
-                            <div className="flex">
-                                {PRICE_LEVELS.map((level) => {
-                                    return <Checkbox
-                                        key={level}
-                                        size="sm"
-                                        className="mr-1"
-                                        checked={priceLevelFilters.includes(level)}
-                                        onChange={() => {
-                                            if (priceLevelFilters.includes(level)) {
-                                                setPriceLevelFilters((prev) => prev.filter((l) => l !== level));
-                                            } else {
-                                                setPriceLevelFilters((prev) => prev.concat([level]));
-                                            }
-                                        }}
-                                    >
-                                        {capitalizeAndRemoveUnderscore(level)}
-                                    </Checkbox>;
-                                })}
-                            </div>
-                        </div>
                         <div className="flex flex-col">
                             <label className="font-bold">Weekdays</label>
                             <div className="flex">
@@ -249,13 +227,21 @@ const Schedules = () => {
     return (
         <div>
             <Heading className="pb-4">Schedules</Heading>
-            {renderFilters()}
-            {renderSchedules(loaderData.schedules)}
-            <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
             {
-                showNew &&
-                <ScheduleForm rooms={loaderData.rooms} />
+                loaderData.rooms.length === 0 ?
+                    <p>No rooms yet, please <Link href={routes.ROOMS.ROOT}>add one</Link> before adding a schedule</p>
+                    :
+                    <>
+                        {renderFilters()}
+                        {renderSchedules(loaderData.schedules as Schedule[])}
+                        <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
+                        {
+                            showNew &&
+                            <ScheduleForm rooms={loaderData.rooms} />
+                        }
+                    </>
             }
+
         </div>
     );
 };

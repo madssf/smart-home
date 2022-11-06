@@ -1,19 +1,31 @@
-import type {NaiveTime, PriceLevel, TimeWindow, Weekday} from "~/routes/schedules/types";
-import {PRICE_LEVELS, WEEKDAYS} from "~/routes/schedules/types";
+import type {NaiveTime, PriceLevelTemps, TimeWindow, Weekday} from "~/routes/schedules/types";
+import {WEEKDAYS} from "~/routes/schedules/types";
+import type {PriceLevel} from "~/routes/types";
 import type {Validate} from "~/utils/types";
 
-export const validatePriceLevel = (priceLevel?: string): Validate<PriceLevel> => {
-    if (!priceLevel) {
-        return {valid: false, error: "Price level is required"};
+export const validateTemps = (temps: { priceLevel: PriceLevel, temp: string | undefined }[]): Validate<PriceLevelTemps> => {
+    const nonEmptyTemps = temps.filter((temp) => temp.temp !== undefined && temp.temp !== '');
+    if (nonEmptyTemps.length === 0) {
+        return {valid: false, error: "Must define temperature for at least one price level"};
     }
-    if (!PRICE_LEVELS.includes(priceLevel as PriceLevel)) {
-        return {valid: false, error: "Unknown price level"};
+    const data: PriceLevelTemps = {};
+    for (const entry of nonEmptyTemps) {
+        const asNum = Number(entry.temp);
+        if (!Number.isFinite(asNum) || asNum < 0 || asNum > 100) {
+            return {
+                valid: false,
+                error: "Invalid temperature",
+            };
+        } else {
+            data[entry.priceLevel] = asNum;
+        }
     }
     return {
         valid: true,
-        data: priceLevel as PriceLevel,
+        data,
     };
 };
+
 
 export const validateDays = (days: string[]): Validate<Weekday[]> => {
     if (days.length === 0) {

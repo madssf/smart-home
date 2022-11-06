@@ -5,9 +5,11 @@ export interface Price {
 }
 
 export enum PriceLevel {
-    CHEAP = 'CHEAP',
-    NORMAL = 'NORMAL',
-    EXPENSIVE = 'EXPENSIVE',
+    VeryCheap = 'VeryCheap',
+    Cheap = 'Cheap',
+    Normal = 'Normal',
+    Expensive = 'Expensive',
+    VeryExpensive = 'VeryExpensive',
 }
 
 export interface Consumption {

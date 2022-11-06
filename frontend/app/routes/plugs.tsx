@@ -6,7 +6,7 @@ import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
-import {Button, Heading} from "@chakra-ui/react";
+import {Button, Heading, Link} from "@chakra-ui/react";
 import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createPlug, deletePlug, getPlugs, updatePlug} from "~/routes/plugs/plugs.server";
@@ -108,12 +108,20 @@ const Plugs = () => {
     return (
         <div>
             <Heading className="pb-4">Plugs</Heading>
-            {renderPlugs(loaderData.plugs)}
-            <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
             {
-                showNew &&
-                <PlugForm rooms={loaderData.rooms} />
+                loaderData.rooms.length === 0 ?
+                    <p>No rooms yet, please <Link href={routes.ROOMS.ROOT}>add one</Link> before adding a plug</p>
+                    :
+                    <>
+                        {renderPlugs(loaderData.plugs)}
+                        <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add plug'}</Button>
+                        {
+                            showNew &&
+                            <PlugForm rooms={loaderData.rooms} />
+                        }
+                    </>
             }
+
         </div>
     );
 };

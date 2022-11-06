@@ -1,5 +1,7 @@
+import {BASE_URL} from "~/fetcher/fetcher.server";
+
 export const piTriggerRefresh = async() => {
-    return fetch("http://raspi-rust-api:8080/trigger_refresh")
+    return fetch(`${BASE_URL}trigger_refresh`)
         .then(res => {
             if (!res.ok) {
                 console.warn('Failed to trigger refresh, response status:', res.status);

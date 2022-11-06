@@ -60,11 +60,13 @@ export default function Index() {
 
     const getColorForPrice = (priceLevel: PriceLevel) => {
         switch (priceLevel) {
-            case PriceLevel.CHEAP:
+            case PriceLevel.VeryCheap:
+            case PriceLevel.Cheap:
                 return 'green';
-            case PriceLevel.NORMAL:
+            case PriceLevel.Normal:
                 return 'blue';
-            case PriceLevel.EXPENSIVE:
+            case PriceLevel.Expensive:
+            case PriceLevel.VeryExpensive:
                 return 'red';
 
         }
