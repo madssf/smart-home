@@ -86,11 +86,6 @@ export async function action({request}: ActionArgs) {
         temps: validated.temps.data,
     };
 
-    console.log(validated.temps.data);
-    console.log(JSON.stringify(validated.temps.data));
-
-    console.log(JSON.stringify(document));
-
     if (!id) {
         await createSchedule(document);
     } else {

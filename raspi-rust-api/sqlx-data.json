@@ -1,5 +1,18 @@
 {
   "db": "PostgreSQL",
+  "00d24bce7827e8ead1136fb4233afd55728d0847dfede26bcbeaa27603cccab9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO schedules (id, days)\n    VALUES ($1, $2)\n    "
+  },
   "0ca3a99d084b174c0deffa65ced16b29e3fce7828f96476ca2f95bc5cf91734b": {
     "describe": {
       "columns": [],
@@ -30,6 +43,50 @@
       }
     },
     "query": "\n        INSERT INTO temperature_logs (room_id, time, temp)\n        VALUES ($1, $2, $3)\n    "
+  },
+  "153cd3408fed2df24729ae9157130fcfe0d300bb899a36e66036dd204875b3cd": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM schedule_time_windows WHERE schedule_id = $1"
+  },
+  "1ea5f1f02891f35c5f7ef29dee23e54ee09f8e48b6921993fc798308652f1764": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "price_level",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "temp",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT * FROM schedule_temps WHERE schedule_id = $1"
   },
   "1f10ef540d3c0899fd72f1f137b031e041d926dcb835e1e24846c5636f33fa99": {
     "describe": {
@@ -84,6 +141,20 @@
       }
     },
     "query": "SELECT * FROM room_schedules"
+  },
+  "28f2e98b566b7f9784777c8c8ea0363dba755b964f3d5d337b212b0fa78b6e60": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM schedule_temps WHERE schedule_id = $1 AND price_level = $2 AND temp = $3\n                "
   },
   "29aa254a1b2831bfe64d078cec962c0c32e8c90ad1d41f8043000124789a3684": {
     "describe": {
@@ -197,6 +268,38 @@
     },
     "query": "SELECT * FROM plugs"
   },
+  "3a4db49baebae0bc4ac022bd4854c1f86de1a0d7e4b221cd8e2c5d6bda806cfd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "price_level",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "temp",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "SELECT * FROM schedule_temps WHERE schedule_id = any($1)"
+  },
   "42a936d897f884d699fe240b0d84378208d76995d6b338132e474d0fa61f75c5": {
     "describe": {
       "columns": [],
@@ -211,6 +314,66 @@
       }
     },
     "query": "\n    UPDATE temp_actions\n    SET room_ids = $2, action = $3, expires_at = $4\n    WHERE id = $1\n    "
+  },
+  "44cc46e6e614604feeead90f0847c0a2e32bee7f7af6227053b02789b55a248d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "from_time",
+          "ordinal": 1,
+          "type_info": "Time"
+        },
+        {
+          "name": "to_time",
+          "ordinal": 2,
+          "type_info": "Time"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray",
+          "Time"
+        ]
+      }
+    },
+    "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = any($1) AND from_time < $2 AND to_time > $2"
+  },
+  "567a76531db00a135b91d482726d7c7e8cd1a4bace69e5d214d9017905ac5e3f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "days",
+          "ordinal": 1,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT * FROM schedules WHERE id = any($1) AND $2 = any(days)"
   },
   "5a26c07834617cfee9ea77b70576837b49ba7891cb7d36a62aced07f138719bf": {
     "describe": {
@@ -257,30 +420,12 @@
           "type_info": "Uuid"
         },
         {
-          "name": "temp",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "price_level",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
           "name": "days",
-          "ordinal": 3,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "time_windows",
-          "ordinal": 4,
+          "ordinal": 1,
           "type_info": "TextArray"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
         false,
         false
       ],
@@ -290,21 +435,99 @@
     },
     "query": "SELECT * FROM schedules"
   },
-  "6b02ef396e44504ee8e321ee61ad0b5d923e61c1410e6f73cffb9526eb6326af": {
+  "6f8052c3a646f364d7eb3ef27d389668da9fc1a6ccdb02cd7fe8a457a4c59e28": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "from_time",
+          "ordinal": 1,
+          "type_info": "Time"
+        },
+        {
+          "name": "to_time",
+          "ordinal": 2,
+          "type_info": "Time"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Numeric",
-          "Text",
-          "TextArray",
-          "TextArray"
+          "Uuid"
         ]
       }
     },
-    "query": "\n    INSERT INTO schedules (id, temp, price_level, days, time_windows)\n    VALUES ($1, $2, $3, $4, $5)\n    "
+    "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = $1"
+  },
+  "6f9ded6ea4a5994f834e815fb40232daae48e07b4c2c143fc039e88fd66cd60a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "from_time",
+          "ordinal": 1,
+          "type_info": "Time"
+        },
+        {
+          "name": "to_time",
+          "ordinal": 2,
+          "type_info": "Time"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = any($1)"
+  },
+  "73576c20ebfe197207187fc7def262cf9d0e46481deaeb638737c0ad18b518fa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "price_level",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "temp",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM schedule_temps"
   },
   "7462550a4fb7ae6fdce82b77b8ba2f5ba507962e8772311912f43dd1a027de6a": {
     "describe": {
@@ -349,6 +572,20 @@
       }
     },
     "query": "DELETE FROM schedules WHERE id = $1"
+  },
+  "7595b5068058b88ec797bfe74b05a219823c7da94887fb912c2a37ea0f9e4e6f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Time",
+          "Time"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM schedule_time_windows WHERE schedule_id = $1 AND from_time = $2 AND to_time = $3\n                "
   },
   "75ccd27979434e60be0438c3bf104a282b789e1a75c5da4637fd1314fc1cb17c": {
     "describe": {
@@ -409,30 +646,12 @@
           "type_info": "Uuid"
         },
         {
-          "name": "temp",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "price_level",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
           "name": "days",
-          "ordinal": 3,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "time_windows",
-          "ordinal": 4,
+          "ordinal": 1,
           "type_info": "TextArray"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
         false,
         false
       ],
@@ -444,21 +663,33 @@
     },
     "query": "SELECT * FROM schedules WHERE id = any($1)"
   },
-  "87c2eda18171783f9c0a56c2f851e6dd78848932a214b1cddec70f84de5b4a85": {
+  "78b7c17f10f0ad6925f90f7bfb880cd2905bbf1707df1c514a442bb67bcef22e": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
-          "Numeric",
-          "Text",
-          "TextArray",
-          "TextArray"
+          "Time",
+          "Time"
         ]
       }
     },
-    "query": "\n        UPDATE schedules\n        SET temp = $2, price_level = $3, days = $4, time_windows = $5\n        WHERE id = $1\n        "
+    "query": "\n            INSERT INTO schedule_time_windows (schedule_id, from_time, to_time)\n            VALUES ($1, $2, $3)\n            "
+  },
+  "89a7a7624ac6b211fd74f4bf7d28a443ef4dc7b239ff794262cf33f27ac7cc28": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO schedule_temps (schedule_id, price_level, temp)\n        VALUES ($1, $2, $3)\n        "
   },
   "93cd419f96407868dfcc40ca0cdc21b14b3adc4d088e102de76fe3c824c9188c": {
     "describe": {
@@ -486,6 +717,20 @@
     },
     "query": "SELECT * FROM room_schedules WHERE schedule_id = $1"
   },
+  "a9e5cad3fff1b2a663c11e18ff566c39ef2fc165be3cdecdc7fbc25efb4f418d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Time",
+          "Time"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO schedule_time_windows (schedule_id, from_time, to_time)\n        VALUES ($1, $2, $3)\n        "
+  },
   "af16e3ff1faa6b5537ca5cf048e2dee0aab6ef5a01f81387a35dd29bdec62587": {
     "describe": {
       "columns": [],
@@ -502,6 +747,20 @@
       }
     },
     "query": "\n    INSERT INTO plugs (id, name, ip, username, password, room_id)\n    VALUES ($1, $2, $3, $4, $5, $6)\n    "
+  },
+  "b245e4d32d0900ffff5e74092fbe81f6acfd751f2484dec996ec9d3ec5183f45": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO schedule_temps (schedule_id, price_level, temp)\n            VALUES ($1, $2, $3)\n            "
   },
   "b49010e8b788bd010780ea22270fa9c7d524336481ab7830d7f1ba6c2d1625b1": {
     "describe": {
@@ -573,6 +832,36 @@
     },
     "query": "DELETE FROM room_schedules WHERE schedule_id = $1"
   },
+  "d0e4bca7b718a884d5b598e065b2a95a35a3936f00bef09d434e1d8773ad5934": {
+    "describe": {
+      "columns": [
+        {
+          "name": "schedule_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "from_time",
+          "ordinal": 1,
+          "type_info": "Time"
+        },
+        {
+          "name": "to_time",
+          "ordinal": 2,
+          "type_info": "Time"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM schedule_time_windows"
+  },
   "d39f77dbaf5ccb6efed314065c62db22ae10295eead5bb0a9b04f7ba8c1e7d84": {
     "describe": {
       "columns": [],
@@ -610,6 +899,18 @@
     },
     "query": "\n        INSERT INTO rooms (id, name)\n        VALUES ($1, $2)\n        "
   },
+  "e785b90ad92424d2189f65d0c8d88fbfc4c62810d6f3ab5dce0ca846236d8ea2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM schedule_temps WHERE schedule_id = $1"
+  },
   "f4c90cb9afab1b2d2f24ff394a010d51eadc08d0325c95a22a8431ddd9411a18": {
     "describe": {
       "columns": [],
@@ -624,5 +925,18 @@
       }
     },
     "query": "\n    INSERT INTO temp_actions (id, room_ids, action, expires_at)\n    VALUES ($1, $2, $3, $4)\n    "
+  },
+  "fe95a46df86a8f4155bbd283ab6505e08611e23a240bb0898d2664025d9f937d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n        UPDATE schedules\n        SET days = $2\n        WHERE id = $1\n        "
   }
 }

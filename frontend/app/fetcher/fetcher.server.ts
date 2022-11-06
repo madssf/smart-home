@@ -19,7 +19,6 @@ export async function getRequest<T>(endpoint: string): Promise<T> {
 }
 
 export async function createRequest<T>(endpoint: string, data: T): Promise<void> {
-    console.log(JSON.stringify(data));
     const response = await fetchWithRetry(
         `${BASE_URL}${endpoint}`,
         {
