@@ -1,3 +1,5 @@
+import type {Schedule} from "~/routes/schedules/types";
+
 export interface Price {
     amount: number,
     currency: string,
@@ -23,6 +25,7 @@ export interface LiveConsumption {
 }
 
 export interface RoomTemp {
+    room_id: string,
     room_name: string,
     temp: number
     time: string,
@@ -30,6 +33,13 @@ export interface RoomTemp {
 
 export interface PlugStatus {
     name: string,
+    room_id: string,
     is_on: boolean,
     power: number
+}
+
+export interface ActiveSchedule {
+    room_id: string,
+    schedule: Schedule | null,
+    temp: number | null,
 }

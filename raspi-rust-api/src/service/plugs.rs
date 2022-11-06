@@ -1,5 +1,6 @@
 use serde::Serialize;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::clients::shelly_client::{ShellyClient, ShellyClientError};
 use crate::domain::Plug;
@@ -7,6 +8,7 @@ use crate::domain::Plug;
 #[derive(Serialize)]
 pub struct PlugStatus {
     name: String,
+    room_id: Uuid,
     is_on: bool,
     power: f64,
 }
@@ -26,6 +28,7 @@ pub async fn get_plug_statuses(
         let meter = shelly_client.get_meter_values(plug).await?;
         plug_statuses.push(PlugStatus {
             name: plug.name.clone(),
+            room_id: plug.room_id,
             is_on: status.ison,
             power: meter.power,
         })

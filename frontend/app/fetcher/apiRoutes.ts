@@ -5,6 +5,7 @@ export const apiRoutes = {
     plugs: 'plugs/',
     plug_status: 'plugs/status',
     schedules: 'schedules/',
+    active_schedules: 'schedules/active',
     temp_actions: 'temp_actions/',
     temperature_logs: {
         room_id: (room_id: string, time_period: TimePeriod) => `temperature_logs/${room_id}/${time_period}`,

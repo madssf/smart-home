@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use chrono::{NaiveTime, Weekday};
@@ -6,8 +7,10 @@ use log::error;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db;
+use crate::clients::tibber_client::TibberClient;
+use crate::db::rooms;
 use crate::domain::{PriceLevel, Schedule};
+use crate::{db, now};
 
 pub fn schedules() -> Scope {
     web::scope("/schedules")
@@ -15,6 +18,7 @@ pub fn schedules() -> Scope {
         .service(create_schedule)
         .service(update_schedule)
         .service(delete_schedule)
+        .service(get_active_schedules)
 }
 
 #[get("/")]
@@ -94,4 +98,55 @@ async fn delete_schedule(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl R
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
+}
+
+#[derive(serde::Serialize)]
+pub struct ActiveSchedule {
+    pub room_id: Uuid,
+    pub schedule: Option<Schedule>,
+    pub temp: Option<f64>,
+}
+
+#[get("/active")]
+async fn get_active_schedules(
+    pool: web::Data<PgPool>,
+    tibber_client: web::Data<Arc<TibberClient>>,
+) -> impl Responder {
+    let rooms = match rooms::get_rooms(pool.get_ref()).await {
+        Ok(rooms) => rooms,
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    let price_info = match tibber_client.get_current_price().await {
+        Ok(price) => price,
+        Err(e) => {
+            error!("{:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    let mut active_schedules: Vec<ActiveSchedule> = vec![];
+    for room in rooms {
+        match db::schedules::get_matching_schedule(pool.get_ref(), &room.id, &now()).await {
+            Ok(schedule) => {
+                let temp = if let Some(schedule) = schedule.clone() {
+                    Some(schedule.get_temp(&price_info.level))
+                } else {
+                    None
+                };
+                active_schedules.push(ActiveSchedule {
+                    room_id: room.id,
+                    schedule,
+                    temp,
+                })
+            }
+            Err(e) => {
+                error!("{:?}", e);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+    }
+
+    HttpResponse::Ok().json(active_schedules)
 }

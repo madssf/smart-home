@@ -39,6 +39,7 @@ pub async fn start(
         App::new()
             .app_data(sender.clone())
             .app_data(pool.clone())
+            .app_data(tibber_client.clone())
             .service(refresh)
             .service(health)
             .service(report_temp)
@@ -47,7 +48,7 @@ pub async fn start(
             .service(schedules())
             .service(temp_actions())
             .service(temperature_logs())
-            .service(prices(tibber_client.clone(), consumption_cache.clone()))
+            .service(prices(consumption_cache.clone()))
     })
     .shutdown_timeout(1)
     .bind((host, port))?

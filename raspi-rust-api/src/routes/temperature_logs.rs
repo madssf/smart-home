@@ -56,6 +56,7 @@ async fn get_room_temperature_logs(
 
 #[derive(Serialize)]
 struct RoomTemp {
+    room_id: Uuid,
     room_name: String,
     temp: f64,
     time: NaiveDateTime,
@@ -77,6 +78,7 @@ async fn get_current_temps(pool: web::Data<PgPool>) -> impl Responder {
             temps.iter().for_each(|(room_id, room_temp)| {
                 if let Some(room) = rooms.iter().find(|room| &room.id == room_id) {
                     room_temps.push(RoomTemp {
+                        room_id: room.id,
                         room_name: room.name.clone(),
                         temp: room_temp.temp,
                         time: room_temp.time,
