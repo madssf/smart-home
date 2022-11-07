@@ -137,7 +137,7 @@ export default function Index() {
                             {
                                 plugs.sort((a, b) => a.name.localeCompare(b.name)).map((plugStatus) => {
                                     return (
-                                        <div key={plugStatus.name} className="grid grid-cols-[70px_auto] gap-1 p-1">
+                                        <div key={plugStatus.name} className="grid grid-cols-[100px_auto] gap-1 p-1">
                                             <Text>{plugStatus.name}</Text>
                                             <Badge
                                                 maxW={"max-content"}
@@ -171,14 +171,14 @@ export default function Index() {
                 <div className="my-4 flex flex-col">
                     <Heading size='md' mb={1}>Power</Heading>
                     <div className="my-2">
-                        <Tabs>
+                        <Tabs maxW={"min"}>
                             <TabList>
                                 <Tab>Live</Tab>
                                 <Tab>Today</Tab>
                             </TabList>
 
                             <TabPanels>
-                                <TabPanel>
+                                <TabPanel px={0}>
                                     <div>
                                         <ClientOnly>
                                             {
@@ -211,7 +211,7 @@ export default function Index() {
                                         </div>
                                     </div>
                                 </TabPanel>
-                                <TabPanel>
+                                <TabPanel px={0}>
                                     <ClientOnly>
                                         {
                                             () => {
