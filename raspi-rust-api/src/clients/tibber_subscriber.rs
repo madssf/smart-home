@@ -73,7 +73,8 @@ impl TibberSubscriber {
     async fn establish_subscription(
         &self,
     ) -> Result<WebSocket<MaybeTlsStream<TcpStream>>, PowerSubscriberError> {
-        let mut request = "wss://api.tibber.com/v1-beta/gql/subscriptions".into_client_request()?;
+        let mut request =
+            "wss://websocket-api.tibber.com/v1-beta/gql/subscriptions".into_client_request()?;
 
         request.headers_mut().insert(
             "Sec-WebSocket-Protocol",
@@ -194,7 +195,7 @@ fn subscribe_message() -> String {
     format!(
         r#"
     {{
-    "id": \"{}\",
+    "id": "{}",
     "type": "subscribe",
     "payload": {{
         "variables": {{}},
