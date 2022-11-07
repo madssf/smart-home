@@ -2,3 +2,4 @@ application_host: 0.0.0.0
 database:
   host: "db"
   port: 5432
+run_subscriber: true

@@ -5,3 +5,4 @@ database:
   username: "postgres"
   password: "password"
   database_name: "smarthome"
+run_subscriber: false

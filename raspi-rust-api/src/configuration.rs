@@ -9,6 +9,7 @@ pub struct Settings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
     pub application_host: String,
+    pub run_subscriber: bool,
 }
 #[derive(serde::Deserialize, Debug)]
 pub struct DatabaseSettings {

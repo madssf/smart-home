@@ -16,6 +16,7 @@ use reqwest::header::InvalidHeaderValue;
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::domain::LiveConsumption;
 use crate::env_var;
@@ -27,6 +28,8 @@ pub enum PowerSubscriberError {
     WebSocketError(#[from] WSClientError),
     #[error("No ACK received")]
     NoAckReceived,
+    #[error("Server closed connection")]
+    ServerClosedConnection,
     #[error("JSON Deserialize Error: {0}")]
     JSONDeserializeError(#[from] serde_json::Error),
     #[error("Chrono parse error: {0}")]
@@ -47,14 +50,23 @@ impl TibberSubscriber {
     }
 
     pub async fn subscribe(&self) -> Result<(), PowerSubscriberError> {
+        let mut backoff_counter = 2;
         loop {
             let subscription = self.run_subscriber().await;
+            let backoff = backoff_counter;
             error!(
-                "Subscriber failed, restarting in 3 seconds - error: {:?}",
-                subscription
+                "Subscriber failed, restarting in {} seconds - error: {:?}",
+                backoff, subscription,
             );
-            sleep(Duration::from_secs(3));
-            info!("Restarting subscriber now!")
+            sleep(Duration::from_secs(backoff));
+
+            info!("Restarting subscriber now!");
+
+            backoff_counter = if backoff_counter < 60 {
+                backoff_counter * 2
+            } else {
+                backoff_counter
+            };
         }
     }
 
@@ -67,6 +79,10 @@ impl TibberSubscriber {
             "Sec-WebSocket-Protocol",
             HeaderValue::from_str("graphql-transport-ws")?,
         );
+
+        request
+            .headers_mut()
+            .insert("User-Agent", HeaderValue::from_str("smarthome/0.0.1")?);
 
         info!("Trying to establish subscription");
 
@@ -91,7 +107,7 @@ impl TibberSubscriber {
                     code: CloseCode::Normal,
                     reason: Default::default(),
                 }))?;
-                error!("No ACK received, sent close message");
+                warn!("No ACK received, sent close message");
                 Err(PowerSubscriberError::NoAckReceived)
             }
         }
@@ -132,6 +148,10 @@ impl TibberSubscriber {
                 Ok(response) => response,
                 Err(_) => {
                     if !message_text.is_empty() {
+                        if message_text.to_lowercase() == "going away" {
+                            info!("Tibber sent close message, returning error to restart");
+                            return Err(PowerSubscriberError::ServerClosedConnection);
+                        }
                         warn!(
                             "Failed to parse json, skipping - message text: {}",
                             message_text
@@ -174,7 +194,7 @@ fn subscribe_message() -> String {
     format!(
         r#"
     {{
-    "id": "1",
+    "id": \"{}\",
     "type": "subscribe",
     "payload": {{
         "variables": {{}},
@@ -183,6 +203,7 @@ fn subscribe_message() -> String {
     }}
     }}
     "#,
+        Uuid::new_v4(),
         env_var("TIBBER_HOME_ID")
     )
 }

@@ -41,8 +41,10 @@ async fn main() -> std::io::Result<()> {
     let subscriber_cache = consumption_cache.clone();
 
     tokio::spawn(async { work_handler.start().await });
-    tokio::spawn(async { work_handler::poll(poll_sender, 1).await });
-    tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
+    tokio::spawn(async { work_handler::poll(poll_sender, 2).await });
+    if configuration.run_subscriber {
+        tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
+    }
 
     let server = api::start(
         api_sender,
