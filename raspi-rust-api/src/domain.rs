@@ -212,8 +212,9 @@ impl Schedule {
                     }
                 })
                 .expect("max_price_level not found");
-            let x1 = min_price_level.index_of() as f64;
-            let x2 = max_price_level.index_of() as f64;
+
+            let x1 = min_price_level.index_of();
+            let x2 = max_price_level.index_of();
             let y1 = self
                 .temps
                 .get(min_price_level)
@@ -222,7 +223,13 @@ impl Schedule {
                 .temps
                 .get(max_price_level)
                 .expect("Temp for existing higher key not found");
-            (10.0 * (y1 + ((index as f64 - x1) * (y2 - y1) / (x2 - x1)))).round() / 10.0
+            if index < x1 {
+                *y1
+            } else if index > x2 {
+                *y2
+            } else {
+                (10.0 * (y1 + ((index - x1) as f64 * (y2 - y1) / (x2 - x1) as f64))).round() / 10.0
+            }
         }
     }
 }
@@ -328,7 +335,7 @@ mod tests {
             vec![Uuid::new_v4()],
         )
         .expect("Failed to create new schedule");
-        assert_eq!(sched.get_temp(&PriceLevel::VeryExpensive), 5.0);
+        assert_eq!(sched.get_temp(&PriceLevel::VeryExpensive), 15.0);
     }
 
     #[test]
@@ -344,7 +351,7 @@ mod tests {
             vec![Uuid::new_v4()],
         )
         .expect("Failed to create new schedule");
-        assert_eq!(sched.get_temp(&PriceLevel::VeryCheap), 27.5);
+        assert_eq!(sched.get_temp(&PriceLevel::VeryCheap), 25.0);
     }
 
     #[test]
