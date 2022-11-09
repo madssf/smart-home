@@ -22,7 +22,7 @@ pub fn plugs(shelly_client: web::Data<Arc<ShellyClient>>) -> Scope {
 }
 
 #[get("/")]
-async fn get_plugs(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_plugs(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     match db::plugs::get_plugs(pool.get_ref()).await {
         Ok(plugs) => {
             let json: Vec<PlugResponse> = plugs.iter().map(|plug| plug.to_json()).collect();
@@ -68,7 +68,7 @@ pub struct PlugRequest {
 }
 
 #[post("/")]
-async fn create_plug(pool: web::Data<PgPool>, body: web::Json<PlugRequest>) -> impl Responder {
+async fn create_plug(pool: web::Data<Arc<PgPool>>, body: web::Json<PlugRequest>) -> impl Responder {
     let new_plug = match Plug::new(
         &body.name,
         &body.ip,
@@ -91,7 +91,7 @@ async fn create_plug(pool: web::Data<PgPool>, body: web::Json<PlugRequest>) -> i
 
 #[post("/{id}")]
 async fn update_plug(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     id: web::Path<Uuid>,
     body: web::Json<PlugRequest>,
 ) -> impl Responder {
@@ -119,7 +119,7 @@ async fn update_plug(
 }
 
 #[delete("/{id}")]
-async fn delete_plug(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Responder {
+async fn delete_plug(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
     match db::plugs::delete_plug(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -128,7 +128,7 @@ async fn delete_plug(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Respo
 
 #[get("/status")]
 async fn get_plug_statuses(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     shelly_client: web::Data<Arc<ShellyClient>>,
 ) -> impl Responder {
     let plugs = match db::plugs::get_plugs(pool.get_ref()).await {

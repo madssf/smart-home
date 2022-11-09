@@ -3,10 +3,12 @@ use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use log::error;
 use serde::Serialize;
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::Consumption;
+use crate::service;
 use crate::service::consumption_cache::ConsumptionCache;
 
 pub fn prices(consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>) -> Scope {
@@ -15,23 +17,14 @@ pub fn prices(consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>) -> Sc
         .service(get_current_price)
         .service(get_consumption)
         .service(get_live_consumption)
-        .service(get_hourly_prices)
 }
 
 #[get("/current")]
-async fn get_current_price(tibber_client: web::Data<Arc<TibberClient>>) -> impl Responder {
-    match tibber_client.get_ref().get_current_price().await {
-        Ok(price) => HttpResponse::Ok().json(price),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
-}
-
-#[get("/hourly")]
-async fn get_hourly_prices(tibber_client: web::Data<Arc<TibberClient>>) -> impl Responder {
-    match tibber_client.get_ref().get_hourly_prices().await {
+async fn get_current_price(
+    tibber_client: web::Data<Arc<TibberClient>>,
+    pool: web::Data<Arc<PgPool>>,
+) -> impl Responder {
+    match service::prices::get_current_price(tibber_client.get_ref(), pool.get_ref()).await {
         Ok(price) => HttpResponse::Ok().json(price),
         Err(e) => {
             error!("{:?}", e);

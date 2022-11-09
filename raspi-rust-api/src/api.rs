@@ -27,7 +27,7 @@ pub async fn start(
     tibber_client: Arc<TibberClient>,
     shelly_client: Arc<ShellyClient>,
     consumption_cache: Arc<RwLock<ConsumptionCache>>,
-    pool: PgPool,
+    pool: Arc<PgPool>,
 ) -> Result<Server, std::io::Error> {
     let sender = web::Data::new(sender);
     let pool = web::Data::new(pool);

@@ -411,6 +411,22 @@
     },
     "query": "SELECT * FROM temp_actions"
   },
+  "619e42fc7a199a42914db8e9712fe6b1d2f8179db45b7bdfac90a3b71ab7d79c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Numeric",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO prices (starts_at, amount, currency, ext_price_level, price_level)\n        VALUES ($1, $2, $3, $4, $5)\n        "
+  },
   "66a141b71041a7827f1932e6e288fdab37cc699720e5484c30697b5566b8d513": {
     "describe": {
       "columns": [
@@ -910,6 +926,107 @@
       }
     },
     "query": "DELETE FROM schedule_temps WHERE schedule_id = $1"
+  },
+  "ee4504a8612092a22576ff4f55f480d3cf6730865662c1e1b52d636abeb963b2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "starts_at",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "amount",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "currency",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "ext_price_level",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "price_level",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "SELECT * FROM prices WHERE starts_at = $1"
+  },
+  "ef84e41d2bc3974dedd23ed3bd95daa1042d1fafc24255984a536c7b75fac07c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "TimestampArray"
+        ]
+      }
+    },
+    "query": "\n        DELETE FROM prices WHERE starts_at = any($1)\n        "
+  },
+  "f35139e5fb06e169d65b448aa1f74366816ba6dc583e5eeef4e3e9ca0eff9773": {
+    "describe": {
+      "columns": [
+        {
+          "name": "starts_at",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "amount",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "currency",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "ext_price_level",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "price_level",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "SELECT * FROM prices WHERE starts_at > $1 AND starts_at < $2"
   },
   "f4c90cb9afab1b2d2f24ff394a010d51eadc08d0325c95a22a8431ddd9411a18": {
     "describe": {

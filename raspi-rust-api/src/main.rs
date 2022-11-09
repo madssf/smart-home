@@ -10,7 +10,8 @@ use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
 use rust_home::service::consumption_cache::ConsumptionCache;
 use rust_home::{
-    api, configuration::get_configuration, env_var, work_handler, work_handler::WorkHandler,
+    api, configuration::get_configuration, cron_scheduler, env_var, work_handler,
+    work_handler::WorkHandler,
 };
 
 #[tokio::main]
@@ -21,6 +22,7 @@ async fn main() -> std::io::Result<()> {
     let db_config = DbConfig::new(&configuration.database.connection_string())
         .await
         .expect("Failed to connect to database");
+    let pool = Arc::new(db_config.pool.clone());
 
     let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
     let shelly_client = Arc::new(ShellyClient::default());
@@ -33,15 +35,18 @@ async fn main() -> std::io::Result<()> {
         tibber_client.clone(),
         sender.clone(),
         receiver,
-        Arc::new(db_config.pool.clone()),
+        pool.clone(),
     );
 
     let poll_sender = sender.clone();
     let api_sender = sender.clone();
     let subscriber_cache = consumption_cache.clone();
+    let cron_tibber_client = tibber_client.clone();
+    let cron_pool = pool.clone();
 
+    tokio::spawn(async { cron_scheduler::start(cron_tibber_client, cron_pool).await });
     tokio::spawn(async { work_handler.start().await });
-    tokio::spawn(async { work_handler::poll(poll_sender, 2).await });
+    tokio::spawn(async { work_handler::poll(poll_sender, 1).await });
     if configuration.run_subscriber {
         tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
     }
@@ -53,7 +58,7 @@ async fn main() -> std::io::Result<()> {
         tibber_client,
         shelly_client,
         consumption_cache.clone(),
-        db_config.pool.clone(),
+        pool,
     )
     .await?;
 

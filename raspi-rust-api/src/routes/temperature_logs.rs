@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::get;
 use actix_web::web;
 use actix_web::HttpResponse;
@@ -21,7 +23,7 @@ pub fn temperature_logs() -> Scope {
 }
 
 #[get("/")]
-async fn get_temperature_logs(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_temperature_logs(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     match db::temperature_logs::get_temp_logs(pool.get_ref()).await {
         Ok(logs) => HttpResponse::Ok().json(logs),
         Err(e) => {
@@ -40,7 +42,7 @@ struct RoomLogsParams {
 #[get("/{room_id}/{time_period}")]
 async fn get_room_temperature_logs(
     path: Path<RoomLogsParams>,
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
 ) -> impl Responder {
     let room_logs =
         match db::temperature_logs::get_room_temp_logs(pool.get_ref(), &path.room_id).await {
@@ -63,7 +65,7 @@ struct RoomTemp {
 }
 
 #[get("/current")]
-async fn get_current_temps(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_current_temps(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     let rooms = match db::rooms::get_rooms(pool.get_ref()).await {
         Ok(rooms) => rooms,
         Err(e) => {

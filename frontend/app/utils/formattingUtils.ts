@@ -1,3 +1,4 @@
+import type {PriceInfo} from "~/routes/types";
 import {PriceLevel} from "~/routes/types";
 
 export const capitalizeAndRemoveUnderscore = (str: string) => {
@@ -20,6 +21,23 @@ export const formatPriceLevel = (priceLevel: PriceLevel) => {
     }
 };
 
+export const formatCurrency = (num: number, currency: string) => {
+    return Intl.NumberFormat(userLocale, {currency: currency, style: 'currency'}).format(num);
+};
+
+
+
+export const formatPriceInfo = (priceInfo: PriceInfo) => {
+    // eslint-disable-next-line max-len
+    return `${priceInfo.amount.toFixed(2)} ${priceInfo.currency} - ${formatPriceLevel(priceInfo.price_level ?? priceInfo.ext_price_level)}${priceInfo.price_level ? '': ' [EXT]'}`;
+};
+
 export const formatNumber = (num: number, maximumFractionDigits?: number, minimumFractionDigits?: number) => {
     return Intl.NumberFormat('en', {maximumFractionDigits, minimumFractionDigits }).format(num);
 };
+
+const userLocale =
+    typeof navigator === 'undefined' ? 'en' :
+    navigator.languages && navigator.languages.length
+        ? navigator.languages[0]
+        : navigator.language;

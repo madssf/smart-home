@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use log::error;
 use sqlx::PgPool;
@@ -15,7 +17,7 @@ pub fn rooms() -> Scope {
 }
 
 #[get("/")]
-async fn get_rooms(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_rooms(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     match db::rooms::get_rooms(pool.get_ref()).await {
         Ok(rooms) => HttpResponse::Ok().json(rooms),
         Err(e) => {
@@ -31,7 +33,7 @@ pub struct RoomRequest {
 }
 
 #[post("/")]
-async fn create_room(pool: web::Data<PgPool>, body: web::Json<RoomRequest>) -> impl Responder {
+async fn create_room(pool: web::Data<Arc<PgPool>>, body: web::Json<RoomRequest>) -> impl Responder {
     match db::rooms::create_room(pool.get_ref(), &body.name).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -40,7 +42,7 @@ async fn create_room(pool: web::Data<PgPool>, body: web::Json<RoomRequest>) -> i
 
 #[post("/{id}")]
 async fn update_room(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     id: web::Path<Uuid>,
     body: web::Json<RoomRequest>,
 ) -> impl Responder {
@@ -59,7 +61,7 @@ async fn update_room(
 }
 
 #[delete("/{id}")]
-async fn delete_room(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Responder {
+async fn delete_room(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
     match db::rooms::delete_room(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),

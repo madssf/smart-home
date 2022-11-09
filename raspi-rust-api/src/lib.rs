@@ -12,6 +12,7 @@ pub mod observability;
 pub mod routes;
 pub mod service;
 pub mod work_handler;
+pub mod cron_scheduler;
 
 pub fn env_var(name: &str) -> String {
     env::var(name)

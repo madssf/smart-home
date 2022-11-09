@@ -9,13 +9,13 @@ import {
     getRoomTemps,
 } from "~/routes/index.server";
 import {useFetcher, useLoaderData} from "@remix-run/react";
-import type {ActiveSchedule, Consumption, PlugStatus, Price, RoomTemp} from "./types";
+import type {ActiveSchedule, Consumption, PlugStatus, PriceInfo, RoomTemp} from "./types";
 import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
 import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData";
 import {ClientOnly} from "remix-utils";
-import {formatNumber} from "~/utils/formattingUtils";
+import {formatNumber, formatPriceInfo} from "~/utils/formattingUtils";
 import dayjs from "dayjs";
 
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -27,7 +27,7 @@ import {routes} from "~/routes";
 interface ResponseData {
     rooms: Room[],
     activeSchedules: ActiveSchedule[],
-    price: Price;
+    price: PriceInfo;
     consumption: Consumption[];
     roomTemps: RoomTemp[];
     plugStatuses: PlugStatus[];
@@ -205,8 +205,8 @@ export default function Index() {
                                         </div>
                                         <div className="grid grid-cols-[110px_auto] p-1">
                                             <b>Current price</b>
-                                            <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorForPrice(data.price.level)}>
-                                                {data.price.amount.toFixed(2)} {data.price.currency} - {data.price.level}
+                                            <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorForPrice(data.price.price_level ?? data.price.ext_price_level)}>
+                                                {formatPriceInfo(data.price)}
                                             </Badge>
                                         </div>
                                     </div>

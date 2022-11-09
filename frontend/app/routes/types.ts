@@ -1,9 +1,11 @@
 import type {Schedule} from "~/routes/schedules/types";
 
-export interface Price {
+export interface PriceInfo {
     amount: number,
     currency: string,
-    level: PriceLevel
+    ext_price_level: PriceLevel
+    price_level: PriceLevel | null
+    starts_at: string;
 }
 
 export enum PriceLevel {

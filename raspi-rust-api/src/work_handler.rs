@@ -16,7 +16,7 @@ use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
 use crate::domain::{ActionType, PriceInfo, Room, TempAction, TemperatureLog, WorkMessage};
-use crate::{db, now};
+use crate::{db, now, service};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -61,7 +61,12 @@ impl WorkHandler {
                 match message {
                     WorkMessage::REFRESH | WorkMessage::POLL => {
                         let now = now();
-                        match self.tibber_client.get_current_price().await {
+                        match service::prices::get_current_price(
+                            self.tibber_client.as_ref(),
+                            self.pool.as_ref(),
+                        )
+                        .await
+                        {
                             Ok(price) => {
                                 match self.main_handler(&price, &now).await {
                                     Ok(_) => {

@@ -22,7 +22,7 @@ pub fn schedules() -> Scope {
 }
 
 #[get("/")]
-async fn get_schedules(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_schedules(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     match db::schedules::get_schedules(pool.get_ref()).await {
         Ok(schedules) => HttpResponse::Ok().json(schedules),
         Err(e) => {
@@ -50,7 +50,7 @@ impl TryInto<Schedule> for ScheduleRequest {
 
 #[post("/")]
 async fn create_schedule(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     body: web::Json<ScheduleRequest>,
 ) -> impl Responder {
     let new_schedule = match body.into_inner().try_into() {
@@ -71,7 +71,7 @@ async fn create_schedule(
 
 #[post("/{id}")]
 async fn update_schedule(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     id: web::Path<Uuid>,
     body: web::Json<ScheduleRequest>,
 ) -> impl Responder {
@@ -93,7 +93,7 @@ async fn update_schedule(
 }
 
 #[delete("/{id}")]
-async fn delete_schedule(pool: web::Data<PgPool>, id: web::Path<Uuid>) -> impl Responder {
+async fn delete_schedule(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
     match db::schedules::delete_schedule(pool.get_ref(), &id.into_inner()).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -109,7 +109,7 @@ pub struct ActiveSchedule {
 
 #[get("/active")]
 async fn get_active_schedules(
-    pool: web::Data<PgPool>,
+    pool: web::Data<Arc<PgPool>>,
     tibber_client: web::Data<Arc<TibberClient>>,
 ) -> impl Responder {
     let rooms = match rooms::get_rooms(pool.get_ref()).await {

@@ -28,7 +28,7 @@ async fn spawn_api() -> Server {
         tibber_client,
         Arc::new(ShellyClient::default()),
         Arc::new(RwLock::new(ConsumptionCache::default())),
-        test_config.db_config.pool,
+        Arc::new(test_config.db_config.pool),
     )
     .await
     .expect("Failed to start api")
