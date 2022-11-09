@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::Add;
+use std::ops::{Add, Sub};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -9,8 +9,11 @@ use testcontainers::clients::Cli;
 use uuid::Uuid;
 
 use configuration::DatabaseTestConfig;
+use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
-use rust_home::domain::{ActionType, Plug, PriceLevel, Room, Schedule, TempAction, TemperatureLog};
+use rust_home::domain::{
+    ActionType, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TemperatureLog,
+};
 
 mod configuration;
 mod setup;
@@ -479,4 +482,76 @@ async fn latest_temp_logs() {
         .await
         .expect("Couldnt get temps");
     assert_eq!(current_non_existing.get(&new_room.id), None)
+}
+
+#[tokio::test]
+async fn prices() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let pool = Arc::new(test_config.db_config.pool);
+    let date = NaiveDate::from_ymd(2020, 1, 1);
+    let start_time =
+        NaiveDateTime::new(date, NaiveTime::from_hms(0, 0, 0)).sub(Duration::seconds(1));
+    let end_time =
+        NaiveDateTime::new(date, NaiveTime::from_hms(23, 0, 0)).add(Duration::seconds(1));
+    let mut some_prices: Vec<PriceInfo> = vec![];
+    for i in 0..24 {
+        some_prices.push({
+            PriceInfo {
+                amount: i as f64,
+                currency: "NOK".to_string(),
+                ext_price_level: PriceLevel::Normal,
+                price_level: Some(PriceLevel::Cheap),
+                starts_at: NaiveDateTime::new(date, NaiveTime::from_hms(i, 0, 0)),
+            }
+        })
+    }
+
+    db::prices::insert_prices(&pool, &some_prices)
+        .await
+        .expect("Failed to insert prices");
+    let stored = db::prices::get_prices(&pool, &start_time, &end_time)
+        .await
+        .expect("Failed to get prices");
+    assert_eq!(some_prices.len(), 24);
+    assert_eq!(stored.len(), 24);
+    assert_eq!(stored, some_prices);
+
+    let mut new_prices: Vec<PriceInfo> = vec![];
+    for i in 12..=23 {
+        new_prices.push({
+            PriceInfo {
+                amount: i as f64 * 1.5,
+                currency: "NOK".to_string(),
+                ext_price_level: PriceLevel::VeryExpensive,
+                price_level: Some(PriceLevel::VeryCheap),
+                starts_at: NaiveDateTime::new(date, NaiveTime::from_hms(i, 0, 0)),
+            }
+        })
+    }
+    db::prices::insert_prices(&pool, &new_prices)
+        .await
+        .expect("Failed to insert prices");
+
+    let stored = db::prices::get_prices(&pool, &start_time, &end_time)
+        .await
+        .expect("Failed to get prices");
+    assert_eq!(&stored[0..12], &some_prices[0..12]);
+
+    assert_eq!(&stored[12..24], &new_prices);
+
+    let current = db::prices::get_price(&pool, &end_time.add(Duration::minutes(59)))
+        .await
+        .expect("failed to fetch price");
+    assert_eq!(
+        current,
+        Some(PriceInfo {
+            amount: 23.0 * 1.5,
+            currency: "NOK".to_string(),
+            ext_price_level: PriceLevel::VeryExpensive,
+            price_level: Some(PriceLevel::VeryCheap),
+            starts_at: NaiveDateTime::new(date, NaiveTime::from_hms(23, 0, 0)),
+        })
+    )
 }

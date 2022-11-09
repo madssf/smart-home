@@ -1,5 +1,5 @@
 use thiserror::Error;
-use tibber::{HomeId, TibberSession, TimeResolution};
+use tibber::{HomeId, PriceInfo as TPriceInfo, TibberSession, TimeResolution};
 use tokio::task::JoinError;
 
 use crate::domain::{Consumption, PriceInfo};
@@ -64,12 +64,20 @@ impl TibberClient {
         .map(Consumption::from)
         .collect())
     }
-    
-    pub async fn get_prices_today(&self) -> Result<Vec<PriceInfo>, TibberClientError> {
+
+    pub async fn get_hourly_prices(&self) -> Result<Vec<PriceInfo>, TibberClientError> {
         let (session, home_id) = self.prepare_request().await?;
-        let res = tokio::task::spawn_blocking(move || match session.get_prices_today(&home_id) {
-            Ok(consumption) => Ok(consumption),
-            Err(_) => Err(TibberClientError::RequestFailure),
+        let res = tokio::task::spawn_blocking(move || {
+            match (
+                session.get_prices_today(&home_id),
+                session.get_prices_tomorrow(&home_id),
+            ) {
+                (Ok(today), Ok(tomorrow)) => Ok(today
+                    .into_iter()
+                    .chain(tomorrow.into_iter())
+                    .collect::<Vec<TPriceInfo>>()),
+                _ => Err(TibberClientError::RequestFailure),
+            }
         })
         .await?;
         match res {

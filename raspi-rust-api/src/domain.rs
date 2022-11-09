@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
 use chrono::{NaiveDateTime, NaiveTime, Weekday};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use sqlx::types::ipnetwork::IpNetwork;
 use strum::IntoEnumIterator;
@@ -41,17 +42,23 @@ impl From<TPriceLevel> for PriceLevel {
             TPriceLevel::Normal => PriceLevel::Normal,
             TPriceLevel::Expensive => PriceLevel::Expensive,
             TPriceLevel::VeryExpensive => PriceLevel::VeryExpensive,
-            TPriceLevel::Other(_) => PriceLevel::Normal,
-            TPriceLevel::None => PriceLevel::Normal,
+            TPriceLevel::Other(_) | TPriceLevel::None => {
+                warn!(
+                    "Encountered unexpected Tibber price level: {:?}, setting to Normal",
+                    value
+                );
+                PriceLevel::Normal
+            }
         }
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Debug)]
 pub struct PriceInfo {
     pub amount: f64,
     pub currency: String,
-    pub level: PriceLevel,
+    pub ext_price_level: PriceLevel,
+    pub price_level: Option<PriceLevel>,
     pub starts_at: NaiveDateTime,
 }
 
@@ -61,7 +68,7 @@ impl Display for PriceInfo {
             "Price: {} {} - Level: {}",
             &self.amount,
             &self.currency,
-            &self.level.to_string()
+            &self.ext_price_level.to_string()
         ))
     }
 }
@@ -71,9 +78,16 @@ impl From<TPriceInfo> for PriceInfo {
         Self {
             amount: value.total,
             currency: value.currency,
-            level: value.level.into(),
+            ext_price_level: value.level.into(),
+            price_level: None,
             starts_at: value.starts_at.naive_local(),
         }
+    }
+}
+
+impl PriceInfo {
+    pub fn level(&self) -> PriceLevel {
+        self.price_level.unwrap_or(self.ext_price_level)
     }
 }
 

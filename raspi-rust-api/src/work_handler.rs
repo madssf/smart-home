@@ -176,7 +176,7 @@ impl WorkHandler {
         let current_temp = current_temps.get(&room.id);
         let action = if let (Some(schedule), Some(current_temp)) = (matching_schedule, current_temp)
         {
-            if current_temp.temp < schedule.get_temp(&price.level) {
+            if current_temp.temp < schedule.get_temp(&price.level()) {
                 ActionType::ON
             } else {
                 ActionType::OFF

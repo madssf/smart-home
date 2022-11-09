@@ -131,7 +131,7 @@ async fn get_active_schedules(
         match db::schedules::get_matching_schedule(pool.get_ref(), &room.id, &now()).await {
             Ok(schedule) => {
                 let temp = if let Some(schedule) = schedule.clone() {
-                    Some(schedule.get_temp(&price_info.level))
+                    Some(schedule.get_temp(&price_info.ext_price_level))
                 } else {
                     None
                 };

@@ -63,7 +63,8 @@ async fn starts() {
     let price_info = PriceInfo {
         amount: 0.0,
         currency: "NOK".to_string(),
-        level: PriceLevel::Cheap,
+        ext_price_level: PriceLevel::Cheap,
+        price_level: None,
         starts_at: Utc::now().naive_local(),
     };
 
@@ -141,10 +142,11 @@ async fn temp_actions_work() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::Normal,
+                ext_price_level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
+                price_level: None,
             },
             &now,
         )
@@ -172,10 +174,11 @@ async fn temp_actions_work() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::Normal,
+                ext_price_level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
+                price_level: None,
             },
             &now,
         )
@@ -246,10 +249,11 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
     handler
         .main_handler(
             &PriceInfo {
-                level: PriceLevel::Normal,
+                ext_price_level: PriceLevel::Normal,
                 amount: 20.0,
                 currency: "USD".to_string(),
                 starts_at: Utc::now().naive_local(),
+                price_level: None,
             },
             &now,
         )
