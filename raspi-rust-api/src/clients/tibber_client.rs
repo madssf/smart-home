@@ -1,8 +1,16 @@
+use std::time::Duration;
+
+use chrono::{DateTime, FixedOffset};
+use reqwest::Client;
+use serde::Deserialize;
 use thiserror::Error;
 use tibber::{HomeId, PriceInfo as TPriceInfo, TibberSession, TimeResolution};
 use tokio::task::JoinError;
 
 use crate::domain::{Consumption, PriceInfo};
+use crate::env_var;
+
+const TIBBER_BASE_URL: &str = "https://api.tibber.com/v1-beta/gql";
 
 #[derive(Error, Debug)]
 pub enum TibberClientError {
@@ -10,6 +18,8 @@ pub enum TibberClientError {
     UserHasNoHome,
     #[error("Request failure")]
     RequestFailure,
+    #[error("Reqwest client failure {0}")]
+    ReqwestClientFailure(#[from] reqwest::Error),
     #[error("Join error: {0}")]
     JoinError(#[from] JoinError),
 }
@@ -17,11 +27,18 @@ pub enum TibberClientError {
 #[derive(Clone)]
 pub struct TibberClient {
     api_token: String,
+    client: Client,
 }
 
 impl TibberClient {
     pub fn new(api_token: String) -> Self {
-        Self { api_token }
+        Self {
+            api_token,
+            client: Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()
+                .expect("Failed to build client"),
+        }
     }
 
     async fn prepare_request(&self) -> Result<(TibberSession, HomeId), TibberClientError> {
@@ -85,4 +102,76 @@ impl TibberClient {
             Err(e) => Err(e),
         }
     }
+
+    pub async fn get_daily_prices(&self) -> Result<Vec<TibberDailyPrice>, TibberClientError> {
+        let body = r#"
+            {"query":"{\n  viewer {\n    homes {\n      currentSubscription{\n        priceInfo{\n          range(resolution: DAILY, last: 100) {\n            nodes {\n              total,\n              startsAt,\n            }\n          }\n        }\n      }\n    }\n  }\n}\n"}
+             "#.to_string();
+
+        Ok(self
+            .client
+            .post(TIBBER_BASE_URL)
+            .header(
+                "Authorization",
+                format!("Bearer {}", env_var("TIBBER_API_TOKEN")),
+            )
+            .header("content-type", "application/json")
+            .body(body.clone())
+            .send()
+            .await?
+            .json::<TibberRootResponse>()
+            .await?
+            .data
+            .viewer
+            .homes[0]
+            .current_subscription
+            .price_info
+            .range
+            .nodes
+            .clone())
+    }
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct TibberDailyPrice {
+    pub total: f64,
+    #[serde(rename = "startsAt")]
+    pub starts_at: DateTime<FixedOffset>,
+}
+
+#[derive(Deserialize)]
+struct Range {
+    pub nodes: Vec<TibberDailyPrice>,
+}
+
+#[derive(Deserialize)]
+struct TibberPrices {
+    pub range: Range,
+}
+
+#[derive(Deserialize)]
+struct CurrentSubscription {
+    #[serde(rename = "priceInfo")]
+    pub price_info: TibberPrices,
+}
+
+#[derive(Deserialize)]
+struct Home {
+    #[serde(rename = "currentSubscription")]
+    pub current_subscription: CurrentSubscription,
+}
+
+#[derive(Deserialize)]
+struct Viewer {
+    pub homes: Vec<Home>,
+}
+
+#[derive(Deserialize)]
+struct Data {
+    pub viewer: Viewer,
+}
+
+#[derive(Deserialize)]
+struct TibberRootResponse {
+    pub data: Data,
 }

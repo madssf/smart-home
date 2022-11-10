@@ -27,10 +27,24 @@ pub enum PriceLevel {
 }
 
 impl PriceLevel {
-    fn index_of(&self) -> i32 {
+    pub fn index_of(&self) -> i32 {
         PriceLevel::iter()
             .position(|p| p == *self)
             .unwrap_or_else(|| panic!("Couldn't get index of price level: {}", self)) as i32
+    }
+}
+
+impl From<i32> for PriceLevel {
+    fn from(value: i32) -> Self {
+        let indexes: Vec<(i32, PriceLevel)> = PriceLevel::iter()
+            .map(|p| (p.index_of(), p)).collect();
+        if value < indexes.first().unwrap().0 {
+            indexes.first().unwrap().1
+        } else if value > indexes.last().unwrap().0 {
+            indexes.last().unwrap().1
+        } else {
+            indexes.iter().find(|p| p.0 == value).unwrap().1
+        }
     }
 }
 

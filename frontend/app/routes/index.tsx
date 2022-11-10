@@ -205,7 +205,12 @@ export default function Index() {
                                         </div>
                                         <div className="grid grid-cols-[110px_auto] p-1">
                                             <b>Current price</b>
-                                            <Badge maxW={"max-content"} ml={1} fontSize="md" colorScheme={getColorForPrice(data.price.price_level ?? data.price.ext_price_level)}>
+                                            <Badge
+                                                maxW={"max-content"}
+                                                ml={1}
+                                                fontSize="md"
+                                                colorScheme={getColorForPrice(data.price.price_level ?? data.price.ext_price_level)}
+                                            >
                                                 {formatPriceInfo(data.price)}
                                             </Badge>
                                         </div>

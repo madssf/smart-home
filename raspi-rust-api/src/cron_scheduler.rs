@@ -17,15 +17,15 @@ pub async fn start(
         loop {
             match prices::fetch_and_store_prices(tibber_client.as_ref(), pool.as_ref()).await {
                 Ok(_) => {
-                    info!("Prices fetched and saved waiting for 4 hours");
-                    sleep(Duration::from_secs(4 * 60 * 60)).await;
+                    info!("Prices fetched and saved, waiting for 8 hours.");
+                    sleep(Duration::from_secs(8 * 60 * 60)).await;
                 }
                 Err(e) => {
                     warn!(
-                        "Failed to fetch prices, trying again in 1 minute, error: {}",
+                        "Failed to fetch prices, trying again in 5 minutes, error: {}",
                         e
                     );
-                    sleep(Duration::from_secs(60)).await;
+                    sleep(Duration::from_secs(5 * 60)).await;
                 }
             }
         }
