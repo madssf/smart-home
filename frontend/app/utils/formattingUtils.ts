@@ -28,8 +28,7 @@ export const formatCurrency = (num: number, currency: string) => {
 
 
 export const formatPriceInfo = (priceInfo: PriceInfo) => {
-    // eslint-disable-next-line max-len
-    return `${priceInfo.amount.toFixed(2)} ${priceInfo.currency} - ${formatPriceLevel(priceInfo.price_level ?? priceInfo.ext_price_level)}${priceInfo.price_level ? '': ' [EXT]'}`;
+    return `${priceInfo.amount.toFixed(2)} ${priceInfo.currency}${priceInfo.price_level ? '': ' [EXT]'}`;
 };
 
 export const formatNumber = (num: number, maximumFractionDigits?: number, minimumFractionDigits?: number) => {

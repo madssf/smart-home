@@ -32,7 +32,7 @@ impl ShellyClient {
 
     pub fn new_with_port(port_suffix: u16) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(1))
             .build()
             .expect("Failed to create client");
 

@@ -67,7 +67,7 @@ export default function Index() {
     useEffect(() => {
         liveFetcher.load("/liveData");
         const interval = setInterval(() => {
-           setFetchTrigger((prev) => prev + 1);
+            setFetchTrigger((prev) => prev + 1);
         }, 2500);
         return () => clearInterval(interval);
 
@@ -76,11 +76,13 @@ export default function Index() {
     const getColorForPrice = (priceLevel: PriceLevel) => {
         switch (priceLevel) {
             case PriceLevel.VeryCheap:
-            case PriceLevel.Cheap:
                 return 'green';
+            case PriceLevel.Cheap:
+                return 'cyan';
             case PriceLevel.Normal:
                 return 'blue';
             case PriceLevel.Expensive:
+                return 'orange';
             case PriceLevel.VeryExpensive:
                 return 'red';
 
@@ -108,7 +110,8 @@ export default function Index() {
                     {
                         roomTemp &&
                         <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1">
-                            <Badge className="text-left w-16" fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
+                            <Badge className="text-left w-16"
+                                   fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
                             <p className={"ml-1"}>{dayjs(roomTemp.time).fromNow()}</p>
                         </div>
                     }
@@ -117,9 +120,9 @@ export default function Index() {
                     <div className="grid grid-cols-[70px_auto] gap-1 p-1">
                         <Text>Schedule</Text>
                         {activeSchedule?.schedule && activeSchedule.temp ?
-                                <Badge colorScheme={'blue'} className="text-left w-16" fontSize="md">
-                                    {`${formatNumber(activeSchedule.temp, 1, 1)} °C`}
-                                </Badge>
+                            <Badge colorScheme={'blue'} className="text-left w-16" fontSize="md">
+                                {`${formatNumber(activeSchedule.temp, 1, 1)} °C`}
+                            </Badge>
                             : <Badge
                                 maxW={"max-content"}
                                 ml={1}
@@ -167,10 +170,10 @@ export default function Index() {
             <Heading>
                 Smart Home
             </Heading>
-            <div className="flex flex-col">
-                <div className="my-4 flex flex-col">
+            <div className="flex flex-col mt-2">
+                <div className="flex flex-col">
                     <Heading size='md' mb={1}>Power</Heading>
-                    <div className="my-2">
+                    <div>
                         <Tabs maxW={"min"}>
                             <TabList>
                                 <Tab>Live</Tab>
@@ -182,7 +185,7 @@ export default function Index() {
                                     <div>
                                         <ClientOnly>
                                             {
-                                                () => <LiveConsumptionGraph liveConsumption={consumptionGraphData} />
+                                                () => <LiveConsumptionGraph liveConsumption={consumptionGraphData}/>
 
                                             }
                                         </ClientOnly>
@@ -223,7 +226,7 @@ export default function Index() {
                                                 return data.consumption.length === 0 ?
                                                     <p>No consumption data</p>
                                                     :
-                                                    <ConsumptionGraph consumption={data.consumption} />;
+                                                    <ConsumptionGraph consumption={data.consumption}/>;
                                             }
                                         }
                                     </ClientOnly>
@@ -235,16 +238,20 @@ export default function Index() {
 
 
                 </div>
-                <div className="my-1">
+                <div>
                     <Heading size='md' mb={1}>Rooms</Heading>
                     {
                         data.rooms.sort((a, b) => a.name.localeCompare(b.name)).map((room) => {
-                            return renderRoomData(
-                                room,
-                                data.roomTemps.find(room_temp => room_temp.room_id === room.id),
-                                data.plugStatuses.filter((plug) => plug.room_id === room.id),
-                                data.activeSchedules.find(schedule => schedule.room_id === room.id),
-                            );
+                            return <React.Fragment key={room.id}>
+                                {
+                                    renderRoomData(
+                                        room,
+                                        data.roomTemps.find(room_temp => room_temp.room_id === room.id),
+                                        data.plugStatuses.filter((plug) => plug.room_id === room.id),
+                                        data.activeSchedules.find(schedule => schedule.room_id === room.id),
+                                    )
+                                }
+                            </React.Fragment>;
                         })
                     }
                 </div>
