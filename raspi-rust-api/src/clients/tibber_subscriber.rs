@@ -19,8 +19,8 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::domain::LiveConsumption;
-use crate::env_var;
 use crate::service::consumption_cache::ConsumptionCache;
+use crate::{env_var, now};
 
 #[derive(Error, Debug)]
 pub enum PowerSubscriberError {
@@ -52,21 +52,26 @@ impl TibberSubscriber {
     pub async fn subscribe(&self) -> Result<(), PowerSubscriberError> {
         let mut backoff_counter = 2;
         loop {
+            let started_at = now();
             let subscription = self.run_subscriber().await;
-            let backoff = backoff_counter;
+            let failed_at = now();
+            let backoff = if (failed_at - started_at) > chrono::Duration::minutes(5) {
+                info!("Subscriber alive for more than 5 minutes, resetting backoff");
+                2
+            } else {
+                backoff_counter
+            };
+
             error!(
                 "Subscriber failed, restarting in {} seconds - error: {:?}",
                 backoff, subscription,
             );
+
             sleep(Duration::from_secs(backoff));
 
             info!("Restarting subscriber now!");
 
-            backoff_counter = if backoff_counter < 60 {
-                backoff_counter * 2
-            } else {
-                backoff_counter
-            };
+            backoff_counter = if backoff < 60 { backoff * 2 } else { backoff };
         }
     }
 
