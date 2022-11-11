@@ -72,7 +72,7 @@ impl TimePeriod {
         };
         let duration_from_start = *now - start_time;
         let range_end = match self {
-            TimePeriod::Day => duration_from_start.num_hours(),
+            TimePeriod::Day => duration_from_start.num_hours() * 60,
             TimePeriod::Week | TimePeriod::Month => duration_from_start.num_days(),
         };
         (start_time, 0..range_end)
@@ -80,7 +80,7 @@ impl TimePeriod {
 
     fn graph_length(&self) -> i64 {
         match self {
-            TimePeriod::Day => 24,
+            TimePeriod::Day => 24 * 60,
             TimePeriod::Week => 7,
             TimePeriod::Month => 30,
         }
@@ -88,7 +88,7 @@ impl TimePeriod {
 
     fn graph_step(&self, i: i64) -> Duration {
         match self {
-            TimePeriod::Day => Duration::hours(i),
+            TimePeriod::Day => Duration::minutes(i),
             TimePeriod::Week | TimePeriod::Month => Duration::days(i),
         }
     }
