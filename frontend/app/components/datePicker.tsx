@@ -9,8 +9,8 @@ function DatePicker({name, defaultValue}: DatePickerProps) {
 
     return (
         <>
-        <input className='mr-4' type='date' name={`${name}-date`} defaultValue={defaultValue?.slice(0, 10)}/>
-        <input type='time' name={`${name}-time`} defaultValue={defaultValue?.slice(11, 16)}/>
+        <input className="mr-2 min-w-max" type='date' name={`${name}-date`} defaultValue={defaultValue?.slice(0, 10)}/>
+        <input className="min-w-max" type='time' name={`${name}-time`} defaultValue={defaultValue?.slice(11, 16)}/>
         </>
     );
 }

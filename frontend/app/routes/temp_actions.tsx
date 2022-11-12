@@ -1,10 +1,10 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {routes} from "~/routes";
 import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {useLoaderData} from "@remix-run/react";
-import {Button, Heading} from "@chakra-ui/react";
+import {Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
 import {validateActionType, validateDateTime, validateNonEmptyList} from "~/utils/validation";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
@@ -94,7 +94,6 @@ export const loader: LoaderFunction = async () => {
 const TempActions = () => {
 
     const loaderData = useLoaderData<ResponseData>();
-    const [showNew, setShowNew] = useState(false);
 
     const renderTempActions = (tempActions: TempAction[], rooms: Room[]) => {
         return tempActions.map((tempAction) => {
@@ -106,13 +105,9 @@ const TempActions = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Temporary actions</Heading>
+            <Heading className="pb-4">Actions</Heading>
             {renderTempActions(loaderData.tempActions, loaderData.rooms)}
-            <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add temporary action'}</Button>
-            {
-                showNew &&
-                <TempActionForm rooms={loaderData.rooms} />
-            }
+            <TempActionForm rooms={loaderData.rooms} />
         </div>
     );
 };

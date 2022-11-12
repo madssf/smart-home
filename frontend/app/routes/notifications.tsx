@@ -75,12 +75,14 @@ const Notifications = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Settings</Heading>
+            <Heading className="pb-4">Notifications</Heading>
             <Form className="mb-2" method="post" action={routes.NOTIFICATIONS.ROOT}>
                 <label className="font-bold">Max consumption</label>
                 <InputGroup>
                     <Input
                         type="number"
+                        maxW={150}
+                        pattern="[0-9]*"
                         min="1"
                         step="1"
                         name="max_consumption"
@@ -96,6 +98,8 @@ const Notifications = () => {
                 <InputGroup>
                     <Input
                         type="number"
+                        maxW={150}
+                        pattern="[0-9]*"
                         min="1"
                         step="1"
                         name="max_consumption_timeout_minutes"
