@@ -5,6 +5,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use thiserror::Error;
 
+pub mod notification_settings;
 pub mod plugs;
 pub mod prices;
 pub mod rooms;

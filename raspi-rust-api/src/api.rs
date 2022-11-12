@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::WorkMessage;
+use crate::routes::notification_settings::notification_settings;
 use crate::routes::plugs::plugs;
 use crate::routes::prices::prices;
 use crate::routes::rooms::rooms;
@@ -49,6 +50,7 @@ pub async fn start(
             .service(temp_actions())
             .service(temperature_logs())
             .service(prices(consumption_cache.clone()))
+            .service(notification_settings())
     })
     .shutdown_timeout(1)
     .bind((host, port))?

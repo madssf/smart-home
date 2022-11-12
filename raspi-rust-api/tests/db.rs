@@ -12,7 +12,8 @@ use configuration::DatabaseTestConfig;
 use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
-    ActionType, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TemperatureLog,
+    ActionType, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
+    TemperatureLog,
 };
 
 mod configuration;
@@ -554,4 +555,67 @@ async fn prices() {
             starts_at: NaiveDateTime::new(date, NaiveTime::from_hms(23, 0, 0)),
         })
     )
+}
+
+#[tokio::test]
+async fn settings() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let pool = Arc::new(test_config.db_config.pool);
+
+    let settings = db::notification_settings::get_notification_settings(pool.as_ref())
+        .await
+        .expect("Failed to get settings");
+    assert_eq!(settings, None);
+
+    db::notification_settings::upsert_notification_settings(
+        pool.as_ref(),
+        &NotificationSettings {
+            id: Some(1),
+            max_consumption: Some(3),
+            max_consumption_timeout_minutes: 15,
+            ntfy_topic: "test_topic".to_string(),
+        },
+    )
+    .await
+    .expect("Failed to upsert settings");
+
+    let settings = db::notification_settings::get_notification_settings(pool.as_ref())
+        .await
+        .expect("Failed to get settings");
+    assert_eq!(
+        settings,
+        Some(NotificationSettings {
+            id: Some(1),
+            max_consumption: Some(3),
+            max_consumption_timeout_minutes: 15,
+            ntfy_topic: "test_topic".to_string(),
+        })
+    );
+
+    db::notification_settings::upsert_notification_settings(
+        pool.as_ref(),
+        &NotificationSettings {
+            id: Some(1),
+            max_consumption: Some(10),
+            max_consumption_timeout_minutes: 20,
+            ntfy_topic: "test_topic".to_string(),
+        },
+    )
+    .await
+    .expect("Failed to upsert settings");
+
+    let settings = db::notification_settings::get_notification_settings(pool.as_ref())
+        .await
+        .expect("Failed to get settings");
+    assert_eq!(
+        settings,
+        Some(NotificationSettings {
+            id: Some(1),
+            max_consumption: Some(10),
+            max_consumption_timeout_minutes: 20,
+            ntfy_topic: "test_topic".to_string(),
+        })
+    );
 }

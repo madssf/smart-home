@@ -44,3 +44,14 @@ export const validateTemp = (str?: string): Validate<number> => {
     }
     return {valid: true, data: num};
 };
+
+export const validatePositiveNonZeroInteger = (str?: string): Validate<number> => {
+    const num = Number(str);
+    if (!Number.isInteger(num)) {
+        return {valid: false, error: 'Not a valid integer'};
+    }
+    if (num < 1 ) {
+        return {valid: false, error: 'Not a valid positive integer'};
+    }
+    return {valid: true, data: num};
+};

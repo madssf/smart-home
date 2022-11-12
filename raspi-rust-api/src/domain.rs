@@ -36,8 +36,8 @@ impl PriceLevel {
 
 impl From<i32> for PriceLevel {
     fn from(value: i32) -> Self {
-        let indexes: Vec<(i32, PriceLevel)> = PriceLevel::iter()
-            .map(|p| (p.index_of(), p)).collect();
+        let indexes: Vec<(i32, PriceLevel)> =
+            PriceLevel::iter().map(|p| (p.index_of(), p)).collect();
         if value < indexes.first().unwrap().0 {
             indexes.first().unwrap().1
         } else if value > indexes.last().unwrap().0 {
@@ -289,6 +289,16 @@ pub enum WorkMessage {
     REFRESH,
     POLL,
     TEMP(Uuid, f64),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct NotificationSettings {
+    #[serde(skip_serializing)]
+    #[serde(default)]
+    pub id: Option<i32>,
+    pub max_consumption: Option<i32>,
+    pub max_consumption_timeout_minutes: i32,
+    pub ntfy_topic: String,
 }
 
 #[cfg(test)]

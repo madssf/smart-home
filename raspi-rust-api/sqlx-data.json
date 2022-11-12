@@ -693,6 +693,20 @@
     },
     "query": "\n            INSERT INTO schedule_time_windows (schedule_id, from_time, to_time)\n            VALUES ($1, $2, $3)\n            "
   },
+  "88ec9c999d37170bf1e3d7b23848221ae2f3d9fa2494f11949c5fe03ee4efbd5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO notification_settings (max_consumption, max_consumption_timeout_minutes, ntfy_topic)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE\n        SET max_consumption = $1, max_consumption_timeout_minutes = $2, ntfy_topic = $3\n        "
+  },
   "89a7a7624ac6b211fd74f4bf7d28a443ef4dc7b239ff794262cf33f27ac7cc28": {
     "describe": {
       "columns": [],
@@ -835,6 +849,42 @@
       }
     },
     "query": "SELECT * FROM temperature_logs WHERE room_id = $1 ORDER BY time ASC"
+  },
+  "c693b8c76c962997ffc13b41a3f3f580d6c5fc27dc7eb1b41bb5c5d13fa1561f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "max_consumption",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "max_consumption_timeout_minutes",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "ntfy_topic",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM notification_settings LIMIT 1"
   },
   "c8a82336b390d97dc3a5df392c6b0b3b84a4147d2875e9795d95410627948467": {
     "describe": {

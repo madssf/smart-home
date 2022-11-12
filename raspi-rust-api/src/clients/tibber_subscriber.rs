@@ -171,13 +171,17 @@ impl TibberSubscriber {
                 response.payload.data.live_measurement.timestamp,
                 response.payload.data.live_measurement.power
             );
-            self.consumption_cache.write().await.add(LiveConsumption {
-                timestamp: NaiveDateTime::parse_from_str(
-                    &response.payload.data.live_measurement.timestamp,
-                    "%Y-%m-%dT%H:%M:%S%.f%z",
-                )?,
-                power: response.payload.data.live_measurement.power,
-            });
+            self.consumption_cache
+                .write()
+                .await
+                .add(LiveConsumption {
+                    timestamp: NaiveDateTime::parse_from_str(
+                        &response.payload.data.live_measurement.timestamp,
+                        "%Y-%m-%dT%H:%M:%S%.f%z",
+                    )?,
+                    power: response.payload.data.live_measurement.power,
+                })
+                .await;
         }
     }
 }

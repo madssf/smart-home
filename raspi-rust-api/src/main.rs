@@ -9,6 +9,7 @@ use rust_home::clients::{
 use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
 use rust_home::service::consumption_cache::ConsumptionCache;
+use rust_home::service::notifications::{NotificationHandler, NotificationMessage};
 use rust_home::{
     api, configuration::get_configuration, cron_scheduler, env_var, work_handler,
     work_handler::WorkHandler,
@@ -24,9 +25,11 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
     let pool = Arc::new(db_config.pool.clone());
 
+    let (notification_tx, notification_rx) = mpsc::channel::<NotificationMessage>(10);
+
     let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
     let shelly_client = Arc::new(ShellyClient::default());
-    let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::default()));
+    let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::new(notification_tx)));
 
     let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
 
@@ -43,7 +46,13 @@ async fn main() -> std::io::Result<()> {
     let subscriber_cache = consumption_cache.clone();
     let cron_tibber_client = tibber_client.clone();
     let cron_pool = pool.clone();
+    let notifications_pool = pool.clone();
 
+    tokio::spawn(async {
+        NotificationHandler::new(notification_rx, notifications_pool)
+            .start()
+            .await
+    });
     tokio::spawn(async { cron_scheduler::start(cron_tibber_client, cron_pool).await });
     tokio::spawn(async { work_handler.start().await });
     tokio::spawn(async { work_handler::poll(poll_sender, 1).await });
