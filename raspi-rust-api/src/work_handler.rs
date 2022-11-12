@@ -34,6 +34,7 @@ pub struct WorkHandler {
     pool: Arc<PgPool>,
     sender: Sender<WorkMessage>,
     receiver: Receiver<WorkMessage>,
+    poll_interval_mins: u64,
 }
 
 impl WorkHandler {
@@ -50,11 +51,19 @@ impl WorkHandler {
             pool,
             sender,
             receiver,
+            poll_interval_mins: 1,
         }
     }
 
     pub async fn start(mut self) {
         info!("Starting work handler");
+        let poll_sender = self.sender.clone();
+        let poll_interval = self.poll_interval_mins.clone();
+        tokio::task::spawn(async move { self.listener().await });
+        tokio::task::spawn(async move { Self::poll(poll_sender, poll_interval).await });
+    }
+
+    async fn listener(&mut self) -> Result<(), WorkHandlerError> {
         loop {
             while let Ok(message) = self.receiver.try_recv() {
                 debug!("Got message {}", message.to_string());
@@ -75,11 +84,11 @@ impl WorkHandler {
                                     Err(e) => error!("Work failed, error: {}", e),
                                 };
                             }
-                            Err(_) => error!("Failed to fetch price"),
+                            Err(_) => error!("Failed to get price"),
                         }
                     }
                     WorkMessage::TEMP(room, temp) => {
-                        match self.temp_handler(&room, &temp).await {
+                        match self.temperature_handler(&room, &temp).await {
                             Ok(_) => {
                                 info!("Temperature work handled.")
                             }
@@ -92,7 +101,29 @@ impl WorkHandler {
         }
     }
 
-    pub async fn temp_handler(&self, room_id: &Uuid, temp: &f64) -> Result<(), WorkHandlerError> {
+    async fn poll(
+        sender: Sender<WorkMessage>,
+        poll_interval_mins: u64,
+    ) -> Result<(), SendError<String>> {
+        loop {
+            match sender.send(WorkMessage::POLL).await {
+                Ok(_) => {
+                    debug!("Sent message, sleeping for {} minutes", poll_interval_mins);
+                    sleep(Duration::from_secs(poll_interval_mins * 60))
+                }
+                Err(e) => {
+                    error!("Failed to send message, error {}", e);
+                    sleep(Duration::from_secs(poll_interval_mins * 10))
+                }
+            }
+        }
+    }
+
+    pub async fn temperature_handler(
+        &self,
+        room_id: &Uuid,
+        temp: &f64,
+    ) -> Result<(), WorkHandlerError> {
         let now = now();
         db::temperature_logs::create_temp_log(
             &self.pool,
@@ -156,11 +187,9 @@ impl WorkHandler {
             let room_plugs = db::plugs::get_room_plugs(&self.pool, &room.id).await?;
 
             for plug in room_plugs {
-                let result = self.shelly_client.execute_action(&plug, &action).await;
-                if result.is_ok() {
-                    debug!("Turned plug {} {}", plug.name, action.to_string())
-                } else {
-                    error!("Failed to turn plug {} {}", plug.name, action.to_string())
+                match self.shelly_client.execute_action(&plug, &action).await {
+                    Ok(_) => debug!("Turned plug {} {}", plug.name, action),
+                    Err(e) => error!("Failed to turn plug {} {}, error: {}", plug.name, action, e),
                 }
             }
         }
@@ -192,26 +221,5 @@ impl WorkHandler {
             ActionType::OFF
         };
         Ok(action)
-    }
-}
-
-pub async fn poll(
-    sender: Sender<WorkMessage>,
-    sleep_duration_in_minutes: u64,
-) -> Result<(), SendError<String>> {
-    loop {
-        match sender.send(WorkMessage::POLL).await {
-            Ok(_) => {
-                debug!(
-                    "Sent message, sleeping for {} minutes",
-                    sleep_duration_in_minutes
-                );
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 60))
-            }
-            Err(e) => {
-                error!("Failed to send message, error {}", e);
-                sleep(Duration::from_secs(sleep_duration_in_minutes * 10))
-            }
-        }
     }
 }

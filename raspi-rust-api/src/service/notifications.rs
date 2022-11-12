@@ -90,7 +90,7 @@ impl NotificationHandler {
         }
     }
 
-    pub async fn start(&mut self) {
+    pub async fn start(mut self) {
         loop {
             while let Ok(msg) = self.receiver.try_recv() {
                 match self.handle_message(&msg).await {

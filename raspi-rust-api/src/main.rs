@@ -11,8 +11,7 @@ use rust_home::domain::WorkMessage;
 use rust_home::service::consumption_cache::ConsumptionCache;
 use rust_home::service::notifications::{NotificationHandler, NotificationMessage};
 use rust_home::{
-    api, configuration::get_configuration, cron_scheduler, env_var, work_handler,
-    work_handler::WorkHandler,
+    api, configuration::get_configuration, cron_scheduler, env_var, work_handler::WorkHandler,
 };
 
 #[tokio::main]
@@ -25,14 +24,13 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
     let pool = Arc::new(db_config.pool.clone());
 
-    let (notification_tx, notification_rx) = mpsc::channel::<NotificationMessage>(10);
-
     let tibber_client = Arc::new(TibberClient::new(env_var("TIBBER_API_TOKEN")));
     let shelly_client = Arc::new(ShellyClient::default());
-    let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::new(notification_tx)));
 
+    let (notification_tx, notification_rx) = mpsc::channel::<NotificationMessage>(10);
     let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
 
+    let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::new(notification_tx)));
     let work_handler = WorkHandler::new(
         shelly_client.clone(),
         tibber_client.clone(),
@@ -41,21 +39,17 @@ async fn main() -> std::io::Result<()> {
         pool.clone(),
     );
 
-    let poll_sender = sender.clone();
+    let notifications_pool = pool.clone();
+    let notification_handler = NotificationHandler::new(notification_rx, notifications_pool);
+
     let api_sender = sender.clone();
     let subscriber_cache = consumption_cache.clone();
     let cron_tibber_client = tibber_client.clone();
     let cron_pool = pool.clone();
-    let notifications_pool = pool.clone();
 
-    tokio::spawn(async {
-        NotificationHandler::new(notification_rx, notifications_pool)
-            .start()
-            .await
-    });
+    tokio::spawn(async { notification_handler.start().await });
     tokio::spawn(async { cron_scheduler::start(cron_tibber_client, cron_pool).await });
     tokio::spawn(async { work_handler.start().await });
-    tokio::spawn(async { work_handler::poll(poll_sender, 1).await });
     if configuration.run_subscriber {
         tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
     }

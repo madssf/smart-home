@@ -85,7 +85,7 @@ async fn handles_temp_log() {
 
     let room_id = rooms[0].id;
     handler
-        .temp_handler(&room_id, &20.0)
+        .temperature_handler(&room_id, &20.0)
         .await
         .expect("Temp handler failed");
     let temp_logs = db::temperature_logs::get_temp_logs(&test_config.db_config.pool)

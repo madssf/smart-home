@@ -20,7 +20,7 @@ impl Default for ShellyClient {
 impl ShellyClient {
     pub fn new() -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(1))
+            .timeout(Duration::from_secs(2))
             .build()
             .expect("Failed to create client");
 
@@ -32,7 +32,7 @@ impl ShellyClient {
 
     pub fn new_with_port(port_suffix: u16) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(1))
+            .timeout(Duration::from_secs(2))
             .build()
             .expect("Failed to create client");
 
