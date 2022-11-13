@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::clients::tibber_client::TibberClient;
 use crate::db::rooms;
 use crate::domain::{PriceLevel, Schedule};
+use crate::service;
 use crate::{db, now};
 
 pub fn schedules() -> Scope {
@@ -119,22 +120,26 @@ async fn get_active_schedules(
             return HttpResponse::InternalServerError().finish();
         }
     };
-    let price_info = match tibber_client.get_current_price().await {
-        Ok(price) => price,
-        Err(e) => {
-            error!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let price_info =
+        match service::prices::get_current_price(tibber_client.get_ref(), pool.get_ref()).await {
+            Ok(price) => price,
+            Err(e) => {
+                error!("{:?}", e);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
     let mut active_schedules: Vec<ActiveSchedule> = vec![];
     for room in rooms {
         match db::schedules::get_matching_schedule(pool.get_ref(), &room.id, &now()).await {
             Ok(schedule) => {
-                let temp = if let Some(schedule) = schedule.clone() {
-                    Some(schedule.get_temp(&price_info.ext_price_level))
-                } else {
-                    None
-                };
+                let temp =
+                    if let Some(schedule) = schedule.clone() {
+                        Some(schedule.get_temp(
+                            &price_info.price_level.unwrap_or(price_info.ext_price_level),
+                        ))
+                    } else {
+                        None
+                    };
                 active_schedules.push(ActiveSchedule {
                     room_id: room.id,
                     schedule,
