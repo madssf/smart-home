@@ -94,6 +94,13 @@ impl TibberSubscriber {
 
         let (mut socket, _) = connect(request)?;
 
+        match socket.get_mut() {
+            MaybeTlsStream::NativeTls(t) => t
+                .get_mut()
+                .set_read_timeout(Some(Duration::from_secs(10)))
+                .expect("Failed to set read timeout"),
+            _ => panic!("Unexpected TLS Stream"),
+        }
         info!("WebSocket connection to Tibber established, sending init message");
 
         socket.write_message(Message::text(init_message()))?;
