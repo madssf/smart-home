@@ -35,7 +35,7 @@ impl TibberClient {
         Self {
             api_token,
             client: Client::builder()
-                .timeout(Duration::from_secs(10))
+                .timeout(Duration::from_secs(20))
                 .build()
                 .expect("Failed to build client"),
         }
