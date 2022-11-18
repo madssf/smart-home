@@ -26,7 +26,7 @@ async fn spawn_api() -> Server {
     start(
         work_tx.clone(),
         "127.0.0.1".to_string(),
-        8080,
+        8081,
         tibber_client,
         Arc::new(ShellyClient::default()),
         Arc::new(RwLock::new(ConsumptionCache::new(notification_tx.clone()))),
@@ -42,7 +42,7 @@ async fn api() {
 
     let client = reqwest::Client::new();
     let result = client
-        .get("http://127.0.0.1:8080/_/health")
+        .get("http://127.0.0.1:8081/_/health")
         .send()
         .await
         .expect("failed to execute");

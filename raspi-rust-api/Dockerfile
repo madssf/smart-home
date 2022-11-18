@@ -17,7 +17,7 @@ RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian11 as runtime
 WORKDIR app
-EXPOSE 8080
+EXPOSE 8081
 
 COPY --from=builder /app/configuration /app/configuration
 COPY --from=builder /app/target/release/rust_home ./target/release/rust_home

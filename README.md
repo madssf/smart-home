@@ -50,4 +50,4 @@ POSTGRES_PASSWORD=<replace me>
 5. Disable `CLOUD`
 6. Go to the `Actions` tab
 7. Under `REPORT SENSOR VALUES`, enable and add the following URL:
-   - `http://<ip of raspberry pi>:8080/report_ht/<room id>`
+   - `http://<ip of raspberry pi>:8081/report_ht/<room id>`
