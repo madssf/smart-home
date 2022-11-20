@@ -1,11 +1,12 @@
 use log::info;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
-use crate::observability::{get_app_environment, Environment};
+use crate::observability::{Environment, get_app_environment};
 
 #[derive(serde::Deserialize, Debug)]
 pub struct Settings {
     pub database: DatabaseSettings,
+    pub mqtt: MqttSettings,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
     pub application_host: String,
@@ -19,6 +20,12 @@ pub struct DatabaseSettings {
     pub port: u16,
     pub host: String,
     pub database_name: String,
+}
+
+#[derive(serde::Deserialize, Debug)]
+pub struct MqttSettings {
+    pub host: String,
+    pub base_topic: String,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
@@ -38,7 +45,11 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         ));
 
     let settings = match environment {
-        Environment::Dev => settings,
+        Environment::Dev => settings.add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        ),
         Environment::Production => settings.add_source(
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")

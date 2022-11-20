@@ -138,6 +138,12 @@ pub struct Room {
     pub name: String,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TempSensor {
+    pub id: String,
+    pub room_id: Uuid,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Plug {
     pub id: Uuid,

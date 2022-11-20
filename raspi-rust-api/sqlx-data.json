@@ -348,6 +348,30 @@
     },
     "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = any($1) AND from_time < $2 AND to_time > $2"
   },
+  "4e1781938e9390b5d31bb00f61c64ded3dc916c057e3966944a908c734353db5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "room_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM temp_sensors"
+  },
   "567a76531db00a135b91d482726d7c7e8cd1a4bace69e5d214d9017905ac5e3f": {
     "describe": {
       "columns": [
@@ -427,6 +451,19 @@
     },
     "query": "\n        INSERT INTO prices (starts_at, amount, currency, ext_price_level, price_level)\n        VALUES ($1, $2, $3, $4, $5)\n        "
   },
+  "61a5c5f6545a25989b9a34a2470111396ae82f5bba8b8544054f73c638644464": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO temp_sensors (id, room_id) VALUES ($1, $2)"
+  },
   "66a141b71041a7827f1932e6e288fdab37cc699720e5484c30697b5566b8d513": {
     "describe": {
       "columns": [
@@ -450,6 +487,32 @@
       }
     },
     "query": "SELECT * FROM schedules"
+  },
+  "68d706bbdcc7aa2b5d21a26e7343c65becbc3a059b39f93ae0633abdabe1b80e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "room_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT * FROM temp_sensors WHERE id = $1"
   },
   "6f8052c3a646f364d7eb3ef27d389668da9fc1a6ccdb02cd7fe8a457a4c59e28": {
     "describe": {
@@ -964,6 +1027,18 @@
       }
     },
     "query": "\n        INSERT INTO rooms (id, name)\n        VALUES ($1, $2)\n        "
+  },
+  "e16474d83b1732c1fdf0903a9b90c846247bc9ad12eb96a5df8f86572fbe0472": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM temp_sensors WHERE id = $1"
   },
   "e785b90ad92424d2189f65d0c8d88fbfc4c62810d6f3ab5dce0ca846236d8ea2": {
     "describe": {

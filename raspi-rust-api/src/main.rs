@@ -3,16 +3,17 @@ use std::sync::Arc;
 use log::info;
 use tokio::sync::{mpsc, RwLock};
 
+use rust_home::{
+    api, configuration::get_configuration, cron_scheduler, env_var, work_handler::WorkHandler,
+};
 use rust_home::clients::{
     shelly_client::ShellyClient, tibber_client::TibberClient, tibber_subscriber::TibberSubscriber,
 };
+use rust_home::clients::mqtt::MqttClient;
 use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
 use rust_home::service::consumption_cache::ConsumptionCache;
 use rust_home::service::notifications::{NotificationHandler, NotificationMessage};
-use rust_home::{
-    api, configuration::get_configuration, cron_scheduler, env_var, work_handler::WorkHandler,
-};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -38,22 +39,29 @@ async fn main() -> std::io::Result<()> {
         receiver,
         pool.clone(),
     );
+    tokio::spawn(async { work_handler.start().await });
 
-    let notifications_pool = pool.clone();
-    let notification_handler = NotificationHandler::new(notification_rx, notifications_pool);
+    let notification_handler = NotificationHandler::new(notification_rx, pool.clone());
+    tokio::spawn(async { notification_handler.start().await });
 
-    let api_sender = sender.clone();
-    let subscriber_cache = consumption_cache.clone();
+    let mqtt_client = MqttClient::new(
+        configuration.mqtt.host,
+        configuration.mqtt.base_topic,
+        pool.clone(),
+        sender.clone(),
+    );
+    tokio::spawn(async move { mqtt_client.start().await });
+
     let cron_tibber_client = tibber_client.clone();
     let cron_pool = pool.clone();
-
-    tokio::spawn(async { notification_handler.start().await });
     tokio::spawn(async { cron_scheduler::start(cron_tibber_client, cron_pool).await });
-    tokio::spawn(async { work_handler.start().await });
+
+    let subscriber_cache = consumption_cache.clone();
     if configuration.run_subscriber {
         tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
     }
 
+    let api_sender = sender.clone();
     let server = api::start(
         api_sender,
         configuration.application_host,

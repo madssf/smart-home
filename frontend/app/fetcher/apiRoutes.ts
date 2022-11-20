@@ -17,4 +17,5 @@ export const apiRoutes = {
         live_consumption: 'prices/live_consumption',
     },
     notification_settings: 'notification_settings/',
+    temp_sensors: 'temp_sensors/',
 };

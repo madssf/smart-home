@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use log::info;
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
 
 pub mod notification_settings;
@@ -11,6 +11,7 @@ pub mod prices;
 pub mod rooms;
 pub mod schedules;
 pub mod temp_actions;
+pub mod temp_sensors;
 pub mod temperature_logs;
 
 #[derive(Debug, Clone)]

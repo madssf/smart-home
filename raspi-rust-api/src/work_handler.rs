@@ -26,6 +26,8 @@ pub enum WorkHandlerError {
     DbError(#[from] DbError),
     #[error("SendError")]
     SendError,
+    #[error("Unexpected error: {0}")]
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 pub struct WorkHandler {
@@ -87,10 +89,10 @@ impl WorkHandler {
                             Err(_) => error!("Failed to get price"),
                         }
                     }
-                    WorkMessage::TEMP(room, temp) => {
-                        match self.temperature_handler(&room, &temp).await {
+                    WorkMessage::TEMP(room_id, temp) => {
+                        match self.temperature_handler(&room_id, &temp).await {
                             Ok(_) => {
-                                info!("Temperature work handled.")
+                                debug!("Temperature work handled.")
                             }
                             Err(e) => error!("Temperature work failed, error: {}", e),
                         };

@@ -13,7 +13,7 @@ use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
     ActionType, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TemperatureLog,
+    TempSensor, TemperatureLog,
 };
 
 mod configuration;
@@ -618,4 +618,50 @@ async fn settings() {
             ntfy_topic: "test_topic".to_string(),
         })
     );
+}
+
+#[tokio::test]
+async fn temp_sensors() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let pool = Arc::new(test_config.db_config.pool);
+
+    let sensors = db::temp_sensors::get_temp_sensors(pool.as_ref())
+        .await
+        .expect("Failed to get sensors");
+    assert_eq!(sensors.len(), 0);
+
+    rooms::create_room(&pool, "test_room")
+        .await
+        .expect("Could not insert room");
+
+    let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
+    let room_id_1 = rooms[0].clone().id;
+
+    let sensor_1 = TempSensor {
+        id: "0x00158d0008072632".to_string(),
+        room_id: room_id_1,
+    };
+
+    db::temp_sensors::insert_temp_sensor(pool.as_ref(), &sensor_1)
+        .await
+        .expect("Failed to insert temp sensor");
+
+    let sensors = db::temp_sensors::get_temp_sensors(&pool)
+        .await
+        .expect("Couldn't get sensors");
+    assert_eq!(sensors.len(), 1);
+    assert_eq!(sensors[0], sensor_1);
+    let sensor = db::temp_sensors::get_temp_sensor(&pool, "0x00158d0008072632")
+        .await
+        .expect("Couldn't get sensor");
+    assert_eq!(sensor, Some(sensor_1));
+    db::temp_sensors::delete_temp_sensor(&pool, "0x00158d0008072632")
+        .await
+        .expect("Couldn't delete sensor");
+    let sensors = db::temp_sensors::get_temp_sensors(&pool)
+        .await
+        .expect("Couldn't get sensors");
+    assert_eq!(sensors.len(), 0);
 }

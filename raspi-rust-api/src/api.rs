@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
+use actix_web::{App, get, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use actix_web::dev::Server;
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
-use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
@@ -18,6 +16,7 @@ use crate::routes::prices::prices;
 use crate::routes::rooms::rooms;
 use crate::routes::schedules::schedules;
 use crate::routes::temp_actions::temp_actions;
+use crate::routes::temp_sensors::temp_sensors;
 use crate::routes::temperature_logs::temperature_logs;
 use crate::service::consumption_cache::ConsumptionCache;
 
@@ -43,12 +42,12 @@ pub async fn start(
             .app_data(tibber_client.clone())
             .service(refresh)
             .service(health)
-            .service(report_temp)
             .service(plugs(shelly_client.clone()))
             .service(rooms())
             .service(schedules())
             .service(temp_actions())
             .service(temperature_logs())
+            .service(temp_sensors())
             .service(prices(consumption_cache.clone()))
             .service(notification_settings())
     })
@@ -71,24 +70,5 @@ async fn refresh(sender: web::Data<Sender<WorkMessage>>) -> impl Responder {
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to refresh, error: {}", e))
         }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ReportRequest {
-    // hum: i32,
-    temp: f64,
-}
-
-#[get("/report_ht/{room}")]
-async fn report_temp(
-    room: web::Path<Uuid>,
-    body: web::Query<ReportRequest>,
-    sender: web::Data<Sender<WorkMessage>>,
-) -> impl Responder {
-    let room = room.into_inner();
-    match sender.send(WorkMessage::TEMP(room, body.temp)).await {
-        Ok(_) => HttpResponse::Ok(),
-        Err(_) => HttpResponse::InternalServerError(),
     }
 }
