@@ -43,7 +43,7 @@ async fn setup(
         Arc::new(db_config.pool.clone()),
     );
     for i in 0..num_rooms {
-        db::rooms::create_room(&db_config.pool, &format!("test_room_{}", i))
+        db::rooms::create_room(&db_config.pool, &format!("test_room_{}", i), &None)
             .await
             .expect("Failed to create room");
     }
@@ -245,6 +245,144 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
     )
     .await
     .expect("Failed to insert temp action");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
+}
+
+#[tokio::test]
+async fn min_temp_works_with_lowest_prio() {
+    let docker = Cli::default();
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let mock_server = MockServer::start().await;
+
+    let mock_ip = mock_server.address().ip().to_string();
+    let mock_port = mock_server.address().port();
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
+    let now = NaiveDateTime::new(
+        NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 14.0,
+            time: now.sub(Duration::minutes(30)),
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
+
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+        .expect("Couldnt create plug");
+    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
+        .await
+        .expect("Couldnt insert plug");
+
+    db::rooms::update_room(
+        &test_config.db_config.pool,
+        &Room {
+            id: rooms[0].id,
+            name: rooms[0].name.clone(),
+            min_temp: Some(22.0),
+        },
+    )
+    .await
+    .expect("Failed to update room");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=on");
+
+    mock_server.reset().await;
+
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 23.0,
+            time: now.sub(Duration::minutes(20)),
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
+
+    mock_server.reset().await;
+
+    let schedule = setup::schedule(vec![&rooms[0]]);
+
+    db::schedules::create_schedule(&test_config.db_config.pool, schedule)
+        .await
+        .expect("Could insert schedule");
+
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 21.0,
+            time: now.sub(Duration::minutes(10)),
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
 
     handler
         .main_handler(

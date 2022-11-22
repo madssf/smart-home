@@ -136,6 +136,7 @@ pub struct LiveConsumption {
 pub struct Room {
     pub id: Uuid,
     pub name: String,
+    pub min_temp: Option<f64>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

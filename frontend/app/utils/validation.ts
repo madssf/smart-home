@@ -34,7 +34,10 @@ export const validateDateTime = (dateStr?: string, timeStr?: string): Validate<s
     return {valid: true, data: `${dateStr}T${timeStr}:00`};
 };
 
-export const validateTemp = (str?: string): Validate<number> => {
+export const validateTempOrNull = (str?: string): Validate<number | null> => {
+    if (str === undefined) {
+        return {valid: true, data: null};
+    }
     const num = Number(str);
     if (Number.isNaN(num)) {
         return {valid: false, error: 'Not a valid temperature'};

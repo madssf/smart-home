@@ -6,8 +6,7 @@ import type {Room} from "~/routes/rooms/types";
 import type {FormErrors} from "~/utils/types";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {routes} from "~/routes";
-import {validateNonEmptyString} from "~/utils/validation";
-import type {PlugFormErrors} from "~/routes/plugs";
+import {validateNonEmptyString, validateTempOrNull} from "~/utils/validation";
 import {useLoaderData} from "@remix-run/react";
 import RoomForm from "~/routes/rooms/components/roomForm";
 import {Button, Heading} from "@chakra-ui/react";
@@ -27,6 +26,7 @@ export const action: ActionFunction = async ({request}) => {
 
     const id = body.get("id")?.toString();
     const name = body.get("name")?.toString();
+    const min_temp = body.get("min_temp")?.toString();
     const intent = body.get("intent")?.toString();
 
     if (intent === 'delete') {
@@ -37,19 +37,22 @@ export const action: ActionFunction = async ({request}) => {
 
     const validated = {
         name: validateNonEmptyString(name),
+        min_temp: validateTempOrNull(min_temp),
     };
 
-    if (!validated.name.valid) {
-        return json<PlugFormErrors>(
+    if (!validated.name.valid || !validated.min_temp.valid) {
+        return json<RoomFormErrors>(
             {
                 id,
                 name: !validated.name.valid ? validated.name.error : undefined,
+                min_temp: !validated.min_temp.valid ? validated.min_temp.error : undefined,
             },
         );
     }
 
     const document: Omit<Room, 'id'> = {
         name: validated.name.data,
+        min_temp: validated.min_temp.data,
     };
 
     if (!id) {

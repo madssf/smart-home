@@ -4,7 +4,7 @@ import {Form, useActionData, useTransition} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {RoomFormErrors} from "~/routes/rooms";
 import {routes} from "~/routes";
-import {Button, Input, Text} from "@chakra-ui/react";
+import {Button, Input, InputGroup, InputRightAddon, Text} from "@chakra-ui/react";
 
 export interface RoomFormProps {
     room?: Room
@@ -50,6 +50,20 @@ const RoomForm = ({room}: RoomFormProps) => {
             {room?.id &&
                 <p className="text-sm text-gray-400">{room.id}</p>
             }
+            <div className="mt-1">
+                <label className="font-bold">Min temp</label>
+                <InputGroup>
+                    <Input
+                        type="number"
+                        min="1"
+                        max="30"
+                        step="1"
+                        name="min_temp"
+                        defaultValue={room?.min_temp ?? undefined}
+                    />
+                    <InputRightAddon children="°C" />
+                </InputGroup>
+            </div>
             <div className="mt-1">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
                         disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>

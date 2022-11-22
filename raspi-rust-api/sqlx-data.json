@@ -194,19 +194,6 @@
     },
     "query": "\n        DELETE FROM temp_actions WHERE id = $1\n        "
   },
-  "33c5b17406c0d570619829ada45d4d823af47809dbfb6afc51d0ff6ddca3e036": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        UPDATE rooms\n        SET name = $2\n        WHERE id = $1\n        "
-  },
   "342cac428b54361b12695eca54c574c609af4b683537f8a9a2c71c0b3d711430": {
     "describe": {
       "columns": [],
@@ -526,6 +513,20 @@
     },
     "query": "SELECT * FROM temp_sensors WHERE id = $1"
   },
+  "6a475dba917aeb6a0c7696ba9545a8d99a1c6cc166dce8c91323ce31743e5211": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO rooms (id, name, min_temp)\n        VALUES ($1, $2, $3)\n        "
+  },
   "6f8052c3a646f364d7eb3ef27d389668da9fc1a6ccdb02cd7fe8a457a4c59e28": {
     "describe": {
       "columns": [
@@ -767,6 +768,20 @@
       }
     },
     "query": "\n            INSERT INTO schedule_time_windows (schedule_id, from_time, to_time)\n            VALUES ($1, $2, $3)\n            "
+  },
+  "7a52fc503f828fdf5c76f7d181b1a202349bc8b214f485cdfddf63cd14700345": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Numeric"
+        ]
+      }
+    },
+    "query": "\n        UPDATE rooms\n        SET name = $2, min_temp = $3\n        WHERE id = $1\n        "
   },
   "88ec9c999d37170bf1e3d7b23848221ae2f3d9fa2494f11949c5fe03ee4efbd5": {
     "describe": {
@@ -1039,19 +1054,6 @@
       }
     },
     "query": "\n        DELETE FROM rooms WHERE id = $1\n        "
-  },
-  "d8d60c6d97d53ba5b79da07e2e4534ad9600cb570d6a4b83bbb3625a4e1d9d21": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO rooms (id, name)\n        VALUES ($1, $2)\n        "
   },
   "e16474d83b1732c1fdf0903a9b90c846247bc9ad12eb96a5df8f86572fbe0472": {
     "describe": {

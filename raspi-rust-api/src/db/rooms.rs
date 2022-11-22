@@ -1,5 +1,6 @@
-use sqlx::postgres::PgRow;
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use sqlx::{FromRow, PgPool, Row};
+use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
 use crate::domain::Room;
@@ -13,15 +14,17 @@ pub async fn get_rooms(pool: &PgPool) -> Result<Vec<Room>, DbError> {
     Ok(res)
 }
 
-pub async fn create_room(pool: &PgPool, name: &str) -> Result<(), DbError> {
+pub async fn create_room(pool: &PgPool, name: &str, min_temp: &Option<f64>) -> Result<(), DbError> {
     let uuid = Uuid::new_v4();
+    let min_temp = min_temp.as_ref().map(|temp| BigDecimal::from_f64(*temp).unwrap());
     sqlx::query!(
         r#"
-        INSERT INTO rooms (id, name)
-        VALUES ($1, $2)
+        INSERT INTO rooms (id, name, min_temp)
+        VALUES ($1, $2, $3)
         "#,
         uuid,
         name,
+        min_temp
     )
     .execute(pool)
     .await?;
@@ -30,14 +33,18 @@ pub async fn create_room(pool: &PgPool, name: &str) -> Result<(), DbError> {
 }
 
 pub async fn update_room(pool: &PgPool, room: &Room) -> Result<(), DbError> {
+    let min_temp = room
+        .min_temp
+        .map(|temp| BigDecimal::from_f64(temp).unwrap());
     sqlx::query!(
         r#"
         UPDATE rooms
-        SET name = $2
+        SET name = $2, min_temp = $3
         WHERE id = $1
         "#,
         room.id,
         room.name,
+        min_temp,
     )
     .execute(pool)
     .await?;
@@ -63,6 +70,10 @@ impl FromRow<'_, PgRow> for Room {
         Ok(Self {
             id: row.get::<Uuid, &str>("id"),
             name: row.get("name"),
+            min_temp: match row.get::<Option<BigDecimal>, &str>("min_temp") {
+                None => None,
+                Some(temp) => temp.to_f64(),
+            },
         })
     }
 }

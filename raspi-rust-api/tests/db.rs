@@ -4,6 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
+use sqlx::PgPool;
 use sqlx::types::ipnetwork::IpNetwork;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
@@ -13,7 +14,7 @@ use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
     ActionType, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TempSensor, TemperatureLog,
+    TemperatureLog, TempSensor,
 };
 
 mod configuration;
@@ -41,27 +42,33 @@ fn temperature_log(room_id: Uuid) -> TemperatureLog {
     }
 }
 
+async fn create_room(pool: &PgPool) {
+    rooms::create_room(pool, "test_room", &None)
+        .await
+        .expect("Could not insert room");
+}
+
 #[tokio::test]
 async fn rooms() {
     let docker = Cli::default();
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert plug");
+    create_room(&pool).await;
 
     let result = rooms::get_rooms(&pool).await.expect("Can't get rooms");
 
     let result_room = result[0].clone();
 
     assert_eq!(result_room.name, "test_room");
+    assert_eq!(result_room.min_temp, None);
 
     rooms::update_room(
         &pool,
         &Room {
             id: result_room.id,
             name: "test2".to_string(),
+            min_temp: Some(20.0),
         },
     )
     .await
@@ -70,6 +77,7 @@ async fn rooms() {
     let result = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let result_room = result[0].clone();
     assert_eq!(result_room.name, "test2");
+    assert_eq!(result_room.min_temp, Some(20.0));
 }
 
 #[tokio::test]
@@ -79,9 +87,8 @@ async fn can_insert_plug() {
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
 
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert plug");
+    create_room(&pool).await;
+
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id = rooms[0].clone().id;
 
@@ -109,9 +116,8 @@ async fn can_update_plug() {
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
 
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert plug");
+    create_room(&pool).await;
+
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id = rooms[0].clone().id;
 
@@ -149,9 +155,8 @@ async fn can_delete_plug() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
+    create_room(&pool).await;
+
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id = rooms[0].clone().id;
 
@@ -179,10 +184,10 @@ async fn schedules() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
-    rooms::create_room(&pool, "test_room_2")
+
+    create_room(&pool).await;
+
+    rooms::create_room(&pool, "test_room_2", &None)
         .await
         .expect("Could not insert room");
 
@@ -259,9 +264,7 @@ async fn can_delete_schedule() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
+    create_room(&pool).await;
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
 
@@ -294,9 +297,7 @@ async fn schedules_constraints() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
+    create_room(&pool).await;
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
 
@@ -339,10 +340,10 @@ async fn temp_actions() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
-    rooms::create_room(&pool, "test_room_2")
+
+    create_room(&pool).await;
+
+    rooms::create_room(&pool, "test_room_2", &None)
         .await
         .expect("Could not insert room");
 
@@ -398,9 +399,8 @@ async fn temperature_logs() {
 
     let test_config = DatabaseTestConfig::new(&docker).await;
     let pool = Arc::new(test_config.db_config.pool);
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
+
+    create_room(&pool).await;
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id = rooms[0].clone().id;
@@ -436,7 +436,7 @@ async fn latest_temp_logs() {
     let pool = Arc::new(test_config.db_config.pool);
 
     for i in 1..5 {
-        rooms::create_room(&pool, format!("room_{}", i).as_str())
+        rooms::create_room(&pool, format!("room_{}", i).as_str(), &None)
             .await
             .expect("Could not insert room");
     }
@@ -470,7 +470,7 @@ async fn latest_temp_logs() {
         assert_eq!(room_temp.temp, 10.0)
     }
 
-    rooms::create_room(&pool, "dummy")
+    rooms::create_room(&pool, "dummy", &None)
         .await
         .expect("Cant create room");
     let new_rooms = rooms::get_rooms(&pool).await.expect("Cant get rooms");
@@ -632,9 +632,7 @@ async fn temp_sensors() {
         .expect("Failed to get sensors");
     assert_eq!(sensors.len(), 0);
 
-    rooms::create_room(&pool, "test_room")
-        .await
-        .expect("Could not insert room");
+    create_room(&pool).await;
 
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id_1 = rooms[0].clone().id;
@@ -642,6 +640,7 @@ async fn temp_sensors() {
     let sensor_1 = TempSensor {
         id: "0x00158d0008072632".to_string(),
         room_id: room_id_1,
+        battery_level: None,
     };
 
     db::temp_sensors::insert_temp_sensor(pool.as_ref(), &sensor_1)

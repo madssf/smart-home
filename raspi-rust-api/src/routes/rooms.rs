@@ -30,11 +30,12 @@ async fn get_rooms(pool: web::Data<Arc<PgPool>>) -> impl Responder {
 #[derive(serde::Deserialize)]
 pub struct RoomRequest {
     name: String,
+    min_temp: Option<f64>,
 }
 
 #[post("/")]
 async fn create_room(pool: web::Data<Arc<PgPool>>, body: web::Json<RoomRequest>) -> impl Responder {
-    match db::rooms::create_room(pool.get_ref(), &body.name).await {
+    match db::rooms::create_room(pool.get_ref(), &body.name, &body.min_temp).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -51,6 +52,7 @@ async fn update_room(
         &Room {
             id: id.into_inner(),
             name: body.name.to_string(),
+            min_temp: body.min_temp,
         },
     )
     .await

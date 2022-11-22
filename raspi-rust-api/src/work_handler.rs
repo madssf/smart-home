@@ -209,15 +209,24 @@ impl WorkHandler {
     ) -> Result<ActionType, DbError> {
         let matching_schedule =
             db::schedules::get_matching_schedule(&self.pool, &room.id, now).await?;
-        let current_temp = current_temps.get(&room.id);
-        let action = if let (Some(schedule), Some(current_temp)) = (matching_schedule, current_temp)
-        {
+        let current_temp = if let Some(temp) = current_temps.get(&room.id) {
+            temp
+        } else {
+            return Ok(ActionType::OFF);
+        };
+
+        let less_than_abs_min = if let Some(temp) = room.min_temp {
+            current_temp.temp < temp
+        } else {
+            false
+        };
+        let action = if let Some(schedule) = matching_schedule {
             if current_temp.temp < schedule.get_temp(&price.level()) {
                 ActionType::ON
             } else {
                 ActionType::OFF
             }
-        } else if temp_action_on {
+        } else if temp_action_on || less_than_abs_min {
             ActionType::ON
         } else {
             ActionType::OFF
