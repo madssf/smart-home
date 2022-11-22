@@ -111,7 +111,8 @@ export default function Index() {
                         roomTemp &&
                         <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1">
                             <Badge className="text-left w-16"
-                                   fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}</Badge>
+                                   fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}
+                            </Badge>
                             <p className={"ml-1"}>{dayjs(roomTemp.time).fromNow()}</p>
                         </div>
                     }

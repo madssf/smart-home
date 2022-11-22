@@ -4,8 +4,8 @@ import type {Room} from "~/routes/rooms/types";
 import {Form, useActionData, useTransition} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import {routes} from "~/routes";
-import {Button, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
-import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
+import {Badge, Button, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
+import {capitalizeAndRemoveUnderscore, formatNumber} from "~/utils/formattingUtils";
 import type {FormErrors} from "~/utils/types";
 
 export interface TempSensorFormProps {
@@ -43,31 +43,58 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
         <Form className="mb-2" ref={formRef} method="post" action={routes.TEMP_SENSORS.ROOT}>
             <div>
                 <label className="font-bold">ID</label>
-                <Input name="id" defaultValue={sensor?.id}/>
                 {
-                    !!errors?.id &&
-                    <Text color="tomato">{errors.id}</Text>
+                    !sensor ?
+                    <>
+                        <Input name="id"/>
+                        <>
+                            {
+                                !!errors?.id &&
+                                <Text color="tomato">{errors.id}</Text>
+                            }
+                        </>
+                    </>
+                        :
+                        <div>
+                            <Text>{sensor.id}</Text>
+                            {
+                                sensor.battery_level !== null &&
+                                <Badge
+                                    className="text-left w-16"
+                                    fontSize="md"
+                                >
+                                    {`${formatNumber(sensor.battery_level, 0, 0)} %`}
+                                </Badge>
+                            }
+                        </div>
+
                 }
             </div>
             <div className="flex flex-col">
                 <label className="font-bold">Room</label>
-                <RadioGroup defaultValue={sensor?.room_id} name="actionType">
-                    <Stack direction="row">
-                        {rooms.map((room) => {
-                            return <Radio
-                                key={room?.id + sensor?.id}
-                                id="room_id"
-                                name="room_id"
-                                checked={sensor?.room_id === room.id}
-                                value={room.id}>
-                                {capitalizeAndRemoveUnderscore(room.name)}
-                            </Radio>;
-                        })}
-                    </Stack>
-                </RadioGroup>
                 {
-                    !!errors?.room_id &&
-                    <Text color="tomato">{errors.room_id}</Text>
+                    sensor === undefined ?
+                        <>
+                            <RadioGroup name="room_id">
+                                <Stack direction="row">
+                                    {rooms.map((room) => {
+                                        return <Radio
+                                            key={room?.id}
+                                            id="room_id"
+                                            name="room_id"
+                                            value={room.id}>
+                                            {capitalizeAndRemoveUnderscore(room.name)}
+                                        </Radio>;
+                                    })}
+                                </Stack>
+                            </RadioGroup>
+                            {
+                                !!errors?.room_id &&
+                                <Text color="tomato">{errors.room_id}</Text>
+                            }
+                        </>
+                        :
+                        <Text>{rooms.find(room => room.id == sensor?.room_id)?.name ?? 'Unknown room'}</Text>
                 }
             </div>
             <div className="mt-1">

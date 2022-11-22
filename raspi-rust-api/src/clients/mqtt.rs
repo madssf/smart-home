@@ -1,14 +1,13 @@
-use std::str;
-use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
-
 use log::{debug, error, info, warn};
 use rumqttc::{
     AsyncClient, ClientError, ConnectionError, Event, Incoming, MqttOptions, QoS, SubscribeFilter,
 };
 use serde::Deserialize;
 use sqlx::PgPool;
+use std::str;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
 
@@ -66,18 +65,19 @@ impl MqttClient {
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
 
-        let sensors = db::temp_sensors::get_temp_sensors(&self.pool).await?;
-        if sensors.is_empty() {
+        let all_sensors = db::temp_sensors::get_temp_sensors(&self.pool).await?;
+        if all_sensors.is_empty() {
             info!("No sensors, not starting");
             return Ok(());
         };
 
-        let topics = sensors.iter().map(|sensor| SubscribeFilter {
+        let topics = all_sensors.iter().map(|sensor| SubscribeFilter {
             path: format!("{}/{}", self.base_topic, sensor.id),
             qos: QoS::AtMostOnce,
         });
 
         client.subscribe_many(topics).await?;
+
         loop {
             match eventloop.poll().await {
                 Ok(notification) => match notification {
@@ -86,15 +86,39 @@ impl MqttClient {
                             let topic = msg.topic;
                             let payload = msg.payload;
                             let string = str::from_utf8(&payload).expect("Failed to parse message");
+                            let current_sensors =
+                                db::temp_sensors::get_temp_sensors(&self.pool).await?;
                             debug!("Message on topic: {}", topic);
                             if let Ok(parsed) = serde_json::from_str::<SensorPayload>(string) {
-                                if let Some(sensor) =
-                                    sensors.iter().find(|sensor| topic.ends_with(&sensor.id))
+                                if let Some(sensor) = current_sensors
+                                    .iter()
+                                    .find(|sensor| topic.ends_with(&sensor.id))
                                 {
+                                    let update_battery_level = match sensor.battery_level {
+                                        None => true,
+                                        Some(level) => level != parsed.battery,
+                                    };
+
+                                    if update_battery_level {
+                                        info!(
+                                            "Updating battery level to {} for sensor {:?}",
+                                            parsed.battery, sensor
+                                        );
+                                        let _battery_level_updated =
+                                            db::temp_sensors::update_temp_sensor(
+                                                &self.pool,
+                                                &sensor.id,
+                                                &parsed.battery,
+                                            )
+                                            .await;
+                                        // TODO: Notification
+                                    }
+
                                     let sent = self
                                         .sender
                                         .send(WorkMessage::TEMP(sensor.room_id, parsed.temperature))
                                         .await;
+
                                     if sent.is_err() {
                                         error!(
                                             "Failed to send temperature work message - room_id: {}",
@@ -106,6 +130,15 @@ impl MqttClient {
                                 }
                             } else {
                                 warn!("Failed to parse message: {}", string)
+                            }
+                            if !current_sensors.iter().all(|item| {
+                                all_sensors
+                                    .iter()
+                                    .any(|all| all.room_id == item.room_id && all.id == item.id)
+                            }) || current_sensors.len() != all_sensors.len()
+                            {
+                                info!("Sensors have changed, restarting subscriber");
+                                return Ok(());
                             }
                         }
                         _ => {
@@ -128,7 +161,7 @@ impl MqttClient {
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 struct SensorPayload {
-    pub battery: i64,
+    pub battery: i32,
     pub humidity: f64,
     pub linkquality: i64,
     pub power_outage_count: i64,

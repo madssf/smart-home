@@ -142,6 +142,8 @@ pub struct Room {
 pub struct TempSensor {
     pub id: String,
     pub room_id: Uuid,
+    #[serde(default)]
+    pub battery_level: Option<i32>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

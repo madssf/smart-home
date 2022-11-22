@@ -60,7 +60,7 @@ impl WorkHandler {
     pub async fn start(mut self) {
         info!("Starting work handler");
         let poll_sender = self.sender.clone();
-        let poll_interval = self.poll_interval_mins.clone();
+        let poll_interval = self.poll_interval_mins;
         tokio::task::spawn(async move { self.listener().await });
         tokio::task::spawn(async move { Self::poll(poll_sender, poll_interval).await });
     }

@@ -18,6 +18,21 @@ pub async fn get_temp_sensor(pool: &PgPool, id: &str) -> Result<Option<TempSenso
     )
 }
 
+pub async fn update_temp_sensor(
+    pool: &PgPool,
+    id: &str,
+    battery_level: &i32,
+) -> Result<(), DbError> {
+    sqlx::query!(
+        "UPDATE temp_sensors SET battery_level = $2 WHERE id = $1",
+        id,
+        battery_level
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 pub async fn insert_temp_sensor(pool: &PgPool, sensor: &TempSensor) -> Result<(), DbError> {
     sqlx::query!(
         "INSERT INTO temp_sensors (id, room_id) VALUES ($1, $2)",
