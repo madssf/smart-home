@@ -2,7 +2,7 @@ use strum_macros::{Display, EnumString};
 
 use crate::env_var;
 
-#[derive(Display, EnumString, Debug)]
+#[derive(Display, EnumString, Debug, Eq, PartialEq)]
 pub enum Environment {
     Dev,
     Production,

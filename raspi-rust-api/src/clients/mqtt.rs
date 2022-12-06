@@ -1,19 +1,21 @@
+use std::str;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
+
 use log::{debug, error, info, warn};
 use rumqttc::{
     AsyncClient, ClientError, ConnectionError, Event, Incoming, MqttOptions, QoS, SubscribeFilter,
 };
 use serde::Deserialize;
 use sqlx::PgPool;
-use std::str;
-use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
 
 use crate::db;
 use crate::db::DbError;
 use crate::domain::WorkMessage;
+use crate::observability::{get_app_environment, Environment};
 
 pub struct MqttClient {
     host: String,
@@ -60,7 +62,12 @@ impl MqttClient {
     }
 
     async fn subscribe_loop(&self) -> Result<(), MqttClientError> {
-        let mut mqttoptions = MqttOptions::new("smarthome", self.host.to_string(), 1883);
+        let id = if get_app_environment() == &Environment::Production {
+            "smarthome"
+        } else {
+            "smarthome_dev"
+        };
+        let mut mqttoptions = MqttOptions::new(id, self.host.to_string(), 1883);
         mqttoptions.set_keep_alive(Duration::from_secs(15));
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
