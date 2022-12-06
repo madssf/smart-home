@@ -15,7 +15,9 @@ use uuid::Uuid;
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
-use crate::domain::{ActionType, PriceInfo, Room, TempAction, TemperatureLog, WorkMessage};
+use crate::domain::{
+    ActionType, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
+};
 use crate::{db, now, service};
 
 #[derive(Error, Debug)]
@@ -168,23 +170,16 @@ impl WorkHandler {
         debug!("Current temperatures: {:?}", &current_temps);
 
         for room in rooms {
-            let room_temp_actions: Vec<&TempAction> = temp_actions
-                .iter()
+            let room_temp_actions: Vec<TempAction> = temp_actions
+                .clone()
+                .into_iter()
                 .filter(|a| a.room_ids.contains(&room.id))
                 .sorted_by(|a, b| Ord::cmp(&a.expires_at, &b.expires_at))
                 .collect();
 
-            let action = if let Some(action) = room_temp_actions.first() {
-                if action.action_type == ActionType::OFF {
-                    ActionType::OFF
-                } else {
-                    self.get_action(now, price, &room, &current_temps, true)
-                        .await?
-                }
-            } else {
-                self.get_action(now, price, &room, &current_temps, false)
-                    .await?
-            };
+            let action = self
+                .get_action(now, price, &room, &current_temps, room_temp_actions.first())
+                .await?;
 
             let room_plugs = db::plugs::get_room_plugs(&self.pool, &room.id).await?;
 
@@ -205,7 +200,7 @@ impl WorkHandler {
         price: &PriceInfo,
         room: &Room,
         current_temps: &HashMap<Uuid, TemperatureLog>,
-        temp_action_on: bool,
+        temp_action_opt: Option<&TempAction>,
     ) -> Result<ActionType, DbError> {
         let matching_schedule =
             db::schedules::get_matching_schedule(&self.pool, &room.id, now).await?;
@@ -215,22 +210,35 @@ impl WorkHandler {
             return Ok(ActionType::OFF);
         };
 
-        let less_than_abs_min = if let Some(temp) = room.min_temp {
-            current_temp.temp < temp
-        } else {
-            false
-        };
-        let action = if let Some(schedule) = matching_schedule {
-            if current_temp.temp < schedule.get_temp(&price.level()) {
-                ActionType::ON
-            } else {
-                ActionType::OFF
+        if let Some(abs_min_temp) = room.min_temp {
+            if current_temp.temp < abs_min_temp {
+                return Ok(ActionType::ON);
             }
-        } else if temp_action_on || less_than_abs_min {
-            ActionType::ON
+        }
+
+        if let Some(temp_action) = temp_action_opt {
+            match temp_action.action_type {
+                TempActionType::ON(temp_opt) => {
+                    if let Some(temp) = temp_opt {
+                        if current_temp.temp < temp {
+                            return Ok(ActionType::ON);
+                        }
+                    } else {
+                        return Ok(ActionType::ON);
+                    }
+                }
+                TempActionType::OFF => return Ok(ActionType::OFF),
+            }
+        }
+
+        if let Some(schedule) = matching_schedule {
+            if current_temp.temp < schedule.get_temp(&price.level()) {
+                Ok(ActionType::ON)
+            } else {
+                Ok(ActionType::OFF)
+            }
         } else {
-            ActionType::OFF
-        };
-        Ok(action)
+            Ok(ActionType::OFF)
+        }
     }
 }

@@ -35,7 +35,7 @@ export const validateDateTime = (dateStr?: string, timeStr?: string): Validate<s
 };
 
 export const validateTempOrNull = (str?: string): Validate<number | null> => {
-    if (str === undefined) {
+    if (str === undefined || str === "") {
         return {valid: true, data: null};
     }
     const num = Number(str);

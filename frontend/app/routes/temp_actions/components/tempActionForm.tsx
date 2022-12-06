@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Button, Checkbox, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
+import {Button, Checkbox, Input, InputGroup, InputRightAddon, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
 import {ActionType} from "~/routes/temp_actions/types";
 import type {TempActionErrors} from "~/routes/temp_actions";
@@ -46,14 +46,14 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
             <input hidden readOnly name="id" value={tempAction?.id}/>
             <div className="flex flex-col">
                 <label className="font-bold">Action</label>
-                <RadioGroup defaultValue={tempAction?.action_type ?? ActionType.ON} name="actionType">
+                <RadioGroup defaultValue={tempAction?.action ?? ActionType.ON} name="actionType">
                     <Stack direction="row">
                         {Object.values(ActionType).map((actionType) => {
                             return <Radio
                                 key={tempAction?.id + actionType}
                                 id="actionType"
                                 name="actionType"
-                                checked={tempAction ? tempAction.action_type === actionType : tempAction === ActionType.ON}
+                                checked={tempAction ? tempAction.action === actionType : tempAction === ActionType.ON}
                                 value={actionType}>
                                 {capitalizeAndRemoveUnderscore(actionType)}
                             </Radio>;
@@ -61,10 +61,27 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
                     </Stack>
                 </RadioGroup>
                 {
-                    !!errors?.action_type &&
-                    <Text color="tomato">{errors.action_type}</Text>
+                    !!errors?.action &&
+                    <Text color="tomato">{errors.action}</Text>
                 }
             </div>
+            {(tempAction === undefined || tempAction.action === ActionType.ON) &&
+                <div className="my-2">
+                    <InputGroup>
+                        <Input
+                            style={{width: "70px"}}
+                            type="number"
+                            min="1"
+                            max="30"
+                            step="1"
+                            name={"temp"}
+                            defaultValue={tempAction?.temp ?? undefined}
+                        />
+                        <InputRightAddon children="°C"/>
+                    </InputGroup>
+                </div>
+            }
+
             <div className="flex flex-col">
                 <label className="font-bold">Rooms</label>
                 <div className="flex">
@@ -88,7 +105,7 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
             </div>
             <div>
                 <label className="font-bold">Expires at</label>
-                <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at} />
+                <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at}/>
                 {
                     !!errors?.expires_at &&
                     <Text color="tomato">{errors.expires_at}</Text>

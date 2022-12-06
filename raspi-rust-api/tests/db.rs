@@ -4,8 +4,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
-use sqlx::PgPool;
 use sqlx::types::ipnetwork::IpNetwork;
+use sqlx::PgPool;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
 
@@ -13,8 +13,8 @@ use configuration::DatabaseTestConfig;
 use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
-    ActionType, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TemperatureLog, TempSensor,
+    NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TempActionType,
+    TempSensor, TemperatureLog,
 };
 
 mod configuration;
@@ -28,7 +28,7 @@ fn plug(room_id: &Uuid) -> Plug {
 fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
     TempAction::new(
         &NaiveDateTime::from_timestamp(1666291743, 0),
-        &ActionType::ON,
+        &TempActionType::ON(Some(22.0)),
         room_ids,
     )
     .expect("Failed to create temp_action")
@@ -368,7 +368,7 @@ async fn temp_actions() {
     let updated_action = TempAction {
         id: stored_action.id,
         room_ids: vec![room_id_1, room_id_2],
-        action_type: ActionType::ON,
+        action_type: TempActionType::ON(Some(23.0)),
         expires_at: stored_action.expires_at,
     };
 

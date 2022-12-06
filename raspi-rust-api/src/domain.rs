@@ -263,27 +263,76 @@ pub enum ActionType {
     OFF,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TempAction {
     pub id: Uuid,
     pub room_ids: Vec<Uuid>,
-    pub action_type: ActionType,
+    pub action_type: TempActionType,
     pub expires_at: NaiveDateTime,
 }
 
 impl TempAction {
     pub fn new(
         expires_at: &NaiveDateTime,
-        action_type: &ActionType,
+        action_type: &TempActionType,
         room_ids: Vec<Uuid>,
-    ) -> Result<Self, anyhow::Error> {
-        Ok(TempAction {
+    ) -> Self {
+        Self {
             id: Uuid::new_v4(),
             room_ids,
             action_type: *action_type,
             expires_at: *expires_at,
-        })
+        }
     }
+}
+
+#[derive(Deserialize)]
+pub struct TempActionRequest {
+    pub room_ids: Vec<Uuid>,
+    pub action: ActionType,
+    pub temp: Option<f64>,
+    pub expires_at: NaiveDateTime,
+}
+
+#[derive(Serialize)]
+pub struct TempActionResponse {
+    pub id: Uuid,
+    pub room_ids: Vec<Uuid>,
+    pub action: ActionType,
+    pub temp: Option<f64>,
+    pub expires_at: NaiveDateTime,
+}
+
+impl Into<TempAction> for TempActionRequest {
+    fn into(self) -> TempAction {
+        let action_type = match self.action {
+            ActionType::ON => TempActionType::ON(self.temp),
+            ActionType::OFF => TempActionType::OFF,
+        };
+        TempAction::new(&self.expires_at, &action_type, self.room_ids)
+    }
+}
+
+impl Into<TempActionResponse> for TempAction {
+    fn into(self) -> TempActionResponse {
+        let (action_type, temp) = match self.action_type {
+            TempActionType::ON(t) => (ActionType::ON, t),
+            TempActionType::OFF => (ActionType::OFF, None),
+        };
+        TempActionResponse {
+            id: self.id,
+            room_ids: self.room_ids,
+            action: action_type,
+            temp,
+            expires_at: self.expires_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub enum TempActionType {
+    ON(Option<f64>),
+    OFF,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

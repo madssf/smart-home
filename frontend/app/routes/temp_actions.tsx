@@ -6,7 +6,7 @@ import {json, redirect} from "@remix-run/node";
 import {useLoaderData} from "@remix-run/react";
 import {Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
-import {validateActionType, validateDateTime, validateNonEmptyList} from "~/utils/validation";
+import {validateActionType, validateDateTime, validateNonEmptyList, validateTempOrNull} from "~/utils/validation";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {
@@ -34,6 +34,7 @@ export async function action({request}: ActionArgs) {
     const id = body.get("id")?.toString();
     const roomIds = body.getAll("room_ids").map((room_id) => room_id.toString());
     const actionType = body.get("actionType")?.toString();
+    const temp = body.get("temp")?.toString();
     const expiresAtDate = body.get("expiresAt-date")?.toString();
     const expiresAtTime = body.get("expiresAt-time")?.toString();
 
@@ -48,16 +49,18 @@ export async function action({request}: ActionArgs) {
     const validated = {
         roomIds: validateNonEmptyList(roomIds),
         actionType: validateActionType(actionType),
+        temp: validateTempOrNull(temp),
         expiresAt: validateDateTime(expiresAtDate, expiresAtTime),
     };
 
 
-    if (!validated.roomIds.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
+    if (!validated.roomIds.valid || !validated.temp.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
         return json<TempActionErrors>(
             {
                 id,
                 room_ids: validated.roomIds.error,
-                action_type: validated.actionType.error,
+                action: validated.actionType.error,
+                temp: validated.temp.error,
                 expires_at: validated.expiresAt.error,
             },
         );
@@ -65,7 +68,7 @@ export async function action({request}: ActionArgs) {
 
 
     const document: Omit<TempAction, 'id'> = {
-        room_ids: validated.roomIds.data, action_type: validated.actionType.data, expires_at: validated.expiresAt.data,
+        room_ids: validated.roomIds.data, action: validated.actionType.data, temp: validated.temp.data, expires_at: validated.expiresAt.data,
     };
 
     if (!id) {

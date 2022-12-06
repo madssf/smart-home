@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
-use chrono::NaiveDateTime;
 use log::error;
-use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::db;
-use crate::domain::{ActionType, TempAction};
+use crate::domain::{
+    ActionType, TempAction, TempActionRequest, TempActionResponse, TempActionType,
+};
 
 pub fn temp_actions() -> Scope {
     web::scope("/temp_actions")
@@ -21,26 +21,15 @@ pub fn temp_actions() -> Scope {
 #[get("/")]
 async fn get_temp_actions(pool: web::Data<Arc<PgPool>>) -> impl Responder {
     match db::temp_actions::get_temp_actions(pool.get_ref()).await {
-        Ok(temp_actions) => HttpResponse::Ok().json(temp_actions),
+        Ok(temp_actions) => {
+            let json: Vec<TempActionResponse> =
+                temp_actions.into_iter().map(|t| t.into()).collect();
+            HttpResponse::Ok().json(json)
+        }
         Err(e) => {
             error!("{:?}", e);
             HttpResponse::InternalServerError().finish()
         }
-    }
-}
-
-#[derive(Deserialize)]
-struct TempActionRequest {
-    pub room_ids: Vec<Uuid>,
-    pub action_type: ActionType,
-    pub expires_at: NaiveDateTime,
-}
-
-impl TryInto<TempAction> for TempActionRequest {
-    type Error = anyhow::Error;
-
-    fn try_into(self) -> Result<TempAction, Self::Error> {
-        TempAction::new(&self.expires_at, &self.action_type, self.room_ids)
     }
 }
 
@@ -69,12 +58,16 @@ async fn update_temp_action(
     id: web::Path<Uuid>,
     body: web::Json<TempActionRequest>,
 ) -> impl Responder {
+    let action_type = match body.action {
+        ActionType::ON => TempActionType::ON(body.temp),
+        ActionType::OFF => TempActionType::OFF,
+    };
     match db::temp_actions::update_temp_action(
         pool.get_ref(),
         TempAction {
             id: id.into_inner(),
             room_ids: body.room_ids.clone(),
-            action_type: body.action_type,
+            action_type,
             expires_at: body.expires_at,
         },
     )

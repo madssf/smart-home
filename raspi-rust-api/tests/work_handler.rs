@@ -12,7 +12,7 @@ use rust_home::clients::tibber_client::TibberClient;
 use rust_home::db;
 use rust_home::db::DbConfig;
 use rust_home::domain::{
-    ActionType, Plug, PriceInfo, PriceLevel, Room, TempAction, TemperatureLog, WorkMessage,
+    Plug, PriceInfo, PriceLevel, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
 };
 use rust_home::work_handler::WorkHandler;
 
@@ -163,7 +163,7 @@ async fn temp_actions_work() {
         &test_config.db_config.pool,
         TempAction::new(
             &now.add(Duration::hours(1)),
-            &ActionType::OFF,
+            &TempActionType::OFF,
             vec![rooms[0].id],
         )
         .expect("Failed to create temp action"),
@@ -192,7 +192,7 @@ async fn temp_actions_work() {
 }
 
 #[tokio::test]
-async fn temp_actions_overridden_by_existing_schedule_temp() {
+async fn temp_actions_override_existing_schedule_temp() {
     let docker = Cli::default();
     let test_config = DatabaseTestConfig::new(&docker).await;
     let mock_server = MockServer::start().await;
@@ -238,7 +238,47 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
         &test_config.db_config.pool,
         TempAction::new(
             &now.add(Duration::hours(1)),
-            &ActionType::ON,
+            &TempActionType::ON(Some(24.0)),
+            vec![rooms[0].id],
+        )
+        .expect("Failed to create temp action"),
+    )
+    .await
+    .expect("Failed to insert temp action");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=on");
+
+    let actions = db::temp_actions::get_temp_actions(&test_config.db_config.pool)
+        .await
+        .expect("Failed to get temp actions");
+    db::temp_actions::delete_temp_action(&test_config.db_config.pool, &actions[0].id)
+        .await
+        .expect("Failed to delete temp action");
+
+    mock_server.reset().await;
+
+    db::temp_actions::create_temp_action(
+        &test_config.db_config.pool,
+        TempAction::new(
+            &now.add(Duration::hours(1)),
+            &TempActionType::ON(Some(14.0)),
             vec![rooms[0].id],
         )
         .expect("Failed to create temp action"),
@@ -267,7 +307,7 @@ async fn temp_actions_overridden_by_existing_schedule_temp() {
 }
 
 #[tokio::test]
-async fn min_temp_works_with_lowest_prio() {
+async fn min_temp_overrides_temp_action() {
     let docker = Cli::default();
     let test_config = DatabaseTestConfig::new(&docker).await;
     let mock_server = MockServer::start().await;
@@ -401,5 +441,5 @@ async fn min_temp_works_with_lowest_prio() {
     let received_requests = mock_server.received_requests().await.unwrap();
     assert_eq!(received_requests.len(), 1);
     let query_param = received_requests[0].url.query().expect("Missing query");
-    assert_eq!(query_param, "turn=off");
+    assert_eq!(query_param, "turn=on");
 }

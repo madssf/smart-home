@@ -287,21 +287,6 @@
     },
     "query": "SELECT * FROM schedule_temps WHERE schedule_id = any($1)"
   },
-  "42a936d897f884d699fe240b0d84378208d76995d6b338132e474d0fa61f75c5": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "UuidArray",
-          "Text",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "\n    UPDATE temp_actions\n    SET room_ids = $2, action = $3, expires_at = $4\n    WHERE id = $1\n    "
-  },
   "44cc46e6e614604feeead90f0847c0a2e32bee7f7af6227053b02789b55a248d": {
     "describe": {
       "columns": [
@@ -411,8 +396,13 @@
           "type_info": "Text"
         },
         {
-          "name": "expires_at",
+          "name": "temp",
           "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "expires_at",
+          "ordinal": 4,
           "type_info": "Timestamp"
         }
       ],
@@ -420,6 +410,7 @@
         false,
         false,
         false,
+        true,
         false
       ],
       "parameters": {
@@ -591,6 +582,22 @@
     },
     "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = any($1)"
   },
+  "6fbfc41dd019ec72626b16d17f343ad0dc0668855c2f918432b92f00a147264b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Numeric",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n    UPDATE temp_actions\n    SET room_ids = $2, action = $3, temp = $4, expires_at = $5\n    WHERE id = $1\n    "
+  },
   "73576c20ebfe197207187fc7def262cf9d0e46481deaeb638737c0ad18b518fa": {
     "describe": {
       "columns": [
@@ -728,6 +735,22 @@
       }
     },
     "query": "SELECT * FROM plugs WHERE room_id = $1"
+  },
+  "76acf61206af5ddeaee8d33b952e2ceda60e438ef832f4b4b4a4ea4345528e44": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Numeric",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO temp_actions (id, room_ids, action, temp, expires_at)\n    VALUES ($1, $2, $3, $4, $5)\n    "
   },
   "77ea0dfb55d8fee0a3aff4ae9dab90bea47c9ce57e22ad8868c1d92edbf7f8ee": {
     "describe": {
@@ -1179,21 +1202,6 @@
       }
     },
     "query": "SELECT * FROM prices WHERE starts_at > $1 AND starts_at < $2"
-  },
-  "f4c90cb9afab1b2d2f24ff394a010d51eadc08d0325c95a22a8431ddd9411a18": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "UuidArray",
-          "Text",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "\n    INSERT INTO temp_actions (id, room_ids, action, expires_at)\n    VALUES ($1, $2, $3, $4)\n    "
   },
   "fe95a46df86a8f4155bbd283ab6505e08611e23a240bb0898d2664025d9f937d": {
     "describe": {
