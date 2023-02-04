@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use actix_web::{App, get, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use actix_web::dev::Server;
+use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
@@ -44,6 +44,7 @@ pub async fn start(
             .app_data(tibber_client.clone())
             .service(refresh)
             .service(health)
+            .service(trigger_button)
             .service(plugs(shelly_client.clone()))
             .service(rooms())
             .service(buttons())
