@@ -50,6 +50,9 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                     <Text color="tomato">{errors.name}</Text>
                 }
             </div>
+            {button?.id &&
+                <p className="text-sm text-gray-400">{button.id}</p>
+            }
             <div className="flex flex-col">
                 <label className="font-bold">Plugs</label>
                 <div className="flex">
