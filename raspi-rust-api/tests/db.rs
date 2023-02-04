@@ -13,8 +13,8 @@ use configuration::DatabaseTestConfig;
 use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
-    NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction, TempActionType,
-    TempSensor, TemperatureLog,
+    Button, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
+    TempActionType, TempSensor, TemperatureLog,
 };
 
 mod configuration;
@@ -31,7 +31,6 @@ fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
         &TempActionType::ON(Some(22.0)),
         room_ids,
     )
-    .expect("Failed to create temp_action")
 }
 
 fn temperature_log(room_id: Uuid) -> TemperatureLog {
@@ -663,4 +662,87 @@ async fn temp_sensors() {
         .await
         .expect("Couldn't get sensors");
     assert_eq!(sensors.len(), 0);
+}
+
+#[tokio::test]
+async fn buttons() {
+    let docker = Cli::default();
+
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let pool = Arc::new(test_config.db_config.pool);
+
+    let buttons = db::buttons::get_buttons(pool.as_ref())
+        .await
+        .expect("Failed to get buttons");
+    assert_eq!(buttons.len(), 0);
+
+    create_room(&pool).await;
+
+    let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
+    let room_id_1 = rooms[0].clone().id;
+
+    plugs::create_plug(&pool, plug(&room_id_1))
+        .await
+        .expect("Failed to create plug");
+    plugs::create_plug(
+        &pool,
+        Plug::new(
+            "test_plug_2",
+            "127.0.0.2",
+            "username",
+            "password",
+            &room_id_1,
+        )
+        .expect("Failed to create plug"),
+    )
+    .await
+    .expect("Failed to create plug");
+    let plugs = plugs::get_plugs(&pool).await.expect("Failed to get plugs");
+    let plug_id_1 = plugs[0].clone().id;
+    let plug_id_2 = plugs[1].clone().id;
+
+    let button_1 = Button {
+        id: Uuid::new_v4(),
+        name: "test button".to_string(),
+        ip: IpNetwork::from_str("127.0.0.1").expect("Failed to create IP"),
+        username: "aaa".to_string(),
+        password: "aaa".to_string(),
+        plug_ids: vec![plug_id_1],
+    };
+
+    db::buttons::create_button(pool.as_ref(), &button_1)
+        .await
+        .expect("Failed to insert button");
+
+    let buttons = db::buttons::get_buttons(&pool)
+        .await
+        .expect("Couldn't get buttons");
+    assert_eq!(buttons.len(), 1);
+    assert_eq!(buttons[0], button_1);
+
+    let updated_button = Button {
+        id: button_1.id,
+        name: "test 2".to_string(),
+        ip: IpNetwork::from_str("127.0.1.24").expect("Failed to create IP"),
+        username: "lol".to_string(),
+        password: "lol".to_string(),
+        plug_ids: vec![plug_id_1, plug_id_2],
+    };
+
+    db::buttons::update_button(&pool, &updated_button)
+        .await
+        .expect("Failed to update button");
+    let buttons = db::buttons::get_buttons(&pool)
+        .await
+        .expect("Couldn't get buttons");
+    assert_eq!(buttons.len(), 1);
+    assert_eq!(buttons[0], updated_button);
+
+    db::buttons::delete_button(&pool, &button_1.id)
+        .await
+        .expect("Couldn't delete button");
+    let buttons = db::buttons::get_buttons(&pool)
+        .await
+        .expect("Couldn't get buttons");
+    assert_eq!(buttons.len(), 0);
 }

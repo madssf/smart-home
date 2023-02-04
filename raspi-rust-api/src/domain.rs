@@ -176,6 +176,35 @@ impl Plug {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Button {
+    pub id: Uuid,
+    pub name: String,
+    pub ip: IpNetwork,
+    pub username: String,
+    pub password: String,
+    pub plug_ids: Vec<Uuid>,
+}
+
+impl Button {
+    pub fn new(
+        name: &str,
+        ip: &str,
+        username: &str,
+        password: &str,
+        plug_ids: &[Uuid],
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            id: Uuid::new_v4(),
+            name: name.to_string(),
+            ip: IpNetwork::from_str(ip).context(format!("Failed to parse IP: {}", ip))?,
+            username: username.to_string(),
+            password: password.to_string(),
+            plug_ids: plug_ids.to_vec(),
+        })
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Schedule {
     pub id: Uuid,

@@ -165,8 +165,7 @@ async fn temp_actions_work() {
             &now.add(Duration::hours(1)),
             &TempActionType::OFF,
             vec![rooms[0].id],
-        )
-        .expect("Failed to create temp action"),
+        ),
     )
     .await
     .expect("Failed to insert temp action");
@@ -240,8 +239,7 @@ async fn temp_actions_override_existing_schedule_temp() {
             &now.add(Duration::hours(1)),
             &TempActionType::ON(Some(24.0)),
             vec![rooms[0].id],
-        )
-        .expect("Failed to create temp action"),
+        ),
     )
     .await
     .expect("Failed to insert temp action");
@@ -280,8 +278,7 @@ async fn temp_actions_override_existing_schedule_temp() {
             &now.add(Duration::hours(1)),
             &TempActionType::ON(Some(14.0)),
             vec![rooms[0].id],
-        )
-        .expect("Failed to create temp action"),
+        ),
     )
     .await
     .expect("Failed to insert temp action");

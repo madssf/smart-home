@@ -1,3 +1,4 @@
+pub mod buttons;
 pub mod notification_settings;
 pub mod plugs;
 pub mod prices;

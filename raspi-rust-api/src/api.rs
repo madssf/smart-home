@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use actix_web::{App, get, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use actix_web::dev::Server;
+use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
@@ -10,6 +10,7 @@ use tokio::sync::RwLock;
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::WorkMessage;
+use crate::routes::buttons::buttons;
 use crate::routes::notification_settings::notification_settings;
 use crate::routes::plugs::plugs;
 use crate::routes::prices::prices;
@@ -44,6 +45,7 @@ pub async fn start(
             .service(health)
             .service(plugs(shelly_client.clone()))
             .service(rooms())
+            .service(buttons())
             .service(schedules())
             .service(temp_actions())
             .service(temperature_logs())

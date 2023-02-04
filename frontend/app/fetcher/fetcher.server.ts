@@ -1,5 +1,5 @@
 
-export type NewRequest<T> = Omit<T, 'id'>
+export type CreateRequest<T> = Omit<T, 'id'>
 export const BASE_URL =  process.env.NODE_ENV === 'production' ? "http://raspi-rust-api:8081/" : "http://127.0.0.1:8081/";
 
 export async function getRequest<T>(endpoint: string): Promise<T> {

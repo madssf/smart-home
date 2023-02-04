@@ -1,10 +1,11 @@
 use std::time::Duration;
 
 use log::info;
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use thiserror::Error;
 
+pub mod buttons;
 pub mod notification_settings;
 pub mod plugs;
 pub mod prices;
