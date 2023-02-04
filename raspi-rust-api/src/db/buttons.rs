@@ -1,5 +1,5 @@
-use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use sqlx::types::ipnetwork::IpNetwork;
 use uuid::Uuid;
 
 use crate::db::DbError;
@@ -70,6 +70,18 @@ pub async fn get_buttons(pool: &PgPool) -> Result<Vec<Button>, DbError> {
         .iter()
         .map(|entity| entity.to_domain(&button_plugs))
         .collect())
+}
+
+pub async fn get_button(pool: &PgPool, id: &Uuid) -> Result<Option<Button>, DbError> {
+    let button_entity: Option<ButtonEntity> = sqlx::query_as!(ButtonEntity, "SELECT * FROM buttons WHERE id = $1", id)
+        .fetch_optional(pool)
+        .await?;
+
+    let button_plugs = sqlx::query_as!(ButtonPlugEntity, "SELECT * FROM button_plugs WHERE button_id = $1", id)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(button_entity.map(|b| b.to_domain(&button_plugs)))
 }
 
 pub async fn create_button(pool: &PgPool, new_button: &Button) -> Result<(), DbError> {

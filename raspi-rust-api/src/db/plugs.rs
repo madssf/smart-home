@@ -21,7 +21,7 @@ pub async fn get_room_plugs(pool: &PgPool, room_id: &Uuid) -> Result<Vec<Plug>, 
     Ok(plugs)
 }
 
-pub async fn create_plug(pool: &PgPool, new_plug: Plug) -> Result<(), DbError> {
+pub async fn create_plug(pool: &PgPool, new_plug: &Plug) -> Result<(), DbError> {
     sqlx::query!(
         r#"
     INSERT INTO plugs (id, name, ip, username, password, room_id)
@@ -72,4 +72,3 @@ pub async fn update_plug(pool: &PgPool, plug: Plug) -> Result<(), DbError> {
 
     Ok(())
 }
-

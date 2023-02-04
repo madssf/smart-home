@@ -12,7 +12,8 @@ use rust_home::clients::tibber_client::TibberClient;
 use rust_home::db;
 use rust_home::db::DbConfig;
 use rust_home::domain::{
-    Plug, PriceInfo, PriceLevel, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
+    ActionType, Button, Plug, PriceInfo, PriceLevel, Room, TempAction, TempActionType,
+    TemperatureLog, WorkMessage,
 };
 use rust_home::work_handler::WorkHandler;
 
@@ -129,7 +130,7 @@ async fn temp_actions_work() {
 
     let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
         .expect("Couldnt create plug");
-    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
+    db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
         .expect("Couldnt insert plug");
 
@@ -223,7 +224,7 @@ async fn temp_actions_override_existing_schedule_temp() {
 
     let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
         .expect("Couldnt create plug");
-    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
+    db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
         .expect("Couldnt insert plug");
 
@@ -336,7 +337,7 @@ async fn min_temp_overrides_temp_action() {
 
     let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
         .expect("Couldnt create plug");
-    db::plugs::create_plug(&test_config.db_config.pool, new_plug)
+    db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
         .expect("Couldnt insert plug");
 
@@ -439,4 +440,55 @@ async fn min_temp_overrides_temp_action() {
     assert_eq!(received_requests.len(), 1);
     let query_param = received_requests[0].url.query().expect("Missing query");
     assert_eq!(query_param, "turn=on");
+}
+
+#[tokio::test]
+async fn button_handler() {
+    let docker = Cli::default();
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let mock_server = MockServer::start().await;
+
+    let mock_ip = mock_server.address().ip().to_string();
+    let mock_port = mock_server.address().port();
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
+
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+        .expect("Couldnt create plug");
+    db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
+        .await
+        .expect("Couldnt insert plug");
+
+    let new_button = Button::new("test", "127.0.0.1", "a", "b", &[new_plug.id])
+        .expect("Failed to create button");
+    db::buttons::create_button(&test_config.db_config.pool, &new_button)
+        .await
+        .expect("failed to insert button");
+
+    handler
+        .button_handler(&new_button.id, &ActionType::ON)
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=on");
+
+    mock_server.reset().await;
+
+    handler
+        .button_handler(&new_button.id, &ActionType::OFF)
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
 }

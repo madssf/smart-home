@@ -1,15 +1,15 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
+use actix_web::{delete, get, HttpResponse, post, Responder, Scope, web};
 use log::error;
-use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use sqlx::types::ipnetwork::IpNetwork;
 use uuid::Uuid;
 
+use crate::{db, service};
 use crate::clients::shelly_client::ShellyClient;
 use crate::domain::Plug;
-use crate::{db, service};
 
 pub fn plugs(shelly_client: web::Data<Arc<ShellyClient>>) -> Scope {
     web::scope("/plugs")
@@ -83,7 +83,7 @@ async fn create_plug(pool: web::Data<Arc<PgPool>>, body: web::Json<PlugRequest>)
         }
     };
 
-    match db::plugs::create_plug(pool.get_ref(), new_plug).await {
+    match db::plugs::create_plug(pool.get_ref(), &new_plug).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }

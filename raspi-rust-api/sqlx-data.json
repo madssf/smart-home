@@ -30,6 +30,30 @@
     },
     "query": "\n        UPDATE plugs\n        SET name = $2, ip = $3, username = $4, password = $5, room_id = $6\n        WHERE id = $1\n        "
   },
+  "0db41912e9ec7395c7bd73b44970e49176329608da35659d290382436409b3de": {
+    "describe": {
+      "columns": [
+        {
+          "name": "button_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "plug_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM button_plugs"
+  },
   "104f638efc6730411a423aa410868897d86b9fe408e2596cfcb7d9bb8843a994": {
     "describe": {
       "columns": [],
@@ -55,6 +79,48 @@
       }
     },
     "query": "DELETE FROM schedule_time_windows WHERE schedule_id = $1"
+  },
+  "1ba5d09d73982e4e3383fd5a07a6bc0c4574e639302d133121f8981488d87b31": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ip",
+          "ordinal": 1,
+          "type_info": "Inet"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM buttons"
   },
   "1ea5f1f02891f35c5f7ef29dee23e54ee09f8e48b6921993fc798308652f1764": {
     "describe": {
@@ -117,6 +183,22 @@
       }
     },
     "query": "SELECT * FROM temperature_logs"
+  },
+  "243ae80ae35c7f4648706a6a56bc04156e7042f35e267f16cfd6041387b2cb67": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Inet",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO buttons (id, ip, name, password, username)\n    VALUES ($1, $2, $3, $4, $5)\n    "
   },
   "283a48bc0fa7139371a38bab343a6afc893ed1ee2d7c00e0df8ff68c1158115f": {
     "describe": {
@@ -286,6 +368,32 @@
       }
     },
     "query": "SELECT * FROM schedule_temps WHERE schedule_id = any($1)"
+  },
+  "421040f552bed5ba8224a1fd4df5710a082bf5f7f84f121805e40b0aa3fcb18a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM button_plugs WHERE plug_id = $1 AND button_id = $2\n                "
+  },
+  "43a4a29f492cd8e0ff5171aa0809de0e28cf66f7130cfd77b95cf59936094978": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO button_plugs (button_id, plug_id)\n        VALUES ($1, $2)\n        "
   },
   "44cc46e6e614604feeead90f0847c0a2e32bee7f7af6227053b02789b55a248d": {
     "describe": {
@@ -873,6 +981,22 @@
     },
     "query": "UPDATE temp_sensors SET battery_level = $2 WHERE id = $1"
   },
+  "a81b27cc2dc4bad8fb5839c2ac17c767002212c34b41f20e69bb8b491b49736e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Inet",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        UPDATE buttons\n        SET ip = $2, name = $3, password = $4, username = $5\n        WHERE id = $1\n        "
+  },
   "a9e5cad3fff1b2a663c11e18ff566c39ef2fc165be3cdecdc7fbc25efb4f418d": {
     "describe": {
       "columns": [],
@@ -886,6 +1010,18 @@
       }
     },
     "query": "\n        INSERT INTO schedule_time_windows (schedule_id, from_time, to_time)\n        VALUES ($1, $2, $3)\n        "
+  },
+  "ae754af417a6de4ba75bd0c8b5fc59385f73a4ec17913d0ecca7f269b7beca1e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM buttons WHERE id = $1"
   },
   "af16e3ff1faa6b5537ca5cf048e2dee0aab6ef5a01f81387a35dd29bdec62587": {
     "describe": {
@@ -1012,6 +1148,32 @@
     },
     "query": "SELECT * FROM notification_settings LIMIT 1"
   },
+  "c7151df9a36451af2c1d985fe6c1b7e1df69e854fffe6a75a5be15544361cb17": {
+    "describe": {
+      "columns": [
+        {
+          "name": "button_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "plug_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT * FROM button_plugs WHERE button_id = $1"
+  },
   "c8a82336b390d97dc3a5df392c6b0b3b84a4147d2875e9795d95410627948467": {
     "describe": {
       "columns": [],
@@ -1023,6 +1185,19 @@
       }
     },
     "query": "DELETE FROM room_schedules WHERE schedule_id = $1"
+  },
+  "ca05ae992a992d8da7e25128be7a36fa5f3fc18661c8f74f5eedfec62618c0e8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO button_plugs (button_id, plug_id)\n            VALUES ($1, $2)\n            "
   },
   "d0e4bca7b718a884d5b598e065b2a95a35a3936f00bef09d434e1d8773ad5934": {
     "describe": {
@@ -1077,6 +1252,18 @@
       }
     },
     "query": "\n        DELETE FROM rooms WHERE id = $1\n        "
+  },
+  "dc27a04972a6c14c6c1d4a0900c9c129630fff2ab91a544de926d5eacee79eca": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM button_plugs WHERE button_id = $1"
   },
   "e16474d83b1732c1fdf0903a9b90c846247bc9ad12eb96a5df8f86572fbe0472": {
     "describe": {

@@ -371,11 +371,12 @@ pub struct TemperatureLog {
     pub temp: f64,
 }
 
-#[derive(Display, Clone)]
+#[derive(Display, Debug, Clone)]
 pub enum WorkMessage {
     REFRESH,
     POLL,
     TEMP(Uuid, f64),
+    BUTTON(Uuid, ActionType, u8),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

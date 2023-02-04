@@ -4,8 +4,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
-use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use sqlx::types::ipnetwork::IpNetwork;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
 
@@ -14,7 +14,7 @@ use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
     Button, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TempActionType, TempSensor, TemperatureLog,
+    TempActionType, TemperatureLog, TempSensor,
 };
 
 mod configuration;
@@ -93,7 +93,7 @@ async fn can_insert_plug() {
 
     let new_plug = plug(&room_id);
 
-    plugs::create_plug(&pool, new_plug.clone())
+    plugs::create_plug(&pool, &new_plug)
         .await
         .expect("Could not insert plug");
 
@@ -122,7 +122,7 @@ async fn can_update_plug() {
 
     let new_plug = plug(&room_id);
 
-    plugs::create_plug(&pool, new_plug)
+    plugs::create_plug(&pool, &new_plug)
         .await
         .expect("Could not insert plug");
 
@@ -161,7 +161,7 @@ async fn can_delete_plug() {
 
     let new_plug = plug(&room_id);
 
-    plugs::create_plug(&pool, new_plug)
+    plugs::create_plug(&pool, &new_plug)
         .await
         .expect("Could not insert plug");
 
@@ -681,12 +681,12 @@ async fn buttons() {
     let rooms = rooms::get_rooms(&pool).await.expect("Can't get rooms");
     let room_id_1 = rooms[0].clone().id;
 
-    plugs::create_plug(&pool, plug(&room_id_1))
+    plugs::create_plug(&pool, &plug(&room_id_1))
         .await
         .expect("Failed to create plug");
     plugs::create_plug(
         &pool,
-        Plug::new(
+        &Plug::new(
             "test_plug_2",
             "127.0.0.2",
             "username",

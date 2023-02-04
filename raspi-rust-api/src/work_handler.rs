@@ -12,11 +12,11 @@ use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
-use crate::clients::shelly_client::ShellyClient;
+use crate::clients::shelly_client::{ShellyClient, ShellyClientError};
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
 use crate::domain::{
-    ActionType, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
+    ActionType, Plug, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
 };
 use crate::{db, now, service};
 
@@ -30,6 +30,10 @@ pub enum WorkHandlerError {
     SendError,
     #[error("Unexpected error: {0}")]
     UnexpectedError(#[from] anyhow::Error),
+    #[error("No such button: {0}")]
+    NoSuchButton(Uuid),
+    #[error("Shelly error: {0}")]
+    ShellyClientError(#[from] ShellyClientError),
 }
 
 pub struct WorkHandler {
@@ -99,6 +103,29 @@ impl WorkHandler {
                             Err(e) => error!("Temperature work failed, error: {}", e),
                         };
                     }
+                    WorkMessage::BUTTON(button_id, action, attempt) => {
+                        match self.button_handler(&button_id, &action).await {
+                            Ok(_) => {
+                                debug!("Button work handled.")
+                            }
+                            Err(e) => {
+                                error!("Button work failed, error: {}", e);
+                                if attempt > 3 {
+                                    error!("Button work failed 3 times, giving up.")
+                                } else {
+                                    let new_attempt = attempt + 1;
+                                    info!("Retrying button work, attempt: {new_attempt}");
+                                    if let Err(e) = self
+                                        .sender
+                                        .send(WorkMessage::BUTTON(button_id, action, new_attempt))
+                                        .await
+                                    {
+                                        error!("Failed to send button work message when retrying: {:?}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             sleep(Duration::from_millis(100))
@@ -119,6 +146,29 @@ impl WorkHandler {
                     error!("Failed to send message, error {}", e);
                     sleep(Duration::from_secs(poll_interval_mins * 10))
                 }
+            }
+        }
+    }
+
+    pub async fn button_handler(
+        &self,
+        button_id: &Uuid,
+        action: &ActionType,
+    ) -> Result<(), WorkHandlerError> {
+        let button = db::buttons::get_button(&self.pool, button_id).await?;
+        match button {
+            None => Err(WorkHandlerError::NoSuchButton(*button_id)),
+            Some(button) => {
+                let all_plugs = db::plugs::get_plugs(&self.pool).await?;
+                let plugs: Vec<&Plug> = all_plugs
+                    .iter()
+                    .filter(|p| button.plug_ids.contains(&p.id))
+                    .collect();
+                for plug in plugs {
+                    self.shelly_client.execute_action(plug, action).await?;
+                }
+
+                Ok(())
             }
         }
     }

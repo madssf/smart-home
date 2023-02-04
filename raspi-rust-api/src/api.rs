@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
+use actix_web::{App, get, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use actix_web::dev::Server;
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use log::info;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
-use crate::domain::WorkMessage;
+use crate::domain::{ActionType, WorkMessage};
 use crate::routes::buttons::buttons;
 use crate::routes::notification_settings::notification_settings;
 use crate::routes::plugs::plugs;
@@ -72,5 +73,25 @@ async fn refresh(sender: web::Data<Sender<WorkMessage>>) -> impl Responder {
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to refresh, error: {}", e))
         }
+    }
+}
+
+#[get("/trigger_button/{button_id}/{action}")]
+async fn trigger_button(
+    sender: web::Data<Sender<WorkMessage>>,
+    button_id: web::Path<Uuid>,
+    action: web::Path<ActionType>,
+) -> impl Responder {
+    match sender
+        .send(WorkMessage::BUTTON(
+            button_id.into_inner(),
+            action.into_inner(),
+            1,
+        ))
+        .await
+    {
+        Ok(_) => HttpResponse::Ok().body("Ok"),
+        Err(e) => HttpResponse::InternalServerError()
+            .body(format!("Failed to trigger button, error: {}", e)),
     }
 }
