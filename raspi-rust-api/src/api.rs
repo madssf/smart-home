@@ -80,17 +80,9 @@ async fn refresh(sender: web::Data<Sender<WorkMessage>>) -> impl Responder {
 #[get("/trigger_button/{button_id}/{action}")]
 async fn trigger_button(
     sender: web::Data<Sender<WorkMessage>>,
-    button_id: web::Path<Uuid>,
-    action: web::Path<ActionType>,
+    param: web::Path<(Uuid, ActionType)>,
 ) -> impl Responder {
-    match sender
-        .send(WorkMessage::BUTTON(
-            button_id.into_inner(),
-            action.into_inner(),
-            1,
-        ))
-        .await
-    {
+    match sender.send(WorkMessage::BUTTON(param.0, param.1, 1)).await {
         Ok(_) => HttpResponse::Ok().body("Ok"),
         Err(e) => HttpResponse::InternalServerError()
             .body(format!("Failed to trigger button, error: {}", e)),
