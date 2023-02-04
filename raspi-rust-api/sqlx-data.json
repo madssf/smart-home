@@ -1199,6 +1199,50 @@
     },
     "query": "\n            INSERT INTO button_plugs (button_id, plug_id)\n            VALUES ($1, $2)\n            "
   },
+  "ce094a04a80bd24ef636638861d78631a088fe9a699d226247077059098f56bf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ip",
+          "ordinal": 1,
+          "type_info": "Inet"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT * FROM buttons WHERE id = $1"
+  },
   "d0e4bca7b718a884d5b598e065b2a95a35a3936f00bef09d434e1d8773ad5934": {
     "describe": {
       "columns": [
