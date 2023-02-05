@@ -128,7 +128,7 @@ async fn temp_actions_work() {
     .await
     .expect("Failed to create temp log");
 
-    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id, &true)
         .expect("Couldnt create plug");
     db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
@@ -222,7 +222,7 @@ async fn temp_actions_override_existing_schedule_temp() {
     .await
     .expect("Failed to create temp log");
 
-    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id, &true)
         .expect("Couldnt create plug");
     db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
@@ -335,7 +335,7 @@ async fn min_temp_overrides_temp_action() {
     .await
     .expect("Failed to create temp log");
 
-    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id, &true)
         .expect("Couldnt create plug");
     db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
@@ -458,7 +458,7 @@ async fn button_handler() {
 
     let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
 
-    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id)
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id, &false)
         .expect("Couldnt create plug");
     db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
         .await
@@ -491,4 +491,28 @@ async fn button_handler() {
     assert_eq!(received_requests.len(), 1);
     let query_param = received_requests[0].url.query().expect("Missing query");
     assert_eq!(query_param, "turn=off");
+
+    mock_server.reset().await;
+
+    let now = NaiveDateTime::new(
+        NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 0);
 }

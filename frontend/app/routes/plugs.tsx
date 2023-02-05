@@ -7,7 +7,7 @@ import {json, redirect} from "@remix-run/node";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {useLoaderData} from "@remix-run/react";
 import {Button, Heading, Link} from "@chakra-ui/react";
-import {validateIpAddress, validateNonEmptyString} from "~/utils/validation";
+import {validateBoolean, validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createPlug, deletePlug, getPlugs, updatePlug} from "~/routes/plugs/plugs.server";
 import {getRooms} from "~/routes/rooms/rooms.server";
@@ -32,7 +32,7 @@ export async function action({request}: ActionArgs) {
     const username = body.get("username")?.toString();
     const password = body.get("password")?.toString();
     const roomId = body.get("room_id")?.toString();
-
+    const scheduled = [...body.keys()].includes("scheduled");
 
     const intent = body.get("intent")?.toString();
 
@@ -48,9 +48,17 @@ export async function action({request}: ActionArgs) {
         username: validateNonEmptyString(username),
         password: validateNonEmptyString(password),
         roomId: validateNonEmptyString(roomId),
+        scheduled: validateBoolean(scheduled),
     };
 
-    if (!validated.name.valid || !validated.ip.valid || !validated.username.valid || !validated.password.valid || !validated.roomId.valid) {
+    if (
+        !validated.name.valid ||
+        !validated.ip.valid ||
+        !validated.username.valid ||
+        !validated.password.valid ||
+        !validated.roomId.valid ||
+        !validated.scheduled.valid
+    ) {
         return json<PlugFormErrors>(
             {
                 id,
@@ -59,6 +67,7 @@ export async function action({request}: ActionArgs) {
                 username: !validated.username.valid ? validated.username.error : undefined,
                 password: !validated.password.valid ? validated.password.error : undefined,
                 room_id: !validated.roomId.valid ? validated.roomId.error : undefined,
+                scheduled: !validated.scheduled.valid ? validated.scheduled.error : undefined,
             },
         );
     }
@@ -69,6 +78,7 @@ export async function action({request}: ActionArgs) {
         username: validated.username.data,
         password: validated.password.data,
         room_id: validated.roomId.data,
+        scheduled: validated.scheduled.data,
     };
 
     if (!id) {

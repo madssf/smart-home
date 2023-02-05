@@ -15,6 +15,10 @@ export const validateNonEmptyString = (str?: string): Validate<string> => {
     return (!!str && str.length > 0) ? {valid: true, data: str} : {valid: false, error: 'Required'};
 };
 
+export const validateBoolean = (b: boolean): Validate<boolean> => {
+    return {valid: true, data: b};
+};
+
 export const validateNonEmptyList = (list?: string[]): Validate<string[]> => {
     return (!!list && list.length !== 0 && !list.some((element) => element.length === 0)) ?
         {valid: true, data: list} : {valid: false, error: 'Can\'t be empty'};

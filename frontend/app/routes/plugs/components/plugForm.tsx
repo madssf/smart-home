@@ -3,7 +3,7 @@ import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {PlugFormErrors} from "~/routes/plugs";
 import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Button, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
+import {Button, Checkbox, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {Room} from '~/routes/rooms/types';
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
@@ -94,6 +94,18 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 {
                     !!errors?.password &&
                     <Text color="tomato">{errors.password}</Text>
+                }
+            </div>
+            <div className="flex flex-col">
+                <label className="font-bold">Scheduled</label>
+                    <Checkbox
+                        id="scheduled"
+                        name="scheduled"
+                        defaultChecked={plug?.scheduled}
+                    />
+                {
+                    !!errors?.scheduled &&
+                    <Text color="tomato">{errors.scheduled}</Text>
                 }
             </div>
             <div className="mt-1">

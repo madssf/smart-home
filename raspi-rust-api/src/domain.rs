@@ -155,6 +155,7 @@ pub struct Plug {
     pub username: String,
     pub password: String,
     pub room_id: Uuid,
+    pub scheduled: bool
 }
 
 impl Plug {
@@ -164,6 +165,7 @@ impl Plug {
         username: &str,
         password: &str,
         room_id: &Uuid,
+        scheduled: &bool,
     ) -> Result<Plug, anyhow::Error> {
         Ok(Plug {
             id: Uuid::new_v4(),
@@ -172,6 +174,7 @@ impl Plug {
             username: username.to_string(),
             password: password.to_string(),
             room_id: *room_id,
+            scheduled: *scheduled,
         })
     }
 }

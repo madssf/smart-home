@@ -5,6 +5,7 @@ export interface Plug {
     username: string;
     password: string;
     room_id: string;
+    scheduled: boolean;
 }
 
 

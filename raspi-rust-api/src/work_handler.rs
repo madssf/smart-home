@@ -234,9 +234,13 @@ impl WorkHandler {
             let room_plugs = db::plugs::get_room_plugs(&self.pool, &room.id).await?;
 
             for plug in room_plugs {
-                match self.shelly_client.execute_action(&plug, &action).await {
-                    Ok(_) => debug!("Turned plug {} {}", plug.name, action),
-                    Err(e) => error!("Failed to turn plug {} {}, error: {}", plug.name, action, e),
+                if plug.scheduled {
+                    match self.shelly_client.execute_action(&plug, &action).await {
+                        Ok(_) => debug!("Turned plug {} {}", plug.name, action),
+                        Err(e) => {
+                            error!("Failed to turn plug {} {}, error: {}", plug.name, action, e)
+                        }
+                    }
                 }
             }
         }

@@ -4,8 +4,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
-use sqlx::PgPool;
 use sqlx::types::ipnetwork::IpNetwork;
+use sqlx::PgPool;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
 
@@ -14,15 +14,22 @@ use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
     Button, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TempActionType, TemperatureLog, TempSensor,
+    TempActionType, TempSensor, TemperatureLog,
 };
 
 mod configuration;
 mod setup;
 
 fn plug(room_id: &Uuid) -> Plug {
-    Plug::new("test_plug", "127.0.0.1", "username", "password", room_id)
-        .expect("Could not create plug")
+    Plug::new(
+        "test_plug",
+        "127.0.0.1",
+        "username",
+        "password",
+        room_id,
+        &true,
+    )
+    .expect("Could not create plug")
 }
 
 fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
@@ -136,6 +143,7 @@ async fn can_update_plug() {
         username: "new_uname".to_string(),
         password: "new_pass".to_string(),
         room_id,
+        scheduled: false,
     };
 
     plugs::update_plug(&pool, updated_plug.clone())
@@ -692,6 +700,7 @@ async fn buttons() {
             "username",
             "password",
             &room_id_1,
+            &false,
         )
         .expect("Failed to create plug"),
     )

@@ -24,15 +24,16 @@ pub async fn get_room_plugs(pool: &PgPool, room_id: &Uuid) -> Result<Vec<Plug>, 
 pub async fn create_plug(pool: &PgPool, new_plug: &Plug) -> Result<(), DbError> {
     sqlx::query!(
         r#"
-    INSERT INTO plugs (id, name, ip, username, password, room_id)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO plugs (id, name, ip, username, password, room_id, scheduled)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     "#,
         new_plug.id,
         new_plug.name,
         new_plug.ip,
         new_plug.username,
         new_plug.password,
-        new_plug.room_id
+        new_plug.room_id,
+        new_plug.scheduled,
     )
     .execute(pool)
     .await?;
@@ -57,7 +58,7 @@ pub async fn update_plug(pool: &PgPool, plug: Plug) -> Result<(), DbError> {
     sqlx::query!(
         r#"
         UPDATE plugs
-        SET name = $2, ip = $3, username = $4, password = $5, room_id = $6
+        SET name = $2, ip = $3, username = $4, password = $5, room_id = $6, scheduled = $7
         WHERE id = $1
         "#,
         plug.id,
@@ -65,7 +66,8 @@ pub async fn update_plug(pool: &PgPool, plug: Plug) -> Result<(), DbError> {
         plug.ip,
         plug.username,
         plug.password,
-        plug.room_id
+        plug.room_id,
+        plug.scheduled,
     )
     .execute(pool)
     .await?;

@@ -1,15 +1,15 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use actix_web::{delete, get, HttpResponse, post, Responder, Scope, web};
+use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use log::error;
-use sqlx::PgPool;
 use sqlx::types::ipnetwork::IpNetwork;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{db, service};
 use crate::clients::shelly_client::ShellyClient;
 use crate::domain::Plug;
+use crate::{db, service};
 
 pub fn plugs(shelly_client: web::Data<Arc<ShellyClient>>) -> Scope {
     web::scope("/plugs")
@@ -43,6 +43,7 @@ pub struct PlugResponse {
     username: String,
     password: String,
     room_id: Uuid,
+    scheduled: bool,
 }
 
 impl Plug {
@@ -54,6 +55,7 @@ impl Plug {
             username: self.username.clone(),
             password: self.password.clone(),
             room_id: self.room_id,
+            scheduled: self.scheduled,
         }
     }
 }
@@ -65,6 +67,7 @@ pub struct PlugRequest {
     username: String,
     password: String,
     room_id: Uuid,
+    scheduled: bool,
 }
 
 #[post("/")]
@@ -75,6 +78,7 @@ async fn create_plug(pool: web::Data<Arc<PgPool>>, body: web::Json<PlugRequest>)
         &body.username,
         &body.password,
         &body.room_id,
+        &body.scheduled,
     ) {
         Ok(plug) => plug,
         Err(e) => {
@@ -109,6 +113,7 @@ async fn update_plug(
             username: body.username.clone(),
             password: body.password.clone(),
             room_id: body.room_id,
+            scheduled: body.scheduled,
         },
     )
     .await

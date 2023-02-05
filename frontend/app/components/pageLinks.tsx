@@ -6,7 +6,7 @@ const homeLink = <Link className="my-2 text-xl" key={routes.HOME} href={routes.H
 const pageLinks = [
     <Link className="my-2 text-xl" key={routes.ROOMS.ROOT} href={routes.ROOMS.ROOT}>Rooms</Link>,
     <Link className="my-2 text-xl" key={routes.PLUGS.ROOT} href={routes.PLUGS.ROOT}>Plugs</Link>,
-    <Link className="my-2 text-xl" key={routes.PLUGS.ROOT} href={routes.BUTTONS.ROOT}>Buttons</Link>,
+    <Link className="my-2 text-xl" key={routes.BUTTONS.ROOT} href={routes.BUTTONS.ROOT}>Buttons</Link>,
     <Link className="my-2 text-xl" key={routes.TEMP_SENSORS.ROOT} href={routes.TEMP_SENSORS.ROOT}>Sensors</Link>,
     <Link className="my-2 text-xl" key={routes.SCHEDULES.ROOT} href={routes.SCHEDULES.ROOT}>Schedules</Link>,
     <Link className="my-2 text-xl" key={routes.TEMP_ACTIONS.ROOT} href={routes.TEMP_ACTIONS.ROOT}>Actions</Link>,
