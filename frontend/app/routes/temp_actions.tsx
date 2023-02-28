@@ -6,7 +6,13 @@ import {json, redirect} from "@remix-run/node";
 import {useLoaderData} from "@remix-run/react";
 import {Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
-import {validateActionType, validateDateTime, validateNonEmptyList, validateTempOrNull} from "~/utils/validation";
+import {
+    validateActionType,
+    validateDateTime,
+    validateDateTimeOrNull,
+    validateNonEmptyList,
+    validateTempOrNull,
+} from "~/utils/validation";
 import TempActionForm from "~/routes/temp_actions/components/tempActionForm";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {
@@ -35,6 +41,8 @@ export async function action({request}: ActionArgs) {
     const roomIds = body.getAll("room_ids").map((room_id) => room_id.toString());
     const actionType = body.get("actionType")?.toString();
     const temp = body.get("temp")?.toString();
+    const startsAtDate = body.get("startsAt-date")?.toString();
+    const startsAtTime = body.get("startsAt-time")?.toString();
     const expiresAtDate = body.get("expiresAt-date")?.toString();
     const expiresAtTime = body.get("expiresAt-time")?.toString();
 
@@ -51,10 +59,11 @@ export async function action({request}: ActionArgs) {
         actionType: validateActionType(actionType),
         temp: validateTempOrNull(temp),
         expiresAt: validateDateTime(expiresAtDate, expiresAtTime),
+        startsAt: validateDateTimeOrNull(startsAtDate, startsAtTime),
     };
 
 
-    if (!validated.roomIds.valid || !validated.temp.valid || !validated.actionType.valid || !validated.expiresAt.valid) {
+    if (!validated.roomIds.valid || !validated.temp.valid || !validated.actionType.valid || !validated.expiresAt.valid || !validated.startsAt.valid) {
         return json<TempActionErrors>(
             {
                 id,
@@ -62,13 +71,18 @@ export async function action({request}: ActionArgs) {
                 action: validated.actionType.error,
                 temp: validated.temp.error,
                 expires_at: validated.expiresAt.error,
+                starts_at: validated.startsAt.error,
             },
         );
     }
 
 
     const document: Omit<TempAction, 'id'> = {
-        room_ids: validated.roomIds.data, action: validated.actionType.data, temp: validated.temp.data, expires_at: validated.expiresAt.data,
+        room_ids: validated.roomIds.data,
+        action: validated.actionType.data,
+        temp: validated.temp.data,
+        expires_at: validated.expiresAt.data,
+        starts_at: validated.startsAt.data,
     };
 
     if (!id) {

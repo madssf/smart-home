@@ -155,7 +155,7 @@ pub struct Plug {
     pub username: String,
     pub password: String,
     pub room_id: Uuid,
-    pub scheduled: bool
+    pub scheduled: bool,
 }
 
 impl Plug {
@@ -300,11 +300,13 @@ pub struct TempAction {
     pub id: Uuid,
     pub room_ids: Vec<Uuid>,
     pub action_type: TempActionType,
+    pub starts_at: Option<NaiveDateTime>,
     pub expires_at: NaiveDateTime,
 }
 
 impl TempAction {
     pub fn new(
+        starts_at: &Option<NaiveDateTime>,
         expires_at: &NaiveDateTime,
         action_type: &TempActionType,
         room_ids: Vec<Uuid>,
@@ -313,6 +315,7 @@ impl TempAction {
             id: Uuid::new_v4(),
             room_ids,
             action_type: *action_type,
+            starts_at: *starts_at,
             expires_at: *expires_at,
         }
     }
@@ -323,6 +326,7 @@ pub struct TempActionRequest {
     pub room_ids: Vec<Uuid>,
     pub action: ActionType,
     pub temp: Option<f64>,
+    pub starts_at: Option<NaiveDateTime>,
     pub expires_at: NaiveDateTime,
 }
 
@@ -332,32 +336,39 @@ pub struct TempActionResponse {
     pub room_ids: Vec<Uuid>,
     pub action: ActionType,
     pub temp: Option<f64>,
+    pub starts_at: Option<NaiveDateTime>,
     pub expires_at: NaiveDateTime,
 }
 
-impl Into<TempAction> for TempActionRequest {
-    fn into(self) -> TempAction {
-        let action_type = match self.action {
-            ActionType::ON => TempActionType::ON(self.temp),
-            ActionType::OFF => TempActionType::OFF,
-        };
-        TempAction::new(&self.expires_at, &action_type, self.room_ids)
-    }
-}
-
-impl Into<TempActionResponse> for TempAction {
-    fn into(self) -> TempActionResponse {
-        let (action_type, temp) = match self.action_type {
+impl From<TempAction> for TempActionResponse {
+    fn from(domain: TempAction) -> Self {
+        let (action_type, temp) = match domain.action_type {
             TempActionType::ON(t) => (ActionType::ON, t),
             TempActionType::OFF => (ActionType::OFF, None),
         };
-        TempActionResponse {
-            id: self.id,
-            room_ids: self.room_ids,
+        Self {
+            id: domain.id,
+            room_ids: domain.room_ids,
             action: action_type,
             temp,
-            expires_at: self.expires_at,
+            starts_at: domain.starts_at,
+            expires_at: domain.expires_at,
         }
+    }
+}
+
+impl From<TempActionRequest> for TempAction {
+    fn from(request: TempActionRequest) -> Self {
+        let action_type = match request.action {
+            ActionType::ON => TempActionType::ON(request.temp),
+            ActionType::OFF => TempActionType::OFF,
+        };
+        TempAction::new(
+            &request.starts_at,
+            &request.expires_at,
+            &action_type,
+            request.room_ids,
+        )
     }
 }
 

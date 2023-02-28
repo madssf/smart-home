@@ -8,17 +8,17 @@ use itertools::Itertools;
 use log::{debug, error, info};
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::error::SendError;
 use uuid::Uuid;
 
+use crate::{db, now, service};
 use crate::clients::shelly_client::{ShellyClient, ShellyClientError};
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
 use crate::domain::{
     ActionType, Plug, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
 };
-use crate::{db, now, service};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -207,7 +207,7 @@ impl WorkHandler {
         for action in all_actions {
             if action.expires_at < *now {
                 db::temp_actions::delete_temp_action(&self.pool, &action.id).await?;
-            } else {
+            } else if action.starts_at.map_or(true, |t| t <= *now) {
                 temp_actions.push(action)
             }
         }

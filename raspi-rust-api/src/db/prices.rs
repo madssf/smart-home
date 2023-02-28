@@ -15,17 +15,17 @@ struct PriceInfoEntity {
     pub starts_at: NaiveDateTime,
 }
 
-impl Into<PriceInfo> for PriceInfoEntity {
-    fn into(self) -> PriceInfo {
-        PriceInfo {
-            amount: self.amount.to_f64().expect("Failed to convert to f64"),
-            currency: self.currency.to_string(),
-            ext_price_level: PriceLevel::from_str(&self.ext_price_level)
+impl From<PriceInfoEntity> for PriceInfo {
+    fn from(entity: PriceInfoEntity) -> Self {
+        Self {
+            amount: entity.amount.to_f64().expect("Failed to convert to f64"),
+            currency: entity.currency.to_string(),
+            ext_price_level: PriceLevel::from_str(&entity.ext_price_level)
                 .expect("Failed to convert string to PriceLevel"),
-            price_level: self.price_level.map(|string| {
+            price_level: entity.price_level.map(|string| {
                 PriceLevel::from_str(&string).expect("Failed to convert string to PriceLevel")
             }),
-            starts_at: self.starts_at,
+            starts_at: entity.starts_at,
         }
     }
 }

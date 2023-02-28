@@ -4,8 +4,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
-use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use sqlx::types::ipnetwork::IpNetwork;
 use testcontainers::clients::Cli;
 use uuid::Uuid;
 
@@ -14,7 +14,7 @@ use rust_home::db;
 use rust_home::db::{plugs, rooms, schedules, temp_actions, temperature_logs};
 use rust_home::domain::{
     Button, NotificationSettings, Plug, PriceInfo, PriceLevel, Room, Schedule, TempAction,
-    TempActionType, TempSensor, TemperatureLog,
+    TempActionType, TemperatureLog, TempSensor,
 };
 
 mod configuration;
@@ -34,6 +34,7 @@ fn plug(room_id: &Uuid) -> Plug {
 
 fn temp_action(room_ids: Vec<Uuid>) -> TempAction {
     TempAction::new(
+        &None,
         &NaiveDateTime::from_timestamp(1666291743, 0),
         &TempActionType::ON(Some(22.0)),
         room_ids,
@@ -377,6 +378,7 @@ async fn temp_actions() {
         room_ids: vec![room_id_1, room_id_2],
         action_type: TempActionType::ON(Some(23.0)),
         expires_at: stored_action.expires_at,
+        starts_at: Some(NaiveDateTime::from_timestamp(1666291900, 0)),
     };
 
     temp_actions::update_temp_action(&pool, updated_action.clone())

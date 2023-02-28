@@ -31,6 +31,14 @@ export const validateActionType = (str?: string): Validate<ActionType> => {
     return {valid: false, error: "Must be ON or OFF"};
 };
 
+export const validateDateTimeOrNull = (dateStr?: string, timeStr?: string): Validate<string | null> => {
+    if ((!dateStr || dateStr === "") && (!timeStr || timeStr === "")) {
+        return {valid: true, data: null};
+    } else {
+        return validateDateTime(dateStr, timeStr);
+    }
+};
+
 export const validateDateTime = (dateStr?: string, timeStr?: string): Validate<string> => {
     if (!dateStr || dateStr.length !== 10 || !timeStr || timeStr.length !== 5) {
         return {valid: false, error: 'Date and time are required'};

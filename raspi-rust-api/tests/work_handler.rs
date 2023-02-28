@@ -4,8 +4,8 @@ use std::sync::Arc;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Utc, Weekday};
 use testcontainers::clients::Cli;
 use tokio::sync::mpsc;
-use wiremock::matchers::any;
 use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::matchers::any;
 
 use rust_home::clients::shelly_client::ShellyClient;
 use rust_home::clients::tibber_client::TibberClient;
@@ -163,6 +163,7 @@ async fn temp_actions_work() {
     db::temp_actions::create_temp_action(
         &test_config.db_config.pool,
         TempAction::new(
+            &None,
             &now.add(Duration::hours(1)),
             &TempActionType::OFF,
             vec![rooms[0].id],
@@ -181,6 +182,101 @@ async fn temp_actions_work() {
                 price_level: None,
             },
             &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=off");
+}
+
+#[tokio::test]
+async fn temp_actions_with_start_time_work() {
+    let docker = Cli::default();
+    let test_config = DatabaseTestConfig::new(&docker).await;
+    let mock_server = MockServer::start().await;
+
+    let mock_ip = mock_server.address().ip().to_string();
+    let mock_port = mock_server.address().port();
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let (handler, rooms) = setup(&test_config.db_config, 2, Some(mock_port)).await;
+    let now = NaiveDateTime::new(
+        NaiveDate::from_weekday_of_month(2020, 1, Weekday::Mon, 1),
+        NaiveTime::from_hms(1, 0, 0),
+    );
+
+    db::temperature_logs::create_temp_log(
+        &test_config.db_config.pool,
+        TemperatureLog {
+            room_id: rooms[0].id,
+            temp: 18.5,
+            time: now.sub(Duration::minutes(30)),
+        },
+    )
+    .await
+    .expect("Failed to create temp log");
+
+    let new_plug = Plug::new("test", &mock_ip, "admin", "password", &rooms[0].id, &true)
+        .expect("Couldnt create plug");
+    db::plugs::create_plug(&test_config.db_config.pool, &new_plug)
+        .await
+        .expect("Couldnt insert plug");
+
+    let schedule = setup::schedule(vec![&rooms[0]]);
+
+    db::schedules::create_schedule(&test_config.db_config.pool, schedule)
+        .await
+        .expect("Could insert schedule");
+
+    db::temp_actions::create_temp_action(
+        &test_config.db_config.pool,
+        TempAction::new(
+            &Some(now.add(Duration::minutes(2))),
+            &now.add(Duration::hours(1)),
+            &TempActionType::OFF,
+            vec![rooms[0].id],
+        ),
+    )
+    .await
+    .expect("Failed to insert temp action");
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now,
+        )
+        .await
+        .expect("Handler failed");
+
+    let received_requests = mock_server.received_requests().await.unwrap();
+    assert_eq!(received_requests.len(), 1);
+    let query_param = received_requests[0].url.query().expect("Missing query");
+    assert_eq!(query_param, "turn=on");
+    mock_server.reset().await;
+
+    handler
+        .main_handler(
+            &PriceInfo {
+                ext_price_level: PriceLevel::Normal,
+                amount: 20.0,
+                currency: "USD".to_string(),
+                starts_at: Utc::now().naive_local(),
+                price_level: None,
+            },
+            &now.add(Duration::minutes(5)),
         )
         .await
         .expect("Handler failed");
@@ -237,6 +333,7 @@ async fn temp_actions_override_existing_schedule_temp() {
     db::temp_actions::create_temp_action(
         &test_config.db_config.pool,
         TempAction::new(
+            &None,
             &now.add(Duration::hours(1)),
             &TempActionType::ON(Some(24.0)),
             vec![rooms[0].id],
@@ -276,6 +373,7 @@ async fn temp_actions_override_existing_schedule_temp() {
     db::temp_actions::create_temp_action(
         &test_config.db_config.pool,
         TempAction::new(
+            &None,
             &now.add(Duration::hours(1)),
             &TempActionType::ON(Some(14.0)),
             vec![rooms[0].id],

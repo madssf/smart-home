@@ -103,7 +103,15 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
                     <Text color="tomato">{errors.room_ids}</Text>
                 }
             </div>
-            <div>
+            <div className="mt-2">
+                <label className="font-bold">Starts at</label>
+                <DatePicker name={'startsAt'} defaultValue={tempAction?.starts_at ?? undefined}/>
+                {
+                    !!errors?.starts_at &&
+                    <Text color="tomato">{errors.starts_at}</Text>
+                }
+            </div>
+            <div className="mt-2">
                 <label className="font-bold">Expires at</label>
                 <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at}/>
                 {

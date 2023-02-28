@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
+use actix_web::{delete, get, HttpResponse, post, Responder, Scope, web};
 use log::error;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -69,6 +69,7 @@ async fn update_temp_action(
             room_ids: body.room_ids.clone(),
             action_type,
             expires_at: body.expires_at,
+            starts_at: body.starts_at,
         },
     )
     .await

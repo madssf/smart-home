@@ -5,6 +5,7 @@ export interface TempAction {
     action: ActionType,
     temp: number | null,
     expires_at: string,
+    starts_at: string | null,
 }
 
 export enum ActionType {

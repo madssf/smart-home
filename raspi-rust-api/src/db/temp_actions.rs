@@ -13,6 +13,7 @@ struct TempActionEntity {
     action: String,
     temp: Option<BigDecimal>,
     expires_at: NaiveDateTime,
+    starts_at: Option<NaiveDateTime>,
 }
 
 fn parse_action_type(
@@ -52,6 +53,7 @@ pub async fn get_temp_actions(pool: &PgPool) -> Result<Vec<TempAction>, DbError>
                 room_ids: entity.room_ids.clone(),
                 action_type: parse_action_type(&entity.action, &entity.temp)?,
                 expires_at: entity.expires_at,
+                starts_at: entity.starts_at,
             })
         })
         .collect()
@@ -61,14 +63,15 @@ pub async fn create_temp_action(pool: &PgPool, new_temp_action: TempAction) -> R
     let (action_type, temp) = action_type_to_entity(&new_temp_action.action_type);
     sqlx::query!(
         r#"
-    INSERT INTO temp_actions (id, room_ids, action, temp, expires_at)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO temp_actions (id, room_ids, action, temp, expires_at, starts_at)
+    VALUES ($1, $2, $3, $4, $5, $6)
     "#,
         new_temp_action.id,
         &new_temp_action.room_ids,
         action_type,
         temp,
         new_temp_action.expires_at,
+        new_temp_action.starts_at,
     )
     .execute(pool)
     .await?;
@@ -82,7 +85,7 @@ pub async fn update_temp_action(pool: &PgPool, temp_action: TempAction) -> Resul
     sqlx::query!(
         r#"
     UPDATE temp_actions
-    SET room_ids = $2, action = $3, temp = $4, expires_at = $5
+    SET room_ids = $2, action = $3, temp = $4, expires_at = $5, starts_at = $6
     WHERE id = $1
     "#,
         temp_action.id,
@@ -90,6 +93,7 @@ pub async fn update_temp_action(pool: &PgPool, temp_action: TempAction) -> Resul
         action_type,
         temp,
         temp_action.expires_at,
+        temp_action.starts_at
     )
     .execute(pool)
     .await?;

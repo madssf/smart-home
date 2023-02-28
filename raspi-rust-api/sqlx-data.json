@@ -13,7 +13,7 @@
     },
     "query": "\n    INSERT INTO schedules (id, days)\n    VALUES ($1, $2)\n    "
   },
-  "0ca3a99d084b174c0deffa65ced16b29e3fce7828f96476ca2f95bc5cf91734b": {
+  "09fb6e492e2d75d7286075156bc42b992bc7de5bb52bc01ff531a5d3c3285c5a": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -24,11 +24,12 @@
           "Inet",
           "Text",
           "Text",
-          "Uuid"
+          "Uuid",
+          "Bool"
         ]
       }
     },
-    "query": "\n        UPDATE plugs\n        SET name = $2, ip = $3, username = $4, password = $5, room_id = $6\n        WHERE id = $1\n        "
+    "query": "\n    INSERT INTO plugs (id, name, ip, username, password, room_id, scheduled)\n    VALUES ($1, $2, $3, $4, $5, $6, $7)\n    "
   },
   "0db41912e9ec7395c7bd73b44970e49176329608da35659d290382436409b3de": {
     "describe": {
@@ -321,9 +322,15 @@
           "name": "room_id",
           "ordinal": 5,
           "type_info": "Uuid"
+        },
+        {
+          "name": "scheduled",
+          "ordinal": 6,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
+        false,
         false,
         false,
         false,
@@ -512,6 +519,11 @@
           "name": "expires_at",
           "ordinal": 4,
           "type_info": "Timestamp"
+        },
+        {
+          "name": "starts_at",
+          "ordinal": 5,
+          "type_info": "Timestamp"
         }
       ],
       "nullable": [
@@ -519,7 +531,8 @@
         false,
         false,
         true,
-        false
+        false,
+        true
       ],
       "parameters": {
         "Left": []
@@ -690,22 +703,6 @@
     },
     "query": "SELECT * FROM schedule_time_windows WHERE schedule_id = any($1)"
   },
-  "6fbfc41dd019ec72626b16d17f343ad0dc0668855c2f918432b92f00a147264b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "UuidArray",
-          "Text",
-          "Numeric",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "\n    UPDATE temp_actions\n    SET room_ids = $2, action = $3, temp = $4, expires_at = $5\n    WHERE id = $1\n    "
-  },
   "73576c20ebfe197207187fc7def262cf9d0e46481deaeb638737c0ad18b518fa": {
     "describe": {
       "columns": [
@@ -826,9 +823,15 @@
           "name": "room_id",
           "ordinal": 5,
           "type_info": "Uuid"
+        },
+        {
+          "name": "scheduled",
+          "ordinal": 6,
+          "type_info": "Bool"
         }
       ],
       "nullable": [
+        false,
         false,
         false,
         false,
@@ -843,22 +846,6 @@
       }
     },
     "query": "SELECT * FROM plugs WHERE room_id = $1"
-  },
-  "76acf61206af5ddeaee8d33b952e2ceda60e438ef832f4b4b4a4ea4345528e44": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "UuidArray",
-          "Text",
-          "Numeric",
-          "Timestamp"
-        ]
-      }
-    },
-    "query": "\n    INSERT INTO temp_actions (id, room_ids, action, temp, expires_at)\n    VALUES ($1, $2, $3, $4, $5)\n    "
   },
   "77ea0dfb55d8fee0a3aff4ae9dab90bea47c9ce57e22ad8868c1d92edbf7f8ee": {
     "describe": {
@@ -1023,7 +1010,7 @@
     },
     "query": "DELETE FROM buttons WHERE id = $1"
   },
-  "af16e3ff1faa6b5537ca5cf048e2dee0aab6ef5a01f81387a35dd29bdec62587": {
+  "af9427815d61e4372dfb6d095014223d9fa400545f93f99b560c75b3bd6f1dc4": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -1034,11 +1021,12 @@
           "Inet",
           "Text",
           "Text",
-          "Uuid"
+          "Uuid",
+          "Bool"
         ]
       }
     },
-    "query": "\n    INSERT INTO plugs (id, name, ip, username, password, room_id)\n    VALUES ($1, $2, $3, $4, $5, $6)\n    "
+    "query": "\n        UPDATE plugs\n        SET name = $2, ip = $3, username = $4, password = $5, room_id = $6, scheduled = $7\n        WHERE id = $1\n        "
   },
   "b245e4d32d0900ffff5e74092fbe81f6acfd751f2484dec996ec9d3ec5183f45": {
     "describe": {
@@ -1079,6 +1067,23 @@
       }
     },
     "query": "\n                DELETE FROM room_schedules WHERE room_id = $1 AND schedule_id = $2\n                "
+  },
+  "b98ba69ba84d1a920bbc0fa8d79028a104ed686ae9e06313febe14001c9cfc11": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Numeric",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n    UPDATE temp_actions\n    SET room_ids = $2, action = $3, temp = $4, expires_at = $5, starts_at = $6\n    WHERE id = $1\n    "
   },
   "bdcbcbee26dfa3ce64a51ce8ec46ee1db4b948362dd54dd0e3387dba338f2769": {
     "describe": {
@@ -1332,6 +1337,23 @@
       }
     },
     "query": "DELETE FROM schedule_temps WHERE schedule_id = $1"
+  },
+  "e804dc02f023b888ed2487ac6192953a842e56dd6e290ff72d114cc8249df101": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "UuidArray",
+          "Text",
+          "Numeric",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n    INSERT INTO temp_actions (id, room_ids, action, temp, expires_at, starts_at)\n    VALUES ($1, $2, $3, $4, $5, $6)\n    "
   },
   "ee4504a8612092a22576ff4f55f480d3cf6730865662c1e1b52d636abeb963b2": {
     "describe": {
