@@ -10,7 +10,7 @@ pub struct Settings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
     pub application_host: String,
-    pub run_subscriber: bool,
+    pub run_live_consumption_subscriber: bool,
 }
 #[derive(serde::Deserialize, Debug)]
 pub struct DatabaseSettings {
@@ -24,6 +24,7 @@ pub struct DatabaseSettings {
 
 #[derive(serde::Deserialize, Debug)]
 pub struct MqttSettings {
+    pub run_mqtt: bool,
     pub host: String,
     pub base_topic: String,
 }

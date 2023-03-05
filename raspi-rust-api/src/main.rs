@@ -44,21 +44,27 @@ async fn main() -> std::io::Result<()> {
     let notification_handler = NotificationHandler::new(notification_rx, pool.clone());
     tokio::spawn(async { notification_handler.start().await });
 
-    let mqtt_client = MqttClient::new(
-        configuration.mqtt.host,
-        configuration.mqtt.base_topic,
-        pool.clone(),
-        work_message_tx.clone(),
-    );
-    tokio::spawn(async move { mqtt_client.start().await });
+    if configuration.mqtt.run_mqtt {
+        let mqtt_client = MqttClient::new(
+            configuration.mqtt.host,
+            configuration.mqtt.base_topic,
+            pool.clone(),
+            work_message_tx.clone(),
+        );
+        tokio::spawn(async move { mqtt_client.start().await });
+    } else {
+        info!("Not running MQTT, disabled in config")
+    }
 
     let cron_tibber_client = tibber_client.clone();
     let cron_pool = pool.clone();
     tokio::spawn(async { cron_scheduler::start(cron_tibber_client, cron_pool).await });
 
     let subscriber_cache = consumption_cache.clone();
-    if configuration.run_subscriber {
+    if configuration.run_live_consumption_subscriber {
         tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
+    } else {
+        info!("Not running live consumption subscriber, disabled in config")
     }
 
     let api_sender = work_message_tx.clone();
