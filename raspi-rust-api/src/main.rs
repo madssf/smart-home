@@ -3,17 +3,17 @@ use std::sync::Arc;
 use log::info;
 use tokio::sync::{mpsc, RwLock};
 
-use rust_home::{
-    api, configuration::get_configuration, cron_scheduler, env_var, work_handler::WorkHandler,
-};
+use rust_home::clients::mqtt::MqttClient;
 use rust_home::clients::{
     shelly_client::ShellyClient, tibber_client::TibberClient, tibber_subscriber::TibberSubscriber,
 };
-use rust_home::clients::mqtt::MqttClient;
 use rust_home::db::DbConfig;
 use rust_home::domain::WorkMessage;
 use rust_home::service::consumption_cache::ConsumptionCache;
 use rust_home::service::notifications::{NotificationHandler, NotificationMessage};
+use rust_home::{
+    api, configuration::get_configuration, cron_scheduler, env_var, work_handler::WorkHandler,
+};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -29,14 +29,14 @@ async fn main() -> std::io::Result<()> {
     let shelly_client = Arc::new(ShellyClient::default());
 
     let (notification_tx, notification_rx) = mpsc::channel::<NotificationMessage>(10);
-    let (sender, receiver) = mpsc::channel::<WorkMessage>(10);
+    let (work_message_tx, work_message_rx) = mpsc::channel::<WorkMessage>(10);
 
     let consumption_cache = Arc::new(RwLock::new(ConsumptionCache::new(notification_tx)));
     let work_handler = WorkHandler::new(
         shelly_client.clone(),
         tibber_client.clone(),
-        sender.clone(),
-        receiver,
+        work_message_tx.clone(),
+        work_message_rx,
         pool.clone(),
     );
     tokio::spawn(async { work_handler.start().await });
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
         configuration.mqtt.host,
         configuration.mqtt.base_topic,
         pool.clone(),
-        sender.clone(),
+        work_message_tx.clone(),
     );
     tokio::spawn(async move { mqtt_client.start().await });
 
@@ -61,7 +61,7 @@ async fn main() -> std::io::Result<()> {
         tokio::spawn(async { TibberSubscriber::new(subscriber_cache).subscribe().await });
     }
 
-    let api_sender = sender.clone();
+    let api_sender = work_message_tx.clone();
     let server = api::start(
         api_sender,
         configuration.application_host,
