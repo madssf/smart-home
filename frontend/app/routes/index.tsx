@@ -3,8 +3,8 @@ import {json} from "@remix-run/node";
 import {Badge, Heading, Link, Tab, TabList, TabPanel, TabPanels, Tabs, Text} from "@chakra-ui/react";
 import {
     getActiveSchedules,
-    getConsumption,
-    getCurrentPrice,
+    getConsumptionOrError,
+    getCurrentPriceOrError,
     getPlugStatuses,
     getRoomTemps,
 } from "~/routes/index.server";
@@ -23,12 +23,13 @@ import LiveConsumptionGraph from "~/components/liveConsumptionGraph";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
 import {routes} from "~/routes";
+import type {DataOrError} from "~/fetcher/fetcher.server";
 
 interface ResponseData {
     rooms: Room[],
     activeSchedules: ActiveSchedule[],
-    price: PriceInfo;
-    consumption: Consumption[];
+    price: DataOrError<PriceInfo>;
+    consumption: DataOrError<Consumption[]>;
     roomTemps: RoomTemp[];
     plugStatuses: PlugStatus[];
 }
@@ -40,8 +41,8 @@ export const loader: LoaderFunction = async () => {
     const [rooms, activeSchedules, price, consumption, roomTemps, plugStatuses] = await Promise.all([
         getRooms(),
         getActiveSchedules(),
-        getCurrentPrice(),
-        getConsumption(),
+        getCurrentPriceOrError(),
+        getConsumptionOrError(),
         getRoomTemps(),
         getPlugStatuses(),
     ]);
@@ -209,14 +210,26 @@ export default function Index() {
                                         </div>
                                         <div className="grid grid-cols-[110px_auto] p-1">
                                             <b>Current price</b>
-                                            <Badge
-                                                maxW={"max-content"}
-                                                ml={1}
-                                                fontSize="md"
-                                                colorScheme={getColorForPrice(data.price.price_level ?? data.price.ext_price_level)}
-                                            >
-                                                {formatPriceInfo(data.price)}
-                                            </Badge>
+                                            {
+                                                data.price === 'ERROR' ?
+                                                    <Badge
+                                                        maxW={"max-content"}
+                                                        ml={1}
+                                                        fontSize="md"
+                                                        colorScheme={'yellow'}
+                                                    >
+                                                        Unavailable
+                                                    </Badge>
+                                                    :
+                                                    <Badge
+                                                        maxW={"max-content"}
+                                                        ml={1}
+                                                        fontSize="md"
+                                                        colorScheme={getColorForPrice(data.price.price_level ?? data.price.ext_price_level)}
+                                                    >
+                                                        {formatPriceInfo(data.price)}
+                                                    </Badge>
+                                            }
                                         </div>
                                     </div>
                                 </TabPanel>
@@ -224,10 +237,13 @@ export default function Index() {
                                     <ClientOnly>
                                         {
                                             () => {
-                                                return data.consumption.length === 0 ?
-                                                    <p>No consumption data</p>
+                                                return data.consumption === 'ERROR' ?
+                                                    <p>Consumption data unavailable</p>
                                                     :
-                                                    <ConsumptionGraph consumption={data.consumption}/>;
+                                                    data.consumption.length === 0 ?
+                                                        <p>No consumption data</p>
+                                                        :
+                                                        <ConsumptionGraph consumption={data.consumption}/>;
                                             }
                                         }
                                     </ClientOnly>

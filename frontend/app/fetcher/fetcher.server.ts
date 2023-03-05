@@ -1,6 +1,6 @@
-
 export type CreateRequest<T> = Omit<T, 'id'>
-export const BASE_URL =  process.env.NODE_ENV === 'production' ? "http://raspi-rust-api:8081/" : "http://127.0.0.1:8081/";
+export type DataOrError<T> = T | 'ERROR'
+export const BASE_URL = process.env.NODE_ENV === 'production' ? "http://raspi-rust-api:8081/" : "http://127.0.0.1:8081/";
 
 export async function getRequest<T>(endpoint: string): Promise<T> {
     const response = await fetchWithRetry(
@@ -14,6 +14,22 @@ export async function getRequest<T>(endpoint: string): Promise<T> {
     );
     if (!response.ok) {
         throw new Error(`Failed to get data - server status: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function getRequestOrError<T>(endpoint: string): Promise<DataOrError<T>> {
+    const response = await fetch(
+        `${BASE_URL}${endpoint}`,
+        {
+            method: 'get',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        },
+    );
+    if (!response.ok) {
+        return 'ERROR';
     }
     return await response.json();
 }
@@ -40,7 +56,7 @@ export async function createRequest<T>(endpoint: string, data: T): Promise<void>
     return;
 }
 
-export async function updateRequest<T extends {id: string}>(endpoint: string, data: T): Promise<void> {
+export async function updateRequest<T extends { id: string }>(endpoint: string, data: T): Promise<void> {
     const {id, ...rest} = data;
     const response = await fetchWithRetry(
         `${BASE_URL}${endpoint}${id}`,
