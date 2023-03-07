@@ -1,4 +1,5 @@
 import type {Schedule} from "~/routes/schedules/types";
+import type {Room} from "~/routes/rooms/types";
 
 export interface PriceInfo {
     amount: number,
@@ -36,6 +37,7 @@ export interface RoomTemp {
 export interface PlugStatus {
     name: string,
     room_id: string,
+    scheduled: boolean,
     is_on: boolean,
     power: number
 }
@@ -44,4 +46,10 @@ export interface ActiveSchedule {
     room_id: string,
     schedule: Schedule | null,
     temp: number | null,
+}
+
+export interface EnrichedRoomData extends Room {
+    activeSchedule: ActiveSchedule | null,
+    temp: RoomTemp | null,
+    plugStatuses: PlugStatus[]
 }

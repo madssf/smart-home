@@ -1,7 +1,23 @@
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
-import {Badge, Heading, Link, Tab, TabList, TabPanel, TabPanels, Tabs, Text} from "@chakra-ui/react";
 import {
+    Alert,
+    AlertIcon,
+    Badge,
+    FormControl,
+    FormLabel,
+    Heading,
+    Link,
+    Switch,
+    Tab,
+    TabList,
+    TabPanel,
+    TabPanels,
+    Tabs,
+    Text,
+} from "@chakra-ui/react";
+import {
+    enrichRoomData,
     getActiveSchedules,
     getConsumptionOrError,
     getCurrentPriceOrError,
@@ -9,7 +25,7 @@ import {
     getRoomTemps,
 } from "~/routes/index.server";
 import {useFetcher, useLoaderData} from "@remix-run/react";
-import type {ActiveSchedule, Consumption, PlugStatus, PriceInfo, RoomTemp} from "./types";
+import type {Consumption, EnrichedRoomData, PriceInfo} from "./types";
 import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
@@ -21,17 +37,13 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import LiveConsumptionGraph from "~/components/liveConsumptionGraph";
 import {getRooms} from "~/routes/rooms/rooms.server";
-import type {Room} from "~/routes/rooms/types";
 import {routes} from "~/routes";
 import type {DataOrError} from "~/fetcher/fetcher.server";
 
 interface ResponseData {
-    rooms: Room[],
-    activeSchedules: ActiveSchedule[],
+    rooms: EnrichedRoomData[],
     price: DataOrError<PriceInfo>;
     consumption: DataOrError<Consumption[]>;
-    roomTemps: RoomTemp[];
-    plugStatuses: PlugStatus[];
 }
 
 export const handle = {hydrate: true};
@@ -48,12 +60,9 @@ export const loader: LoaderFunction = async () => {
     ]);
 
     return json<ResponseData>({
-        rooms,
-        activeSchedules,
+        rooms: rooms.map((r) => enrichRoomData(r, activeSchedules, roomTemps, plugStatuses)),
         price,
         consumption,
-        roomTemps,
-        plugStatuses,
     });
 
 };
@@ -63,6 +72,7 @@ export default function Index() {
     const data = useLoaderData<ResponseData>();
     const liveFetcher = useFetcher<LiveConsumptionData>();
     const [fetchTrigger, setFetchTrigger] = useState(0);
+    const [hideUnscheduledRooms, setHideUnscheduledRooms] = useState(true);
     dayjs.extend(relativeTime);
 
     useEffect(() => {
@@ -103,27 +113,50 @@ export default function Index() {
         }
     };
 
-    const renderRoomData = (room: Room, roomTemp: RoomTemp | undefined, plugs: PlugStatus[], activeSchedule: ActiveSchedule | undefined) => {
+    const roomsToRender = (rooms: EnrichedRoomData[]) => {
+        if (hideUnscheduledRooms) {
+            return rooms.filter(r => r.plugStatuses.some(p => p.scheduled));
+        }
+        return rooms;
+    };
+
+    const renderRooms = (rooms: EnrichedRoomData[]) => {
+        if (rooms.length === 0) {
+            const message = hideUnscheduledRooms ? 'No rooms with schedule' : 'No rooms added yet';
+            return <Alert mt={2} status="info">
+                <AlertIcon />
+                {message}
+            </Alert> ;
+        } else {
+            return rooms.sort((a, b) => a.name.localeCompare(b.name)).map((room) => {
+                return <React.Fragment key={room.id}>
+                    { renderRoomData(room) }
+                </React.Fragment>;
+            });
+        }
+    };
+
+    const renderRoomData = (room: EnrichedRoomData) => {
         return (
             <div className="ml-1 mb-1">
                 <div className="flex flex-row items-baseline">
                     <Link href={routes.TEMP_LOG.ROOM_ID(room.id)} fontWeight='bold'>{room.name}</Link>
                     {
-                        roomTemp &&
+                        room.temp &&
                         <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1">
                             <Badge className="text-left w-16"
-                                   fontSize="md">{`${formatNumber(roomTemp.temp, 1, 1)} °C`}
+                                   fontSize="md">{`${formatNumber(room.temp.temp, 1, 1)} °C`}
                             </Badge>
-                            <p className={"ml-1"}>{dayjs(roomTemp.time).fromNow()}</p>
+                            <p className={"ml-1"}>{dayjs(room.temp.time).fromNow()}</p>
                         </div>
                     }
                 </div>
                 <div className="ml-1">
                     <div className="grid grid-cols-[70px_auto] gap-1 p-1">
                         <Text>Schedule</Text>
-                        {activeSchedule?.schedule && activeSchedule.temp ?
+                        {room.activeSchedule?.schedule && room.activeSchedule.temp ?
                             <Badge colorScheme={'blue'} className="text-left w-16" fontSize="md">
-                                {`${formatNumber(activeSchedule.temp, 1, 1)} °C`}
+                                {`${formatNumber(room.activeSchedule.temp, 1, 1)} °C`}
                             </Badge>
                             : <Badge
                                 maxW={"max-content"}
@@ -136,11 +169,11 @@ export default function Index() {
                         }
                     </div>
                     {
-                        plugs.length > 0 &&
+                        room.plugStatuses.length > 0 &&
                         <div className="ml-1">
                             <Text>Plugs</Text>
                             {
-                                plugs.sort((a, b) => a.name.localeCompare(b.name)).map((plugStatus) => {
+                                room.plugStatuses.sort((a, b) => a.name.localeCompare(b.name)).map((plugStatus) => {
                                     return (
                                         <div key={plugStatus.name} className="grid grid-cols-[100px_auto] gap-1 p-1">
                                             <Text>{plugStatus.name}</Text>
@@ -176,7 +209,7 @@ export default function Index() {
                 <div className="flex flex-col">
                     <Heading size='md' mb={1}>Power</Heading>
                     <div>
-                        <Tabs maxW={"min"}>
+                        <Tabs>
                             <TabList>
                                 <Tab>Live</Tab>
                                 <Tab>Today</Tab>
@@ -238,10 +271,16 @@ export default function Index() {
                                         {
                                             () => {
                                                 return data.consumption === 'ERROR' ?
-                                                    <p>Consumption data unavailable</p>
+                                                    <Alert status="error">
+                                                        <AlertIcon />
+                                                        Consumption data unavailable
+                                                    </Alert>
                                                     :
                                                     data.consumption.length === 0 ?
-                                                        <p>No consumption data</p>
+                                                        <Alert status="warning">
+                                                            <AlertIcon />
+                                                            No consumption data
+                                                        </Alert>
                                                         :
                                                         <ConsumptionGraph consumption={data.consumption}/>;
                                             }
@@ -256,20 +295,23 @@ export default function Index() {
 
                 </div>
                 <div>
-                    <Heading size='md' mb={1}>Rooms</Heading>
+                    <div className="flex flex-row">
+                        <Heading size='md' mb={1}>Rooms</Heading>
+                        <FormControl ml={2} display='flex' alignItems='center'>
+                            <FormLabel htmlFor='hide-unscheduled-rooms' mb='0' fontSize='xs'>
+                                Hide unscheduled
+                            </FormLabel>
+                            <Switch
+                                id='hide-unscheduled-rooms'
+                                onChange={() => setHideUnscheduledRooms((prev) => !prev)}
+                                defaultChecked={hideUnscheduledRooms}
+                                size={'sm'}
+                            />
+                        </FormControl>
+                    </div>
+
                     {
-                        data.rooms.sort((a, b) => a.name.localeCompare(b.name)).map((room) => {
-                            return <React.Fragment key={room.id}>
-                                {
-                                    renderRoomData(
-                                        room,
-                                        data.roomTemps.find(room_temp => room_temp.room_id === room.id),
-                                        data.plugStatuses.filter((plug) => plug.room_id === room.id),
-                                        data.activeSchedules.find(schedule => schedule.room_id === room.id),
-                                    )
-                                }
-                            </React.Fragment>;
-                        })
+                        renderRooms(roomsToRender(data.rooms))
                     }
                 </div>
             </div>

@@ -67,9 +67,8 @@ async fn main() -> std::io::Result<()> {
         info!("Not running live consumption subscriber, disabled in config")
     }
 
-    let api_sender = work_message_tx.clone();
     let server = api::start(
-        api_sender,
+        work_message_tx,
         configuration.application_host,
         configuration.application_port,
         tibber_client,

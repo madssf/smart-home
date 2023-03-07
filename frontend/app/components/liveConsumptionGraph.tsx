@@ -1,6 +1,6 @@
 import React from 'react';
 import type {LiveConsumption} from "~/routes/types";
-import {useColorMode} from "@chakra-ui/react";
+import {Alert, AlertIcon, useColorMode} from "@chakra-ui/react";
 import {Area, AreaChart, Tooltip, YAxis} from "recharts";
 
 export interface LiveConsumptionGraphProps {
@@ -12,7 +12,10 @@ const LiveConsumptionGraph = ({liveConsumption}: LiveConsumptionGraphProps) => {
     const {colorMode} = useColorMode();
 
     if (liveConsumption === undefined || liveConsumption.length === 0) {
-        return <p>No consumption data</p>;
+        return <Alert status="warning">
+            <AlertIcon />
+            No consumption data
+        </Alert>;
     }
 
     const domainMin = Math.round(liveConsumption.reduce((a, b) => b.power < a ? b.power : a, Infinity));

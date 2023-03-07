@@ -9,6 +9,7 @@ use crate::domain::Plug;
 pub struct PlugStatus {
     name: String,
     room_id: Uuid,
+    scheduled: bool,
     is_on: bool,
     power: f64,
 }
@@ -29,6 +30,7 @@ pub async fn get_plug_statuses(
         plug_statuses.push(PlugStatus {
             name: plug.name.clone(),
             room_id: plug.room_id,
+            scheduled: plug.scheduled,
             is_on: status.ison,
             power: meter.power,
         })
