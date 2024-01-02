@@ -7,7 +7,9 @@ services:
     ports:
       - "3030:3000"
   raspi-rust-api:
-    build: raspi-rust-api
+    build:
+        context: raspi-rust-api
+        dockerfile: Dockerfile.macos
     restart: always
     env_file:
       - raspi-rust-api/.env.prod
