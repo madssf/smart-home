@@ -1,0 +1,30 @@
+services:
+  frontend:
+    image: frontend-armv7:latest
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "3030:3000"
+  raspi-rust-api:
+    image: raspi-rust-api-armv7:latest
+    restart: always
+    env_file:
+      - .env.prod
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    env_file:
+      - .env.db
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  db:
+    driver: local
