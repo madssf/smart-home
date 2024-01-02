@@ -52,7 +52,7 @@ if [ "$SKIP_API" = false ]; then
     echo "Building Rust API image for ARM architecture..."
     docker buildx build --platform $ARM_VERSION -t $API_IMAGE_NAME:latest --load -f raspi-rust-api/Dockerfile.armv7 raspi-rust-api/. || handle_error "Rust API image build failed"
     echo "Saving Rust API image..."
-    docker save $API_IMAGE_NAME :latest -o $API_IMAGE_NAME.tar || handle_error "Saving API image failed"
+    docker save $API_IMAGE_NAME:latest -o $API_IMAGE_NAME.tar || handle_error "Saving API image failed"
 fi
 
 if [ "$SKIP_FRONTEND" = false ]; then
