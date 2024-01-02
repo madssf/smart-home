@@ -1,0 +1,42 @@
+FROM rust:1.75 as chef
+
+# Combine update, package installation, and cleanup in a single RUN command to reduce image layers
+RUN apt-get update && \
+    apt-get install -y pkg-config libssl-dev && \
+    cargo install cargo-chef --locked && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+# Build application
+COPY . .
+ENV SQLX_OFFLINE true
+RUN cargo build --release
+
+# Start the runtime stage with the same image as the builder stage
+FROM rust:1.75 as runtime
+
+# Setup the working directory
+WORKDIR /app
+
+# Create a non-root user for running the application
+RUN useradd --user-group --create-home --shell /bin/false appuser
+USER appuser
+
+# Expose the port on which the app listens
+EXPOSE 8081
+
+# Copy the necessary files from the builder stage
+COPY --from=builder /app/configuration ./configuration
+COPY --from=builder /app/target/release/rust_home ./rust_home
+
+# Run the binary as a non-root user by default
+CMD ["./rust_home"]

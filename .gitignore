@@ -3,3 +3,4 @@
 .env.db
 transfer.tar.gz
 zigbee2mqtt
+*.tar

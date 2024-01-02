@@ -1,18 +1,16 @@
 services:
   frontend:
-    build: frontend
+    image: frontend-armv7:latest
     restart: always
     env_file:
-      - frontend/.env
+      - .env
     ports:
       - "3030:3000"
   raspi-rust-api:
-    build:
-        context: raspi-rust-api
-        dockerfile: Dockerfile.macos
+    image: raspi-rust-api-armv7:latest
     restart: always
     env_file:
-      - raspi-rust-api/.env.prod
+      - .env.prod
     ports:
       - "8081:8081"
     depends_on:

@@ -1,7 +1,7 @@
 # Credit to Tom Rowe https://gist.github.com/TheRealFlyingCoder/773bf60f433ccbdbad8c296a99fb3738
 
 # base node image
-FROM node:16-bullseye-slim as base
+FROM node:19.9-bullseye-slim as base
 
 # Install all node_modules, including dev dependencies
 FROM base as deps
