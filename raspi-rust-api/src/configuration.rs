@@ -1,9 +1,9 @@
 use log::info;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
-use crate::observability::{Environment, get_app_environment};
+use crate::observability::{get_app_environment, Environment};
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub mqtt: MqttSettings,
@@ -12,7 +12,7 @@ pub struct Settings {
     pub application_host: String,
     pub run_live_consumption_subscriber: bool,
 }
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: String,
@@ -22,7 +22,7 @@ pub struct DatabaseSettings {
     pub database_name: String,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct MqttSettings {
     pub run_mqtt: bool,
     pub host: String,
@@ -42,7 +42,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             configuration_directory.join("base.yaml"),
         ))
         .add_source(config::File::from(
-            configuration_directory.join(&environment_filename),
+            configuration_directory.join(environment_filename),
         ));
 
     let settings = match environment {

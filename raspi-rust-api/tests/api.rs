@@ -1,8 +1,9 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
-use actix_web::dev::Server;
 use testcontainers::clients::Cli;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::task::{self, JoinHandle};
 
 use rust_home::api::start;
 use rust_home::clients::shelly_client::ShellyClient;
@@ -15,18 +16,10 @@ use crate::configuration::DatabaseTestConfig;
 
 mod configuration;
 
-const IP: &str = "127.0.0.1";
-const PORT: u16 = 8081;
-
-fn base_url() -> String {
-    format!("http://{}:{}", IP, PORT)
+fn url_for(local_addr: &SocketAddr, path: &str) -> String {
+    format!("http://{}{}", local_addr, path)
 }
-
-fn url_for(path: &str) -> String {
-    format!("{}{}", base_url(), path)
-}
-
-async fn spawn_api() -> Server {
+async fn spin_up_test_server() -> (SocketAddr, oneshot::Sender<()>, JoinHandle<()>) {
     env_logger::init();
 
     let docker = Cli::default();
@@ -36,23 +29,42 @@ async fn spawn_api() -> Server {
     let test_config = DatabaseTestConfig::new(&docker).await;
     let tibber_client = Arc::new(TibberClient::new("dummy_token".to_string()));
 
-    start(
+    let server = start(
         work_tx.clone(),
-        IP.to_string(),
-        PORT,
         tibber_client,
         Arc::new(ShellyClient::default()),
         Arc::new(RwLock::new(ConsumptionCache::new(notification_tx.clone()))),
         Arc::new(test_config.db_config.pool),
     )
-    .await
-    .expect("Failed to start api")
+    .await;
+    // Bind to port 0 to get a random available port
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+
+    let local_addr = listener.local_addr().unwrap();
+
+    let (tx, rx) = oneshot::channel();
+
+    // Spawn the server into a background task
+    let server_handle = task::spawn(async move {
+        axum::serve(
+            listener,
+            server.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(async {
+            rx.await.ok();
+        })
+        .await
+        .unwrap();
+    });
+
+    // Return the server's address and the oneshot sender for shutting down
+    (local_addr, tx, server_handle)
 }
 
-async fn assert_api_ready() {
+async fn assert_api_ready(local_addr: &SocketAddr) {
     let client = reqwest::Client::new();
     let result = client
-        .get(url_for("/_/health"))
+        .get(url_for(local_addr, "/_/health"))
         .send()
         .await
         .expect("failed to execute");
@@ -62,7 +74,12 @@ async fn assert_api_ready() {
 
 #[tokio::test]
 async fn given_api_started_then_return_200() {
-    tokio::spawn(spawn_api().await);
+    // Spin up the server and get its bound address
+    let (addr, shutdown_tx, server_handle) = spin_up_test_server().await;
 
-    assert_api_ready().await;
+    assert_api_ready(&addr).await;
+
+    // Shut down the server
+    shutdown_tx.send(()).unwrap();
+    server_handle.await.unwrap();
 }

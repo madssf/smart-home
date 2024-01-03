@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{delete, get, HttpResponse, post, Responder, Scope, web};
+use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
 use log::error;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -38,14 +38,7 @@ async fn create_temp_action(
     pool: web::Data<Arc<PgPool>>,
     body: web::Json<TempActionRequest>,
 ) -> impl Responder {
-    let new_action = match body.into_inner().try_into() {
-        Ok(temp_action) => temp_action,
-        Err(e) => {
-            error!("{}", e);
-            return HttpResponse::BadRequest().finish();
-        }
-    };
-
+    let new_action: TempAction = body.into_inner().into();
     match db::temp_actions::create_temp_action(pool.get_ref(), new_action).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
