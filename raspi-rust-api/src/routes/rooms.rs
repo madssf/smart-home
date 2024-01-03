@@ -37,7 +37,10 @@ pub struct RoomRequest {
 async fn create_room(pool: web::Data<Arc<PgPool>>, body: web::Json<RoomRequest>) -> impl Responder {
     match db::rooms::create_room(pool.get_ref(), &body.name, &body.min_temp).await {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(e) => {
+            error!("Failed to create room: {:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }
 

@@ -15,7 +15,20 @@ use crate::configuration::DatabaseTestConfig;
 
 mod configuration;
 
+const IP: &str = "127.0.0.1";
+const PORT: u16 = 8081;
+
+fn base_url() -> String {
+    format!("http://{}:{}", IP, PORT)
+}
+
+fn url_for(path: &str) -> String {
+    format!("{}{}", base_url(), path)
+}
+
 async fn spawn_api() -> Server {
+    env_logger::init();
+
     let docker = Cli::default();
 
     let (work_tx, _) = mpsc::channel::<WorkMessage>(32);
@@ -25,8 +38,8 @@ async fn spawn_api() -> Server {
 
     start(
         work_tx.clone(),
-        "127.0.0.1".to_string(),
-        8081,
+        IP.to_string(),
+        PORT,
         tibber_client,
         Arc::new(ShellyClient::default()),
         Arc::new(RwLock::new(ConsumptionCache::new(notification_tx.clone()))),
@@ -36,16 +49,20 @@ async fn spawn_api() -> Server {
     .expect("Failed to start api")
 }
 
-#[tokio::test]
-async fn api() {
-    tokio::spawn(spawn_api().await);
-
+async fn assert_api_ready() {
     let client = reqwest::Client::new();
     let result = client
-        .get("http://127.0.0.1:8081/_/health")
+        .get(url_for("/_/health"))
         .send()
         .await
         .expect("failed to execute");
 
     assert!(result.status().is_success());
+}
+
+#[tokio::test]
+async fn given_api_started_then_return_200() {
+    tokio::spawn(spawn_api().await);
+
+    assert_api_ready().await;
 }
