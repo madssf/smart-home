@@ -1,12 +1,18 @@
 import React from 'react';
-import {Button, IconButton, Menu, MenuButton, MenuDivider, MenuItem, MenuList, useColorMode} from "@chakra-ui/react";
-import {HamburgerIcon, MoonIcon, SunIcon} from "@chakra-ui/icons";
 import {homeLink, pageLinks} from './pageLinks';
 import {useLocation} from '@remix-run/react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import {AlignJustify, Moon} from "lucide-react";
+import {Button} from "~/components/ui/button";
 
 
 const Nav = () => {
-    const { colorMode, toggleColorMode } = useColorMode();
     const location = useLocation();
 
     return (
@@ -15,40 +21,39 @@ const Nav = () => {
         >
 
             <div>
-                <Menu>
-                    <MenuButton
-                        as={IconButton}
-                        aria-label='Navigation'
-                        icon={<HamburgerIcon />}
-                        variant='outline'
-                        size="sm"
-                    />
-                    <MenuList>
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <AlignJustify />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
                         {
                             location.pathname?.endsWith("/home") ?
                                 null
                                 :
                                 <>
-                                    <MenuItem>
+                                    <DropdownMenuLabel>
                                         {homeLink}
-                                    </MenuItem>
-                                    <MenuDivider />
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
                                 </>
 
                         }
                         {pageLinks.map((link) => {
                             return (
-                                <MenuItem key={link.key}>
+                                <DropdownMenuLabel key={link.key}>
                                     {link}
-                                </MenuItem>
+                                </DropdownMenuLabel>
                             );
                         })}
-                    </MenuList>
-                </Menu>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <div className="flex">
-                <Button size="sm" onClick={toggleColorMode} variant='outline'>
-                    {colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+                <Button size="sm" onClick={() => {
+                    // TODO: Re-enable dark mode
+                    console.log("TODO: Re-enable dark mode");
+                }} variant='outline'>
+                    <Moon />
                 </Button>
             </div>
         </nav>

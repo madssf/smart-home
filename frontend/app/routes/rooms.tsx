@@ -9,7 +9,7 @@ import {routes} from "~/routes";
 import {validateNonEmptyString, validateTempOrNull} from "~/utils/validation";
 import {useLoaderData} from "@remix-run/react";
 import RoomForm from "~/routes/rooms/components/roomForm";
-import {Button, Heading} from "@chakra-ui/react";
+import {Button} from "~/components/ui/button";
 
 interface ResponseData {
     rooms: Room[];
@@ -88,7 +88,7 @@ const Rooms = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Rooms</Heading>
+            <h1 className="pb-4">Rooms</h1>
             {renderRooms(loaderData.rooms)}
             <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add room'}</Button>
             {

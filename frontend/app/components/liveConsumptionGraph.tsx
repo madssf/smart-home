@@ -1,7 +1,7 @@
 import React from 'react';
 import type {LiveConsumption} from "~/routes/types";
-import {Alert, AlertIcon, useColorMode} from "@chakra-ui/react";
 import {Area, AreaChart, Tooltip, YAxis} from "recharts";
+import {Alert, AlertDescription} from "~/components/ui/alert";
 
 export interface LiveConsumptionGraphProps {
     liveConsumption?: LiveConsumption[]
@@ -9,20 +9,20 @@ export interface LiveConsumptionGraphProps {
 
 const LiveConsumptionGraph = ({liveConsumption}: LiveConsumptionGraphProps) => {
 
-    const {colorMode} = useColorMode();
-
     if (liveConsumption === undefined || liveConsumption.length === 0) {
-        return <Alert status="warning">
-            <AlertIcon />
+        return <Alert variant="destructive">
+            <AlertDescription>
             No consumption data
+            </AlertDescription>
         </Alert>;
     }
 
     const domainMin = Math.round(liveConsumption.reduce((a, b) => b.power < a ? b.power : a, Infinity));
     const domainMax = Math.round(liveConsumption.reduce((a, b) => b.power > a ? b.power : a, 0));
 
-
-    const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+    // TODO: Re-enable dark mode
+    // const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+    const color = '#4A5568';
 
     function CustomTooltip({ active, payload }: any) {
         if (active && payload && payload.length) {

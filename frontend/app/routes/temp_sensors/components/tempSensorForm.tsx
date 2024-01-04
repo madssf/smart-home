@@ -1,12 +1,16 @@
 import type {TempSensor} from "~/routes/temp_sensors/types";
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import type {Room} from "~/routes/rooms/types";
-import {Form, useActionData, useTransition} from "@remix-run/react";
+import {Form, useActionData} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import {routes} from "~/routes";
-import {Badge, Button, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
 import {capitalizeAndRemoveUnderscore, formatNumber} from "~/utils/formattingUtils";
 import type {FormErrors} from "~/utils/types";
+import {Input} from "~/components/ui/input";
+import {Badge} from "~/components/ui/badge";
+import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
+import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface TempSensorFormProps {
     rooms: Room[]
@@ -15,8 +19,9 @@ export interface TempSensorFormProps {
 
 const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
     const actionData = useActionData<FormErrors<TempSensor>>();
-    const transition = useTransition();
-    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, sensor);
+
+    const navigation = useNavigation();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(sensor);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -37,12 +42,12 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
             formRef.current?.reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.TEMP_SENSORS.ROOT}>
             <div>
-                <label className="font-bold">ID</label>
+                <label className="font-bold" htmlFor="id">ID</label>
                 {
                     !sensor ?
                     <>
@@ -50,18 +55,17 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                         <>
                             {
                                 !!errors?.id &&
-                                <Text color="tomato">{errors.id}</Text>
+                                <p color="tomato">{errors.id}</p>
                             }
                         </>
                     </>
                         :
                         <div>
-                            <Text>{sensor.id}</Text>
+                            <p>{sensor.id}</p>
                             {
                                 sensor.battery_level !== null &&
                                 <Badge
                                     className="text-left w-16"
-                                    fontSize="md"
                                 >
                                     {`${formatNumber(sensor.battery_level, 0, 0)} %`}
                                 </Badge>
@@ -71,30 +75,29 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold">Room</label>
+                <label className="font-bold" htmlFor="room_id">Room</label>
                 {
                     sensor === undefined ?
                         <>
                             <RadioGroup name="room_id">
-                                <Stack direction="row">
+                                <div className="flex flex-row">
                                     {rooms.map((room) => {
-                                        return <Radio
+                                        return <RadioGroupItem
                                             key={room?.id}
                                             id="room_id"
-                                            name="room_id"
                                             value={room.id}>
                                             {capitalizeAndRemoveUnderscore(room.name)}
-                                        </Radio>;
+                                        </RadioGroupItem>;
                                     })}
-                                </Stack>
+                                </div>
                             </RadioGroup>
                             {
                                 !!errors?.room_id &&
-                                <Text color="tomato">{errors.room_id}</Text>
+                                <p color="tomato">{errors.room_id}</p>
                             }
                         </>
                         :
-                        <Text>{rooms.find(room => room.id == sensor?.room_id)?.name ?? 'Unknown room'}</Text>
+                        <p>{rooms.find(room => room.id == sensor?.room_id)?.name ?? 'Unknown room'}</p>
                 }
             </div>
             <div className="mt-1">

@@ -6,28 +6,19 @@ import ScheduleForm from "~/routes/schedules/components/scheduleForm";
 import {routes} from "~/routes";
 import {validateDays, validateTemps, validateTimeWindows} from "~/routes/schedules/utils/utils";
 import type {FormErrors} from "~/utils/types";
-import {useLoaderData} from "@remix-run/react";
+import {Link, useLoaderData} from "@remix-run/react";
 import React, {useState} from "react";
-import {
-    Accordion,
-    AccordionButton,
-    AccordionIcon,
-    AccordionItem,
-    AccordionPanel,
-    Box,
-    Button,
-    Checkbox,
-    Heading,
-    Link,
-} from "@chakra-ui/react";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createSchedule, deleteSchedule, getSchedules, updateSchedule} from "~/routes/schedules/schedules.server";
 import {validateNonEmptyList} from "~/utils/validation";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
-import {CheckCircleIcon} from "@chakra-ui/icons";
 import {PriceLevel} from "~/routes/types";
+import {CheckCircleIcon} from "lucide-react";
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "~/components/ui/accordion";
+import {Checkbox} from "~/components/ui/checkbox";
+import {Button} from "~/components/ui/button";
 
 interface ResponseData {
     schedules: Schedule[];
@@ -155,27 +146,25 @@ const Schedules = () => {
 
     const renderFilters = () => {
         return (
-            <Accordion pb={4} allowToggle>
-                <AccordionItem>
+            <Accordion type="single" className="pb-4">
+                <AccordionItem value="filters">
                     <h2>
-                        <AccordionButton>
-                            <Box flex='1' textAlign='left'>
+                        <AccordionTrigger>
+                            <div className="flex-1 text-left">
                                 Filters
-                            </Box>
+                            </div>
                             {activeFilters &&
                                 <CheckCircleIcon />
                             }
-                            <AccordionIcon />
-                        </AccordionButton>
+                        </AccordionTrigger>
                     </h2>
-                    <AccordionPanel pb={4}>
+                    <AccordionContent className="pb-4">
                         <div className="flex flex-col">
-                            <label className="font-bold">Weekdays</label>
+                            <p className="font-bold">Weekdays</p>
                             <div className="flex">
                                 {WEEKDAYS.map((day) => {
                                     return <Checkbox
                                         key={day}
-                                        size="sm"
                                         className="mr-1"
                                         checked={dayFilters.includes(day)}
                                         onChange={() => {
@@ -192,12 +181,11 @@ const Schedules = () => {
                             </div>
                         </div>
                         <div className="flex flex-col">
-                            <label className="font-bold">Rooms</label>
+                            <p className="font-bold">Rooms</p>
                             <div className="flex">
                                 {loaderData.rooms.map((room) => {
                                     return <Checkbox
                                         key={room.id}
-                                        size="sm"
                                         className="mr-1"
                                         checked={roomFilters.includes(room.id)}
                                         onChange={() => {
@@ -213,7 +201,7 @@ const Schedules = () => {
                                 })}
                             </div>
                         </div>
-                    </AccordionPanel>
+                    </AccordionContent>
                 </AccordionItem>
             </Accordion>
         );
@@ -221,10 +209,10 @@ const Schedules = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Schedules</Heading>
+            <h1 className="pb-4">Schedules</h1>
             {
                 loaderData.rooms.length === 0 ?
-                    <p>No rooms yet, please <Link href={routes.ROOMS.ROOT}>add one</Link> before adding a schedule</p>
+                    <p>No rooms yet, please <Link to={routes.ROOMS.ROOT}>add one</Link> before adding a schedule</p>
                     :
                     <>
                         {renderFilters()}

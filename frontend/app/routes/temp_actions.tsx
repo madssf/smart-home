@@ -4,7 +4,6 @@ import type {FormErrors} from "~/utils/types";
 import type {ActionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {useLoaderData} from "@remix-run/react";
-import {Heading} from "@chakra-ui/react";
 import type {TempAction} from "~/routes/temp_actions/types";
 import {
     validateActionType,
@@ -122,7 +121,7 @@ const TempActions = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Actions</Heading>
+            <h1 className="pb-4">Actions</h1>
             {renderTempActions(loaderData.tempActions, loaderData.rooms)}
             <TempActionForm rooms={loaderData.rooms} />
         </div>

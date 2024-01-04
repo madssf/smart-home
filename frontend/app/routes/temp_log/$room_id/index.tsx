@@ -3,11 +3,11 @@ import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {useLoaderData, useNavigate, useParams, useSearchParams} from "@remix-run/react";
 import {Area, AreaChart, Tooltip, XAxis, YAxis} from 'recharts';
-import {Button, useColorMode} from "@chakra-ui/react";
-import {ClientOnly} from "remix-utils";
+import {ClientOnly} from "remix-utils/client-only";
 import {routes} from "~/routes";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import {getRoomTemperatureLogs} from "~/routes/temp_log/temp_log.server";
+import {Button} from "~/components/ui/button";
 
 type DatasetEntry = {label: string, temp: number}
 
@@ -50,10 +50,9 @@ const TempLog = () => {
     const domainMin = Math.round(loaderData.dataset.reduce((a, b) => b.temp < a ? b.temp : a, Infinity)) - 3;
     const domainMax = Math.round(loaderData.dataset.reduce((a, b) => b.temp > a ? b.temp : a, 0)) + 3;
 
-    const {colorMode} = useColorMode();
-
-    const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
-
+    // TODO: Re-enable dark mode
+    // const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+    const color = '#4A5568';
     function CustomizedAxisTick({ x, y, stroke, payload }: any) {
 
         return (
@@ -85,7 +84,6 @@ const TempLog = () => {
                 <div className='grid grid-cols-3 px-8 pb-8'>
                     {Object.values(TimePeriod).map((period) => {
                         return <Button
-                            size='sm'
                             variant="outline"
                             className='w'
                             key={period}

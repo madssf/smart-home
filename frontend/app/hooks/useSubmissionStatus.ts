@@ -1,12 +1,13 @@
-import type {useTransition} from "@remix-run/react";
+import {useNavigation} from "react-router";
 
-export const useSubmissionStatus = (transition: ReturnType<typeof useTransition>, document: {id: string} | undefined) => {
-    const isCreating = transition.submission?.formData.get("intent") === "create" &&
-        (transition.submission?.formData.get('id') ?? undefined) === document?.id;
-    const isUpdating = transition.submission?.formData.get("intent") === "update" &&
-        (transition.submission?.formData.get('id') ?? undefined) === document?.id;
-    const isDeleting = transition.submission?.formData.get("intent") === "delete" &&
-        (transition.submission?.formData.get('id') ?? undefined) === document?.id;
+export const useSubmissionStatus = (document: {id: string} | undefined) => {
+    const navigation = useNavigation();
+    const isCreating = navigation.formData?.get("intent") === "create" &&
+        (navigation.formData?.get('id') ?? undefined) === document?.id;
+    const isUpdating = navigation.formData?.get("intent") === "update" &&
+        (navigation.formData?.get('id') ?? undefined) === document?.id;
+    const isDeleting = navigation.formData?.get("intent") === "delete" &&
+        (navigation.formData?.get('id') ?? undefined) === document?.id;
     const isNew = !document;
     return {isCreating, isDeleting, isUpdating, isNew};
 };

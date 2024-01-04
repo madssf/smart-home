@@ -1,12 +1,16 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {PlugFormErrors} from "~/routes/plugs";
-import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Button, Checkbox, Input, Radio, RadioGroup, Stack, Text} from "@chakra-ui/react";
+import {Form, useActionData} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {Room} from '~/routes/rooms/types';
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
+import {Input} from '~/components/ui/input';
+import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
+import {Checkbox} from "~/components/ui/checkbox";
+import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface PlugFormProps {
     plug?: Plug
@@ -15,9 +19,9 @@ export interface PlugFormProps {
 
 const PlugForm = ({plug, rooms}: PlugFormProps) => {
     const actionData = useActionData<PlugFormErrors>();
-    const transition = useTransition();
 
-    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, plug);
+    const navigation = useNavigation();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(plug);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -38,66 +42,65 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
             formRef.current?.reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.PLUGS.ROOT}>
             <input hidden readOnly name="id" value={plug?.id}/>
             <div>
-                <label className="font-bold">Name</label>
+                <label className="font-bold" htmlFor="name">Name</label>
                 <Input name="name" defaultValue={plug?.name}/>
                 {
                     !!errors?.name &&
-                    <Text color="tomato">{errors.name}</Text>
+                    <p color="tomato">{errors.name}</p>
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold">Room</label>
+                <label className="font-bold" htmlFor="priceLevel">Room</label>
                 <RadioGroup defaultValue={plug?.room_id} name="priceLevel">
-                    <Stack direction="row">
+                    <div className="flex flex-row">
                         {rooms.map((room) => {
-                            return <Radio
+                            return <RadioGroupItem
                                 key={plug?.id + room.id}
                                 id="room_id"
-                                name="room_id"
                                 checked={plug?.room_id === room.id}
                                 value={room.id}>
                                 {capitalizeAndRemoveUnderscore(room.name)}
-                            </Radio>;
+                            </RadioGroupItem>;
                         })}
-                    </Stack>
+                    </div>
                 </RadioGroup>
                 {
                     !!errors?.room_id &&
-                    <Text color="tomato">{errors.room_id}</Text>
+                    <p color="tomato">{errors.room_id}</p>
                 }
             </div>
             <div>
-                <label className="font-bold">IP address</label>
+                <label className="font-bold" htmlFor="ip">IP address</label>
                 <Input name="ip" defaultValue={plug?.ip}/>
                 {
                     !!errors?.ip &&
-                    <Text color="tomato">{errors.ip}</Text>
+                    <p color="tomato">{errors.ip}</p>
                 }
             </div>
             <div>
-                <label className="font-bold">Username</label>
+                <label className="font-bold" htmlFor="username">Username</label>
                 <Input name="username" defaultValue={plug?.username}/>
                 {
                     !!errors?.username &&
-                    <Text color="tomato">{errors.username}</Text>
+                    <p color="tomato">{errors.username}</p>
                 }
             </div>
             <div>
-                <label className="font-bold">Password</label>
+                <label className="font-bold" htmlFor="password">Password</label>
                 <Input name="password" defaultValue={plug?.password}/>
                 {
                     !!errors?.password &&
-                    <Text color="tomato">{errors.password}</Text>
+                    <p color="tomato">{errors.password}</p>
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold">Scheduled</label>
+                <label className="font-bold" htmlFor="scheduled">Scheduled</label>
                     <Checkbox
                         id="scheduled"
                         name="scheduled"
@@ -105,7 +108,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                     />
                 {
                     !!errors?.scheduled &&
-                    <Text color="tomato">{errors.scheduled}</Text>
+                    <p color="tomato">{errors.scheduled}</p>
                 }
             </div>
             <div className="mt-1">

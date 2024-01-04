@@ -1,28 +1,19 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import type {Schedule, TimeWindow} from "~/routes/schedules/types";
 import {WEEKDAYS} from "~/routes/schedules/types";
 import TimeForm from "~/routes/schedules/components/timeForm";
 import {routes} from "~/routes";
 import type {ScheduleFormErrors} from "~/routes/schedules";
-import {Form, useActionData, useTransition} from "@remix-run/react";
-import {
-    Button,
-    Checkbox,
-    IconButton,
-    Input,
-    InputGroup,
-    InputRightAddon,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuList,
-    Text,
-} from "@chakra-ui/react";
+import {Form, useActionData} from "@remix-run/react";
 import {capitalizeAndRemoveUnderscore, formatPriceLevel} from '~/utils/formattingUtils';
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {Room} from "~/routes/rooms/types";
 import {PriceLevel} from '~/routes/types';
-import {SmallAddIcon, SmallCloseIcon} from "@chakra-ui/icons";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
+import {Checkbox} from "~/components/ui/checkbox";
+import {Button} from "~/components/ui/button";
+import {Input} from "~/components/ui/input";
+import {useNavigation} from "react-router";
 
 export interface ScheduleFormProps {
     schedule?: Schedule
@@ -31,8 +22,8 @@ export interface ScheduleFormProps {
 
 const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     const actionData = useActionData<ScheduleFormErrors>();
-    const transition = useTransition();
-    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, schedule);
+    const navigation = useNavigation();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(schedule);
 
     const getInitialPriceLevels = (schedule: Schedule | undefined): PriceLevel[] => {
         if (schedule === undefined) {
@@ -67,7 +58,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
         }
         setHoursList(schedule?.time_windows ?? [defaultTimeWindow]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     const [hoursList, setHoursList] = useState(schedule?.time_windows ?? []);
 
@@ -82,26 +73,20 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     };
 
     const renderPriceLevelMenu = () => {
-        return <Menu>
-            <MenuButton
-                as={IconButton}
+        return <DropdownMenu>
+            <DropdownMenuTrigger
                 aria-label='Add price level'
-                icon={<SmallAddIcon />}
-                size="sm"
             >
-            </MenuButton>
-            <MenuList>
+                Add price level
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
                 {
                     Object.keys(PriceLevel)
                         .filter(priceLevel => !activePriceLevels.includes(priceLevel as PriceLevel))
                         .map((priceLevel) => {
                             return (
-                                <MenuItem
+                                <DropdownMenuLabel
                                     key={priceLevel}
-                                    as={Button}
-                                    type='button'
-                                    variant='outline'
-                                    size='small'
                                     onClick={() =>
                                         setActivePriceLevels(
                                             (prev) => prev.concat([priceLevel as PriceLevel]),
@@ -109,24 +94,23 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                                     }
                                 >
                                     {formatPriceLevel(priceLevel as PriceLevel)}
-                                </MenuItem>
+                                </DropdownMenuLabel>
                             );
                         })
                 }
-            </MenuList>
-        </Menu>;
+            </DropdownMenuContent>
+        </DropdownMenu>;
     };
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.SCHEDULES.ROOT}>
             <input hidden readOnly name="id" value={schedule?.id}/>
             <div className="flex flex-col">
-                <label className="font-bold">Rooms</label>
+                <p className="font-bold" >Rooms</p>
                 <div className="flex">
                     {rooms.map((room) => {
                         return <Checkbox
                             key={schedule?.id + room.id}
-                            size="sm"
                             className="mr-1"
                             id={room.id}
                             name="room_ids"
@@ -138,16 +122,15 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 </div>
                 {
                     !!errors?.room_ids &&
-                    <Text color="tomato">{errors.room_ids}</Text>
+                    <p color="tomato">{errors.room_ids}</p>
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold">Weekdays</label>
+                <p className="font-bold">Weekdays</p>
                 <div className="flex">
                 {WEEKDAYS.map((day) => {
                     return <Checkbox
                         key={schedule?.id + day}
-                        size="sm"
                         className="mr-1"
                         id={day}
                         name="days"
@@ -159,11 +142,11 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 </div>
                 {
                     !!errors?.days &&
-                    <Text color="tomato">{errors.days}</Text>
+                    <p color="tomato">{errors.days}</p>
                 }
             </div>
             <div>
-                <label className="font-bold">Time windows</label>
+                <p className="font-bold">Time windows</p>
             {
                 <div className="ml-2 mb-1">
                     {
@@ -178,24 +161,24 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                     }
                     {
                         hoursList.length === 0 &&
-                        <IconButton icon={<SmallAddIcon />} aria-label='Add time window' size="sm" type="button" onClick={addTimeWindow} />
+                        <Button variant="outline" type="button" onClick={addTimeWindow}>Add time window</Button>
                     }
                 </div>
             }
                 {
                     !!errors?.time_windows &&
-                    <Text color="tomato">{errors.time_windows}</Text>
+                    <p color="tomato">{errors.time_windows}</p>
                 }
             </div>
             <div>
-                <label className="font-bold">Temperature by price level</label>
+                <p className="font-bold">Temperature by price level</p>
                 <div className="ml-2 mb-1">
                 {
                     activePriceLevels.map((price_level, i) => {
                         return (
                             <div key={price_level} className="grid grid-cols-[80px_120px_40px_30px] items-center">
-                                <Text fontSize="small">{formatPriceLevel(price_level)}</Text>
-                                <InputGroup>
+                                <p className="text-sm">{formatPriceLevel(price_level)}</p>
+                                <div>
                                     <Input
                                         style={{width: "70px"}}
                                         type="number"
@@ -205,8 +188,8 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                                         name={`temp_${price_level}`}
                                         defaultValue={schedule?.temps[price_level]}
                                     />
-                                    <InputRightAddon children="°C" />
-                                </InputGroup>
+                                    <p>°C</p>
+                                </div>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -214,7 +197,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                                     className="mx-1"
                                     onClick={() => setActivePriceLevels((prev) => prev.filter(p => p !== price_level))}
                                 >
-                                    <SmallCloseIcon />
+                                    ❌
                                 </Button>
                                 {
                                     i === activePriceLevels.length - 1 &&
@@ -233,12 +216,12 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 </div>
                 {
                     !!errors?.temps &&
-                    <Text color="tomato">{errors.temps}</Text>
+                    <p color="tomato">{errors.temps}</p>
                 }
             </div>
             {
                 !!errors?.other &&
-                <Text color="tomato">{errors.other}</Text>
+                <p color="tomato">{errors.other}</p>
             }
 
             <div>

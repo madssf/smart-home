@@ -1,7 +1,6 @@
 import React from 'react';
 import type {Consumption} from "~/routes/types";
 import {Area, AreaChart, Tooltip, XAxis, YAxis} from "recharts";
-import {useColorMode} from "@chakra-ui/react";
 
 export interface ConsumptionGraphProps {
     consumption: Consumption[]
@@ -11,9 +10,9 @@ const ConsumptionGraph = ({consumption}: ConsumptionGraphProps) => {
 
     const domainMax = Math.round(consumption.reduce((a, b) => b.kwh > a ? b.kwh : a, 0)) + 1;
 
-    const {colorMode} = useColorMode();
-
-    const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+    // TODO: Re-enable dark mode
+    // const color = colorMode === 'dark' ? '#F7FAFC' : '#4A5568';
+    const color = '#4A5568';
 
     function CustomizedAxisTick({ x, y, stroke, payload }: any) {
 
