@@ -12,12 +12,12 @@ use log::info;
 use sqlx::PgPool;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
-use tower::ServiceBuilder;
 use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
 use crate::clients::tibber_client::TibberClient;
 use crate::domain::{ActionType, WorkMessage};
+use crate::routes;
 use crate::service::consumption_cache::ConsumptionCache;
 
 // This function initializes all the services that our application provides
@@ -32,12 +32,37 @@ pub async fn start(
         .route("/_/health", get(health))
         .route("/trigger_refresh", get(refresh))
         .route("/trigger_button/:button_id/:action", get(trigger_button))
-        // Define the rest of your routes here
-        .layer(ServiceBuilder::new().layer(Extension(sender)))
-        .layer(Extension(pool))
-        .layer(Extension(tibber_client))
-        .layer(Extension(shelly_client))
-        .layer(Extension(consumption_cache))
+        .nest("/buttons", routes::buttons::buttons_router(pool.clone()))
+        .nest(
+            "/notification_settings",
+            routes::notification_settings::notification_settings_router(pool.clone()),
+        )
+        .nest(
+            "/plugs",
+            routes::plugs::plugs_router(pool.clone(), shelly_client.clone()),
+        )
+        .nest(
+            "/prices",
+            routes::prices::prices_router(pool.clone(), tibber_client.clone(), consumption_cache),
+        )
+        .nest("/rooms", routes::rooms::room_routes(pool.clone()))
+        .nest(
+            "/schedules",
+            routes::schedules::schedules_router(pool.clone(), tibber_client.clone()),
+        )
+        .nest(
+            "/temp_actions",
+            routes::temp_actions::temp_actions_router(pool.clone()),
+        )
+        .nest(
+            "/temp_sensors",
+            routes::temp_sensors::temp_sensors_router(pool.clone()),
+        )
+        .nest(
+            "/temperature_logs",
+            routes::temperature_logs::temperature_logs_router(pool.clone()),
+        )
+        .layer(Extension(sender))
 }
 
 // The health check handler
@@ -45,7 +70,6 @@ async fn health() -> impl IntoResponse {
     "Healthy!"
 }
 
-// The refresh handler, adapted for axum
 async fn refresh(Extension(sender): Extension<Sender<WorkMessage>>) -> impl IntoResponse {
     match sender.send(WorkMessage::REFRESH).await {
         Ok(_) => (StatusCode::OK, Json("Refresh triggered".to_string())),

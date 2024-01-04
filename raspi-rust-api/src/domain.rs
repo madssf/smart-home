@@ -132,7 +132,7 @@ pub struct LiveConsumption {
     pub power: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
     pub id: Uuid,
     pub name: String,

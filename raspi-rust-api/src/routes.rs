@@ -7,3 +7,4 @@ pub mod schedules;
 pub mod temp_actions;
 pub mod temp_sensors;
 pub mod temperature_logs;
+mod lib;

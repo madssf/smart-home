@@ -1,7 +1,11 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
+use axum::{Extension, Json, Router};
 use log::error;
 use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
@@ -9,28 +13,25 @@ use uuid::Uuid;
 
 use crate::db;
 use crate::domain::Button;
+use crate::routes::lib::{error_response, internal_server_error};
 
-pub fn buttons() -> Scope {
-    web::scope("/buttons")
-        .service(get_buttons)
-        .service(create_button)
-        .service(update_button)
-        .service(delete_button)
+pub fn buttons_router(pool: Arc<PgPool>) -> Router {
+    Router::new()
+        .route("/", get(get_buttons).post(create_button))
+        .route("/:id", post(update_button).delete(delete_button))
+        .layer(Extension(pool))
 }
 
-#[get("/")]
-async fn get_buttons(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::buttons::get_buttons(pool.get_ref()).await {
-        Ok(buttons) => {
-            let json: Vec<ButtonResponse> = buttons.iter().map(|b| b.to_json()).collect();
-
-            HttpResponse::Ok().json(json)
-        }
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+async fn get_buttons(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    db::buttons::get_buttons(&pool)
+        .await
+        .map(|buttons| {
+            (
+                StatusCode::OK,
+                Json(buttons.iter().map(|b| b.to_json()).collect::<Vec<_>>()),
+            )
+        })
+        .map_err(internal_server_error)
 }
 
 #[derive(serde::Serialize)]
@@ -65,11 +66,10 @@ pub struct ButtonRequest {
     plug_ids: Vec<Uuid>,
 }
 
-#[post("/")]
 async fn create_button(
-    pool: web::Data<Arc<PgPool>>,
-    body: web::Json<ButtonRequest>,
-) -> impl Responder {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<ButtonRequest>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let new_button = match Button::new(
         &body.name,
         &body.ip,
@@ -80,31 +80,44 @@ async fn create_button(
         Ok(button) => button,
         Err(e) => {
             error!("{}", e);
-            return HttpResponse::BadRequest().json(e.to_string());
+            return Err(error_response(
+                format!("Failed to create button: {}", e),
+                StatusCode::BAD_REQUEST,
+            ));
         }
     };
 
-    match db::buttons::create_button(pool.get_ref(), &new_button).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    db::buttons::create_button(&pool, &new_button)
+        .await
+        .map(|_| StatusCode::OK)
+        .map_err(|e| {
+            error!("{}", e);
+            error_response(
+                format!("Failed to create button: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })
 }
 
-#[post("/{id}")]
 async fn update_button(
-    pool: web::Data<Arc<PgPool>>,
-    id: web::Path<Uuid>,
-    body: web::Json<ButtonRequest>,
-) -> impl Responder {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<ButtonRequest>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let ip = match IpNetwork::from_str(&body.ip) {
         Ok(ip) => ip,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(_) => {
+            return Err(error_response(
+                "Failed to parse IP address.".to_string(),
+                StatusCode::BAD_REQUEST,
+            ))
+        }
     };
 
     match db::buttons::update_button(
-        pool.get_ref(),
+        &pool,
         &Button {
-            id: id.into_inner(),
+            id,
             ip,
             name: body.name.clone(),
             username: body.username.clone(),
@@ -114,15 +127,23 @@ async fn update_button(
     )
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Ok(_) => Ok(StatusCode::OK),
+        Err(e) => {
+            error!("{}", e);
+            Err(error_response(
+                format!("Failed to update button: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
     }
 }
 
-#[delete("/{id}")]
-async fn delete_button(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
-    match db::buttons::delete_button(pool.get_ref(), &id.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+async fn delete_button(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    db::buttons::delete_button(&pool, &id)
+        .await
+        .map(|_| StatusCode::OK)
+        .map_err(internal_server_error)
 }

@@ -1,61 +1,62 @@
 use std::sync::Arc;
 
-use actix_web::get;
-use actix_web::web;
-use actix_web::HttpResponse;
-use actix_web::Responder;
-use actix_web::Scope;
+use axum::{
+    extract::{Extension, Path},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    routing::get,
+    Router,
+};
 use chrono::NaiveDateTime;
-use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use web::Path;
 
 use crate::db;
+use crate::routes::lib::internal_server_error;
 use crate::service::temperature_logs::{generate_temperature_graph, TimePeriod};
 
-pub fn temperature_logs() -> Scope {
-    web::scope("/temperature_logs")
-        .service(get_temperature_logs)
-        .service(get_room_temperature_logs)
-        .service(get_current_temps)
+// Entry point to create router for temperature logs
+pub fn temperature_logs_router(pool: Arc<PgPool>) -> Router {
+    Router::new()
+        .route("/", get(get_temperature_logs))
+        .route("/:room_id/:time_period", get(get_room_temperature_logs))
+        .route("/current", get(get_current_temps))
+        .layer(Extension(pool))
 }
 
-#[get("/")]
-async fn get_temperature_logs(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::temperature_logs::get_temp_logs(pool.get_ref()).await {
-        Ok(logs) => HttpResponse::Ok().json(logs),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+// Handler to get all temperature logs
+async fn get_temperature_logs(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    db::temperature_logs::get_temp_logs(&pool)
+        .await
+        .map(Json)
+        .map_err(internal_server_error)
 }
 
+// Parameters for the room temperature logs request
 #[derive(Deserialize)]
-struct RoomLogsParams {
+pub struct RoomLogsParams {
     room_id: Uuid,
     time_period: TimePeriod,
 }
 
-#[get("/{room_id}/{time_period}")]
+// Handler to get temperature logs for a room
 async fn get_room_temperature_logs(
-    path: Path<RoomLogsParams>,
-    pool: web::Data<Arc<PgPool>>,
-) -> impl Responder {
-    let room_logs =
-        match db::temperature_logs::get_room_temp_logs(pool.get_ref(), &path.room_id).await {
-            Ok(logs) => logs,
-            Err(e) => {
-                error!("{:?}", e);
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
+    Path(params): Path<RoomLogsParams>,
+    Extension(pool): Extension<Arc<PgPool>>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let room_logs = match db::temperature_logs::get_room_temp_logs(&pool, &params.room_id).await {
+        Ok(logs) => logs,
+        Err(e) => return Err(internal_server_error(e)),
+    };
 
-    HttpResponse::Ok().json(generate_temperature_graph(room_logs, &path.time_period))
+    Ok((
+        StatusCode::OK,
+        Json(generate_temperature_graph(room_logs, &params.time_period)),
+    ))
 }
 
+// Struct to serialize the current room temperature response
 #[derive(Serialize)]
 struct RoomTemp {
     room_id: Uuid,
@@ -64,34 +65,28 @@ struct RoomTemp {
     time: NaiveDateTime,
 }
 
-#[get("/current")]
-async fn get_current_temps(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    let rooms = match db::rooms::get_rooms(pool.get_ref()).await {
-        Ok(rooms) => rooms,
-        Err(e) => {
-            error!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+// Handler to get current temperatures
+async fn get_current_temps(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    let rooms = db::rooms::get_rooms(&pool)
+        .await
+        .map_err(internal_server_error)?;
 
-    match db::temperature_logs::get_current_temps(pool.get_ref(), &rooms).await {
-        Ok(temps) => {
-            let mut room_temps: Vec<RoomTemp> = vec![];
-            temps.iter().for_each(|(room_id, room_temp)| {
-                if let Some(room) = rooms.iter().find(|room| &room.id == room_id) {
-                    room_temps.push(RoomTemp {
+    db::temperature_logs::get_current_temps(&pool, &rooms)
+        .await
+        .map(|temps| {
+            let room_temps: Vec<RoomTemp> = temps
+                .into_iter()
+                .filter_map(|(room_id, room_temp)| {
+                    let room = rooms.iter().find(|room| room.id == room_id)?;
+                    Some(RoomTemp {
                         room_id: room.id,
                         room_name: room.name.clone(),
                         temp: room_temp.temp,
                         time: room_temp.time,
-                    });
-                }
-            });
-            HttpResponse::Ok().json(room_temps)
-        }
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+                    })
+                })
+                .collect();
+            Json(room_temps)
+        })
+        .map_err(internal_server_error)
 }

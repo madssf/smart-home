@@ -1,45 +1,48 @@
 use std::sync::Arc;
 
-use actix_web::{delete, get, HttpResponse, post, Responder, Scope, web};
-use log::error;
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{delete, get};
+use axum::{Extension, Json, Router};
+use log::info;
 use sqlx::PgPool;
 
 use crate::db;
 use crate::domain::TempSensor;
+use crate::routes::lib::internal_server_error;
 
-pub fn temp_sensors() -> Scope {
-    web::scope("/temp_sensors")
-        .service(get_temp_sensors)
-        .service(create_sensor)
-        .service(delete_sensor)
+pub fn temp_sensors_router(pool: Arc<PgPool>) -> Router {
+    Router::new()
+        .route("/", get(get_temp_sensors).post(create_sensor))
+        .route("/:id", delete(delete_sensor))
+        .layer(Extension(pool))
 }
 
-#[get("/")]
-async fn get_temp_sensors(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::temp_sensors::get_temp_sensors(pool.get_ref()).await {
-        Ok(sensors) => HttpResponse::Ok().json(sensors),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+async fn get_temp_sensors(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    db::temp_sensors::get_temp_sensors(&pool)
+        .await
+        .map(|sensors| (StatusCode::OK, Json(sensors)))
+        .map_err(internal_server_error)
 }
 
-#[post("/")]
 async fn create_sensor(
-    pool: web::Data<Arc<PgPool>>,
-    body: web::Json<TempSensor>,
-) -> impl Responder {
-    match db::temp_sensors::insert_temp_sensor(pool.get_ref(), &body.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<TempSensor>,
+) -> impl IntoResponse {
+    db::temp_sensors::insert_temp_sensor(&pool, &body)
+        .await
+        .map(|_| StatusCode::OK)
+        .map_err(internal_server_error)
 }
 
-#[delete("/{id}")]
-async fn delete_sensor(pool: web::Data<Arc<PgPool>>, id: web::Path<String>) -> impl Responder {
-    match db::temp_sensors::delete_temp_sensor(pool.get_ref(), &id.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+async fn delete_sensor(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    info!("Deleting temp sensor with id: {}", id);
+    db::temp_sensors::delete_temp_sensor(&pool, &id)
+        .await
+        .map(|_| StatusCode::OK)
+        .map_err(internal_server_error)
 }

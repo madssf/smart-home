@@ -1,7 +1,11 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
+use axum::{Extension, Json, Router};
 use log::error;
 use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
@@ -9,30 +13,23 @@ use uuid::Uuid;
 
 use crate::clients::shelly_client::ShellyClient;
 use crate::domain::Plug;
+use crate::routes::lib::{error_response, internal_server_error};
 use crate::{db, service};
 
-pub fn plugs(shelly_client: web::Data<Arc<ShellyClient>>) -> Scope {
-    web::scope("/plugs")
-        .app_data(shelly_client)
-        .service(get_plugs)
-        .service(create_plug)
-        .service(update_plug)
-        .service(delete_plug)
-        .service(get_plug_statuses)
+pub fn plugs_router(pool: Arc<PgPool>, shelly_client: Arc<ShellyClient>) -> Router {
+    Router::new()
+        .route("/", get(get_plugs).post(create_plug))
+        .route("/:id", post(update_plug).delete(delete_plug))
+        .route("/status", get(get_plug_statuses))
+        .layer(Extension(pool))
+        .layer(Extension(shelly_client))
 }
 
-#[get("/")]
-async fn get_plugs(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::plugs::get_plugs(pool.get_ref()).await {
-        Ok(plugs) => {
-            let json: Vec<PlugResponse> = plugs.iter().map(|plug| plug.to_json()).collect();
-            HttpResponse::Ok().json(json)
-        }
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+async fn get_plugs(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    db::plugs::get_plugs(&pool)
+        .await
+        .map(|plugs| Json(plugs.into_iter().map(|p| p.to_json()).collect::<Vec<_>>()))
+        .map_err(internal_server_error)
 }
 
 #[derive(serde::Serialize)]
@@ -70,8 +67,10 @@ pub struct PlugRequest {
     scheduled: bool,
 }
 
-#[post("/")]
-async fn create_plug(pool: web::Data<Arc<PgPool>>, body: web::Json<PlugRequest>) -> impl Responder {
+async fn create_plug(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<PlugRequest>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let new_plug = match Plug::new(
         &body.name,
         &body.ip,
@@ -83,31 +82,44 @@ async fn create_plug(pool: web::Data<Arc<PgPool>>, body: web::Json<PlugRequest>)
         Ok(plug) => plug,
         Err(e) => {
             error!("{}", e);
-            return HttpResponse::BadRequest().json(e.to_string());
+            return Err(error_response(
+                format!("Failed to create plug: {}", e),
+                StatusCode::BAD_REQUEST,
+            ));
         }
     };
 
-    match db::plugs::create_plug(pool.get_ref(), &new_plug).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    db::plugs::create_plug(&pool, &new_plug)
+        .await
+        .map(|_| (StatusCode::OK, Json("Plug created successfully.")))
+        .map_err(|e| {
+            error!("{}", e.to_string());
+            error_response(
+                "Failed to create plug.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })
 }
 
-#[post("/{id}")]
 async fn update_plug(
-    pool: web::Data<Arc<PgPool>>,
-    id: web::Path<Uuid>,
-    body: web::Json<PlugRequest>,
-) -> impl Responder {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<PlugRequest>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let ip = match IpNetwork::from_str(&body.ip) {
         Ok(ip) => ip,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(_) => {
+            return Err(error_response(
+                "Invalid IP address.".to_string(),
+                StatusCode::BAD_REQUEST,
+            ))
+        }
     };
 
     match db::plugs::update_plug(
-        pool.get_ref(),
+        &pool,
         Plug {
-            id: id.into_inner(),
+            id,
             ip,
             name: body.name.clone(),
             username: body.username.clone(),
@@ -118,36 +130,43 @@ async fn update_plug(
     )
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Ok(_) => Ok((StatusCode::OK, Json("Plug updated successfully."))),
+        Err(e) => {
+            error!("{}", e.to_string());
+            Err(error_response(
+                "Failed to update plug.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        }
     }
 }
 
-#[delete("/{id}")]
-async fn delete_plug(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
-    match db::plugs::delete_plug(pool.get_ref(), &id.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+async fn delete_plug(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    match db::plugs::delete_plug(&pool, &id).await {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
-#[get("/status")]
 async fn get_plug_statuses(
-    pool: web::Data<Arc<PgPool>>,
-    shelly_client: web::Data<Arc<ShellyClient>>,
-) -> impl Responder {
-    let plugs = match db::plugs::get_plugs(pool.get_ref()).await {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Extension(shelly_client): Extension<Arc<ShellyClient>>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let plugs = match db::plugs::get_plugs(&pool).await {
         Ok(plugs) => plugs,
         Err(e) => {
             error!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
-    match service::plugs::get_plug_statuses(&plugs, shelly_client.get_ref()).await {
-        Ok(plug_statuses) => HttpResponse::Ok().json(plug_statuses),
+    match service::plugs::get_plug_statuses(&plugs, &shelly_client).await {
+        Ok(plug_statuses) => Ok(Json(plug_statuses)),
         Err(e) => {
             error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }

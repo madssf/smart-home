@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread::sleep;
 
 use chrono::{Duration, NaiveDateTime};
 use log::{debug, error, info};
@@ -102,7 +101,7 @@ impl NotificationHandler {
                     }
                 }
             }
-            sleep(core::time::Duration::from_millis(100))
+            tokio::time::sleep(core::time::Duration::from_millis(100)).await;
         }
     }
 

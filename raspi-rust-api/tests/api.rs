@@ -74,7 +74,6 @@ async fn assert_api_ready(local_addr: &SocketAddr) {
 
 #[tokio::test]
 async fn given_api_started_then_return_200() {
-    // Spin up the server and get its bound address
     let (addr, shutdown_tx, server_handle) = spin_up_test_server().await;
 
     assert_api_ready(&addr).await;
