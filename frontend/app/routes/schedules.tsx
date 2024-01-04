@@ -1,4 +1,4 @@
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import type {Schedule, Weekday} from "~/routes/schedules/types";
 import {WEEKDAYS} from "~/routes/schedules/types";
@@ -7,6 +7,7 @@ import {routes} from "~/routes";
 import {validateDays, validateTemps, validateTimeWindows} from "~/routes/schedules/utils/utils";
 import type {FormErrors} from "~/utils/types";
 import {Link, useLoaderData} from "@remix-run/react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, {useState} from "react";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createSchedule, deleteSchedule, getSchedules, updateSchedule} from "~/routes/schedules/schedules.server";
@@ -28,7 +29,7 @@ export type ScheduleFormErrors = FormErrors<Schedule>
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
     const id = body.get("id")?.toString();

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import {Form, useActionData} from "@remix-run/react";
@@ -12,6 +13,7 @@ import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
 import {Input} from "~/components/ui/input";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
@@ -20,6 +22,7 @@ export interface TempActionFormProps {
 
 const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
     const actionData = useActionData<TempActionErrors>();
+    const navigation = useNavigation();
     const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(tempAction);
 
     const formRef = useRef<HTMLFormElement>(null);
@@ -41,13 +44,13 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
             formRef.current?.reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.TEMP_ACTIONS.ROOT}>
             <input hidden readOnly name="id" value={tempAction?.id}/>
             <div className="flex flex-col">
-                <label className="font-bold">Action</label>
+                <p className="font-bold">Action</p>
                 <RadioGroup defaultValue={tempAction?.action ?? ActionType.ON} name="actionType">
                     <div className="flex flex-row">
                         {Object.values(ActionType).map((actionType) => {

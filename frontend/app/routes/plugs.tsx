@@ -1,8 +1,8 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import PlugForm from "~/routes/plugs/components/plugForm";
 import {Link, useLoaderData} from "@remix-run/react";
@@ -22,7 +22,7 @@ export type PlugFormErrors = FormErrors<Plug>;
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 

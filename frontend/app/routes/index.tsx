@@ -10,7 +10,6 @@ import {
 } from "~/routes/index.server";
 import {Link, useFetcher, useLoaderData} from "@remix-run/react";
 import type {Consumption, EnrichedRoomData, PriceInfo} from "./types";
-import {PriceLevel} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
 import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData";
@@ -71,23 +70,7 @@ export default function Index() {
         return () => clearInterval(interval);
 
     }, [fetchTrigger]);
-
-    const getColorForPrice = (priceLevel: PriceLevel) => {
-        switch (priceLevel) {
-            case PriceLevel.VeryCheap:
-                return 'green';
-            case PriceLevel.Cheap:
-                return 'cyan';
-            case PriceLevel.Normal:
-                return 'blue';
-            case PriceLevel.Expensive:
-                return 'orange';
-            case PriceLevel.VeryExpensive:
-                return 'red';
-
-        }
-    };
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const getColorForConsumptionChange = (change?: LiveConsumptionChange) => {
         switch (change) {
             case "UP":

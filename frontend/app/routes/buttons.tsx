@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {Link, useLoaderData} from "@remix-run/react";
 import {validateIpAddress, validateNonEmptyList, validateNonEmptyString} from "~/utils/validation";
@@ -22,7 +22,7 @@ export type ButtonFormErrors = FormErrors<ButtonType>;
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 

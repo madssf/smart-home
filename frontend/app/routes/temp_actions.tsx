@@ -1,7 +1,6 @@
-import React from 'react';
 import {routes} from "~/routes";
 import type {FormErrors} from "~/utils/types";
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {useLoaderData} from "@remix-run/react";
 import type {TempAction} from "~/routes/temp_actions/types";
@@ -32,7 +31,7 @@ export type TempActionErrors = FormErrors<TempAction>;
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 

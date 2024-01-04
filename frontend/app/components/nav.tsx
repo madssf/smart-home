@@ -1,5 +1,3 @@
-import React from 'react';
-import {homeLink, pageLinks} from './pageLinks';
 import {useLocation} from '@remix-run/react';
 import {
     DropdownMenu,
@@ -10,6 +8,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import {AlignJustify, Moon} from "lucide-react";
 import {Button} from "~/components/ui/button";
+import {homeLink, pageLinks} from "~/components/pageLinks";
 
 
 const Nav = () => {
