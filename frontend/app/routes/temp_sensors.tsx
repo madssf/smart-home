@@ -51,6 +51,7 @@ export const action: ActionFunction = async ({request}) => {
     const document: TempSensor = {
         id: validated.id.data,
         room_id: validated.room_id.data,
+        battery_level: null,
     };
 
     await createTempSensor(document);

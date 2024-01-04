@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use actix_web::{delete, get, post, web, HttpResponse, Responder, Scope};
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
+use axum::{Extension, Json, Router};
 use chrono::{NaiveTime, Weekday};
 use log::error;
 use sqlx::PgPool;
@@ -10,25 +14,30 @@ use uuid::Uuid;
 use crate::clients::tibber_client::TibberClient;
 use crate::db::rooms;
 use crate::domain::{PriceLevel, Schedule};
-use crate::service;
-use crate::{db, now};
+use crate::routes::lib::error_response;
+use crate::{db, now, service};
 
-pub fn schedules() -> Scope {
-    web::scope("/schedules")
-        .service(get_schedules)
-        .service(create_schedule)
-        .service(update_schedule)
-        .service(delete_schedule)
-        .service(get_active_schedules)
+// Router definition for the schedules module
+pub fn schedules_router(pool: Arc<PgPool>, tibber_client: Arc<TibberClient>) -> Router {
+    Router::new()
+        .route("/", get(get_schedules).post(create_schedule))
+        .route("/:id", post(update_schedule).delete(delete_schedule))
+        .route("/active", get(get_active_schedules))
+        .layer(Extension(pool))
+        .layer(Extension(tibber_client))
 }
 
-#[get("/")]
-async fn get_schedules(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::schedules::get_schedules(pool.get_ref()).await {
-        Ok(schedules) => HttpResponse::Ok().json(schedules),
+// Handler to get all schedules
+async fn get_schedules(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    match db::schedules::get_schedules(&pool).await {
+        Ok(schedules) => (StatusCode::OK, Json(schedules)).into_response(),
         Err(e) => {
             error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
+            error_response(
+                "Failed to get schedules.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+            .into_response()
         }
     }
 }
@@ -49,37 +58,43 @@ impl TryInto<Schedule> for ScheduleRequest {
     }
 }
 
-#[post("/")]
 async fn create_schedule(
-    pool: web::Data<Arc<PgPool>>,
-    body: web::Json<ScheduleRequest>,
-) -> impl Responder {
-    let new_schedule = match body.into_inner().try_into() {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<ScheduleRequest>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let new_schedule = match body.try_into() {
         Ok(schedule) => schedule,
         Err(e) => {
             error!("{}", e);
-            return HttpResponse::BadRequest().finish();
+            return Err(error_response(
+                format!("Failed to create schedule: {}", e),
+                StatusCode::BAD_REQUEST,
+            ));
         }
     };
-    match db::schedules::create_schedule(pool.get_ref(), new_schedule).await {
-        Ok(_) => HttpResponse::Ok().finish(),
+
+    match db::schedules::create_schedule(&pool, new_schedule).await {
+        Ok(_) => Ok((StatusCode::OK, Json("Schedule created successfully."))),
         Err(e) => {
             error!("{}", e.to_string());
-            HttpResponse::BadRequest().finish()
+            Err(error_response(
+                "Failed to create schedule.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
         }
     }
 }
 
-#[post("/{id}")]
+// Handler to update a schedule by ID
 async fn update_schedule(
-    pool: web::Data<Arc<PgPool>>,
-    id: web::Path<Uuid>,
-    body: web::Json<ScheduleRequest>,
-) -> impl Responder {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<ScheduleRequest>,
+) -> impl IntoResponse {
     match db::schedules::update_schedule(
-        pool.get_ref(),
+        &pool,
         Schedule {
-            id: id.into_inner(),
+            id,
             temps: body.temps.clone(),
             days: body.days.clone(),
             time_windows: body.time_windows.clone(),
@@ -88,16 +103,27 @@ async fn update_schedule(
     )
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Ok(_) => (StatusCode::OK).into_response(),
+        Err(_) => error_response(
+            "Failed to update schedule.".to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response(),
     }
 }
 
-#[delete("/{id}")]
-async fn delete_schedule(pool: web::Data<Arc<PgPool>>, id: web::Path<Uuid>) -> impl Responder {
-    match db::schedules::delete_schedule(pool.get_ref(), &id.into_inner()).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+// Handler to delete a schedule by ID
+async fn delete_schedule(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    match db::schedules::delete_schedule(&pool, &id).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => error_response(
+            format!("Failed to delete schedule: {}", e),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response(),
     }
 }
 
@@ -107,30 +133,34 @@ pub struct ActiveSchedule {
     pub schedule: Option<Schedule>,
     pub temp: Option<f64>,
 }
-
-#[get("/active")]
 async fn get_active_schedules(
-    pool: web::Data<Arc<PgPool>>,
-    tibber_client: web::Data<Arc<TibberClient>>,
-) -> impl Responder {
-    let rooms = match rooms::get_rooms(pool.get_ref()).await {
+    Extension(pool): Extension<Arc<PgPool>>,
+    Extension(tibber_client): Extension<Arc<TibberClient>>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let rooms = match rooms::get_rooms(&pool).await {
         Ok(rooms) => rooms,
         Err(e) => {
             error!("{:?}", e);
-            return HttpResponse::InternalServerError().finish();
+            return Err(error_response(
+                "Failed to get rooms.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
         }
     };
-    let price_info =
-        match service::prices::get_current_price(tibber_client.get_ref(), pool.get_ref()).await {
-            Ok(price) => price,
-            Err(e) => {
-                error!("{:?}", e);
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
+
+    let price_info = match service::prices::get_current_price(&tibber_client, &pool).await {
+        Ok(price) => price,
+        Err(e) => {
+            error!("{:?}", e);
+            return Err(error_response(
+                "Failed to get current price.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
+    };
     let mut active_schedules: Vec<ActiveSchedule> = vec![];
     for room in rooms {
-        match db::schedules::get_matching_schedule(pool.get_ref(), &room.id, &now()).await {
+        match db::schedules::get_matching_schedule(&pool, &room.id, &now()).await {
             Ok(schedule) => {
                 let temp =
                     if let Some(schedule) = schedule.clone() {
@@ -148,10 +178,12 @@ async fn get_active_schedules(
             }
             Err(e) => {
                 error!("{:?}", e);
-                return HttpResponse::InternalServerError().finish();
+                return Err(error_response(
+                    format!("Failed to get schedule for room {}, {}", room.id, e),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                ));
             }
         };
     }
-
-    HttpResponse::Ok().json(active_schedules)
+    Ok((StatusCode::OK, Json(active_schedules)))
 }

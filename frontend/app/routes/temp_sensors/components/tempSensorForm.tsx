@@ -105,9 +105,11 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                 }
                 {
                     !isNew &&
-                    <Button variant="outline" type="submit" name="intent" value="delete"
-                            disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
-
+                    <>
+                        <input type="hidden" name="id" value={sensor?.id}/>
+                        <Button variant="outline" type="submit" name="intent" value="delete"
+                                disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete'}</Button>
+                    </>
                 }
             </div>
 

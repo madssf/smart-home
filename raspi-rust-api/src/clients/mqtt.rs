@@ -1,6 +1,5 @@
 use std::str;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 
 use log::{debug, error, info, warn};
@@ -57,7 +56,7 @@ impl MqttClient {
                 "MQTT subscriber quit unexpectedly, restarting in 5 seconds: {:?}",
                 res
             );
-            sleep(Duration::from_secs(5));
+            tokio::time::sleep(Duration::from_secs(5)).await;
         }
     }
 

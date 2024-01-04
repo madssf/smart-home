@@ -59,7 +59,7 @@ export async function createRequest<T>(endpoint: string, data: T): Promise<void>
 export async function updateRequest<T extends { id: string }>(endpoint: string, data: T): Promise<void> {
     const {id, ...rest} = data;
     const response = await fetchWithRetry(
-        `${BASE_URL}${endpoint}${id}`,
+        `${BASE_URL}${endpoint}/${id}`,
         {
             method: 'post',
             headers: {
@@ -77,7 +77,7 @@ export async function updateRequest<T extends { id: string }>(endpoint: string, 
 
 export async function deleteRequest(endpoint: string, id: string): Promise<void> {
     const response = await fetchWithRetry(
-        `${BASE_URL}${endpoint}${id}`,
+        `${BASE_URL}${endpoint}/${id}`,
         {
             method: 'delete',
         },

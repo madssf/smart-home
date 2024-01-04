@@ -6,18 +6,18 @@ use chrono_tz::Tz;
 pub mod api;
 pub mod clients;
 pub mod configuration;
+pub mod cron_scheduler;
 pub mod db;
 pub mod domain;
 pub mod observability;
 pub mod routes;
 pub mod service;
 pub mod work_handler;
-pub mod cron_scheduler;
 
 pub fn env_var(name: &str) -> String {
     env::var(name)
         .map_err(|e| format!("{}: {}", name, e))
-        .expect(&*format!("Missing env var: {}", name))
+        .unwrap_or_else(|_| panic!("Missing env var: {}", name))
 }
 
 pub fn now() -> NaiveDateTime {

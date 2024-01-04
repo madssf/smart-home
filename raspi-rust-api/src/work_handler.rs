@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 
 use chrono::NaiveDateTime;
@@ -8,17 +7,17 @@ use itertools::Itertools;
 use log::{debug, error, info};
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc::{Receiver, Sender};
 use uuid::Uuid;
 
-use crate::{db, now, service};
 use crate::clients::shelly_client::{ShellyClient, ShellyClientError};
 use crate::clients::tibber_client::{TibberClient, TibberClientError};
 use crate::db::DbError;
 use crate::domain::{
     ActionType, Plug, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
 };
+use crate::{db, now, service};
 
 #[derive(Error, Debug)]
 pub enum WorkHandlerError {
@@ -128,7 +127,7 @@ impl WorkHandler {
                     }
                 }
             }
-            sleep(Duration::from_millis(100))
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
     }
 
@@ -140,11 +139,11 @@ impl WorkHandler {
             match sender.send(WorkMessage::POLL).await {
                 Ok(_) => {
                     debug!("Sent message, sleeping for {} minutes", poll_interval_mins);
-                    sleep(Duration::from_secs(poll_interval_mins * 60))
+                    tokio::time::sleep(Duration::from_secs(poll_interval_mins * 60)).await
                 }
                 Err(e) => {
                     error!("Failed to send message, error {}", e);
-                    sleep(Duration::from_secs(poll_interval_mins * 10))
+                    tokio::time::sleep(Duration::from_secs(poll_interval_mins * 10)).await
                 }
             }
         }

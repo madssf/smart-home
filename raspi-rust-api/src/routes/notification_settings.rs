@@ -1,44 +1,34 @@
 use std::sync::Arc;
 
-use actix_web::{get, post, web, HttpResponse, Responder, Scope};
-use log::error;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::{Extension, Json, Router};
 use sqlx::PgPool;
 
 use crate::db;
 use crate::domain::NotificationSettings;
+use crate::routes::lib::internal_server_error;
 
-pub fn notification_settings() -> Scope {
-    web::scope("/notification_settings")
-        .service(get_settings)
-        .service(upsert_settings)
+pub fn notification_settings_router(pool: Arc<PgPool>) -> Router {
+    Router::new()
+        .route("/", get(get_settings).post(upsert_settings))
+        .layer(Extension(pool))
 }
 
-#[get("/")]
-async fn get_settings(pool: web::Data<Arc<PgPool>>) -> impl Responder {
-    match db::notification_settings::get_notification_settings(pool.get_ref()).await {
-        Ok(settings) => HttpResponse::Ok().json(settings),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+async fn get_settings(Extension(pool): Extension<Arc<PgPool>>) -> impl IntoResponse {
+    db::notification_settings::get_notification_settings(&pool)
+        .await
+        .map(|settings| (StatusCode::OK, Json(settings)))
+        .map_err(internal_server_error)
 }
 
-#[post("/")]
 async fn upsert_settings(
-    pool: web::Data<Arc<PgPool>>,
-    body: web::Json<NotificationSettings>,
-) -> impl Responder {
-    match db::notification_settings::upsert_notification_settings(
-        pool.get_ref(),
-        &body.into_inner(),
-    )
-    .await
-    {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<NotificationSettings>,
+) -> impl IntoResponse {
+    db::notification_settings::upsert_notification_settings(&pool, &body)
+        .await
+        .map(|_| StatusCode::OK)
+        .map_err(internal_server_error)
 }

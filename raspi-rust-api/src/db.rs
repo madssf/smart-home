@@ -38,8 +38,9 @@ impl DbConfig {
 
         let pool = PgPoolOptions::new()
             .acquire_timeout(Duration::from_millis(200))
-            .max_connections(10)
-            .connect_lazy(db_url)?;
+            .max_connections(50)
+            .connect(db_url)
+            .await?;
 
         DB_MIGRATOR.run(&pool).await?;
 

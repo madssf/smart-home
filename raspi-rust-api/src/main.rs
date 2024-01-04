@@ -3,6 +3,7 @@ use std::sync::Arc;
 use log::info;
 use tokio::sync::{mpsc, RwLock};
 
+use rust_home::api::serve_app;
 use rust_home::clients::mqtt::MqttClient;
 use rust_home::clients::{
     shelly_client::ShellyClient, tibber_client::TibberClient, tibber_subscriber::TibberSubscriber,
@@ -45,6 +46,7 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(async { notification_handler.start().await });
 
     if configuration.mqtt.run_mqtt {
+        let configuration = configuration.clone();
         let mqtt_client = MqttClient::new(
             configuration.mqtt.host,
             configuration.mqtt.base_topic,
@@ -69,16 +71,20 @@ async fn main() -> std::io::Result<()> {
 
     let server = api::start(
         work_message_tx,
-        configuration.application_host,
-        configuration.application_port,
         tibber_client,
         shelly_client,
         consumption_cache.clone(),
         pool,
     )
-    .await?;
+    .await;
 
-    tokio::spawn(async { server.await });
+    serve_app(
+        configuration.application_host,
+        configuration.application_port,
+        server,
+    )
+    .await;
+
     shutdown_signal().await;
 
     Ok(())

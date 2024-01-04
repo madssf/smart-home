@@ -132,7 +132,7 @@ pub struct LiveConsumption {
     pub power: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
     pub id: Uuid,
     pub name: String,
@@ -242,7 +242,7 @@ impl Schedule {
         if let Some(temp) = self.temps.get(price_level) {
             *temp
         } else if self.temps.len() == 1 {
-            *self.temps.values().into_iter().collect::<Vec<&f64>>()[0]
+            *self.temps.values().collect::<Vec<&f64>>()[0]
         } else {
             let index = price_level.index_of();
             let min_price_level = self

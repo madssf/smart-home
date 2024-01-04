@@ -1,36 +1,40 @@
 use std::sync::Arc;
 
-use actix_web::{get, web, HttpResponse, Responder, Scope};
-use log::error;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::{Extension, Json, Router};
 use serde::Serialize;
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 
 use crate::clients::tibber_client::TibberClient;
-use crate::domain::Consumption;
+use crate::domain::{Consumption, LiveConsumption};
+use crate::routes::lib::internal_server_error;
 use crate::service;
 use crate::service::consumption_cache::ConsumptionCache;
 
-pub fn prices(consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>) -> Scope {
-    web::scope("/prices")
-        .app_data(consumption_cache)
-        .service(get_current_price)
-        .service(get_consumption)
-        .service(get_live_consumption)
+pub fn prices_router(
+    pool: Arc<PgPool>,
+    tibber_client: Arc<TibberClient>,
+    consumption_cache: Arc<RwLock<ConsumptionCache>>,
+) -> Router {
+    Router::new()
+        .route("/current", get(get_current_price))
+        .route("/consumption", get(get_consumption))
+        .route("/live_consumption", get(get_live_consumption))
+        .layer(Extension(pool))
+        .layer(Extension(tibber_client))
+        .layer(Extension(consumption_cache))
 }
 
-#[get("/current")]
 async fn get_current_price(
-    tibber_client: web::Data<Arc<TibberClient>>,
-    pool: web::Data<Arc<PgPool>>,
-) -> impl Responder {
-    match service::prices::get_current_price(tibber_client.get_ref(), pool.get_ref()).await {
-        Ok(price) => HttpResponse::Ok().json(price),
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+    Extension(tibber_client): Extension<Arc<TibberClient>>,
+    Extension(pool): Extension<Arc<PgPool>>,
+) -> impl IntoResponse {
+    service::prices::get_current_price(&tibber_client, &pool)
+        .await
+        .map(Json)
+        .map_err(internal_server_error)
 }
 
 #[derive(Serialize)]
@@ -48,24 +52,27 @@ impl From<&Consumption> for ConsumptionGraphData {
     }
 }
 
-#[get("/consumption")]
-async fn get_consumption(tibber_client: web::Data<Arc<TibberClient>>) -> impl Responder {
-    match tibber_client.get_ref().get_consumption().await {
-        Ok(consumption) => {
+async fn get_consumption(
+    Extension(tibber_client): Extension<Arc<TibberClient>>,
+) -> impl IntoResponse {
+    tibber_client
+        .get_consumption()
+        .await
+        .map(|consumption| {
             let json: Vec<ConsumptionGraphData> = consumption.iter().map(|v| v.into()).collect();
-            HttpResponse::Ok().json(json)
-        }
-        Err(e) => {
-            error!("{:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+            Json(json)
+        })
+        .map_err(internal_server_error)
 }
 
-#[get("/live_consumption")]
 async fn get_live_consumption(
-    consumption_cache: web::Data<Arc<RwLock<ConsumptionCache>>>,
-) -> impl Responder {
+    Extension(consumption_cache): Extension<Arc<RwLock<ConsumptionCache>>>,
+) -> impl IntoResponse {
     let cache = consumption_cache.read().await;
-    HttpResponse::Ok().json(cache.get_all())
+    let res = cache
+        .get_all()
+        .into_iter()
+        .cloned()
+        .collect::<Vec<LiveConsumption>>();
+    Json(res)
 }

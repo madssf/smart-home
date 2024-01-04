@@ -1,6 +1,5 @@
 use std::net::TcpStream;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 
 use async_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
@@ -67,7 +66,7 @@ impl TibberSubscriber {
                 backoff, subscription,
             );
 
-            sleep(Duration::from_secs(backoff));
+            tokio::time::sleep(Duration::from_secs(backoff)).await;
 
             info!("Restarting subscriber now!");
 
