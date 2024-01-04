@@ -115,16 +115,6 @@ docker compose -f docker-compose-armv7.yml up --build
 
 ## Temp sensor setup
 
-### Shelly H&T
-1. Connect to sensor WIFI and go to 192.168.33.1
-2. Go to the `Internet & Security` tab.
-3. Under `WIFI MODE - CLIENT`, connect the plug to your network and give it a static IP-address.
-4. Add a username and password under `RESTRICT LOGIN`
-5. Disable `CLOUD`
-6. Go to the `Actions` tab
-7. Under `REPORT SENSOR VALUES`, enable and add the following URL:
-   - `http://<ip of raspberry pi>:8081/report_ht/<room id>`
-
 ### Aqara Temperature Sensor
 
 - https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html
