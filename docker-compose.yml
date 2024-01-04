@@ -13,6 +13,7 @@ services:
     restart: always
     env_file:
       - raspi-rust-api/.env.prod
+      - .env.macos
     ports:
       - "8081:8081"
     depends_on:

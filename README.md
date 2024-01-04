@@ -13,6 +13,14 @@
 ### Setup
 
 #### Environment variables
+  - `.env.macos`
+```
+APP_MQTT__ID=macos
+```
+  - `.env.armv7`
+```
+APP_MQTT__ID=armv7
+```
   - `.env.db`
 ```
 POSTGRES_DB=<replace me>

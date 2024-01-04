@@ -6,7 +6,7 @@ use crate::observability::{get_app_environment, Environment};
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub mqtt: MqttSettings,
+    pub mqtt: MqttConfig,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub application_port: u16,
     pub application_host: String,
@@ -23,10 +23,11 @@ pub struct DatabaseSettings {
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
-pub struct MqttSettings {
+pub struct MqttConfig {
     pub run_mqtt: bool,
     pub host: String,
     pub base_topic: String,
+    pub id: String,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

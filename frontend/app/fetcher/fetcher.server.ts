@@ -110,7 +110,7 @@ async function fetchWithRetry(url: RequestInfo, options: RequestInit, attempt = 
             if (attempt > 5) {
                 throw new Error(e);
             } else {
-                console.log(`Caught exception during fetch, url: ${url}, current attempt: ${attempt}`);
+                console.log(`Caught exception during fetch, url: ${url}, current attempt: ${attempt}, error: ${e}`);
                 return fetchWithRetry(url, options, attempt + 1);
             }
         });

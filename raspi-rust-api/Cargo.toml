@@ -20,7 +20,7 @@ strum = "0.24"
 strum_macros = "0.24"
 thiserror = "1.0"
 tibber = "0.4"
-tokio = { version = "1.21", features = ["time", "macros"] }
+tokio = { version = "1.26", features = ["time", "macros", "signal"] }
 config = "0.13"
 uuid = {version ="1.2", features = ["v4", "serde"] }
 anyhow = "1.0"

@@ -4,3 +4,5 @@
 transfer.tar.gz
 zigbee2mqtt
 *.tar
+.env.macos
+.env.armv7

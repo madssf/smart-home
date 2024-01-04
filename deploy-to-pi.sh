@@ -27,8 +27,7 @@ function display_help() {
 # Function to gracefully handle failures
 handle_error() {
     echo "Error: $1"
-    echo "Deployment failed. Cleaning up..."
-    ssh $PI_USERNAME@$PI_HOSTNAME "cd $PI_DIRECTORY && docker compose -f $COMPOSE_FILE down"
+    echo "Deployment failed."
     exit 1
 }
 
@@ -79,6 +78,7 @@ scp $COMPOSE_FILE $PI_USERNAME@$PI_HOSTNAME:$PI_DIRECTORY || handle_error "Trans
 scp .env.db $PI_USERNAME@$PI_HOSTNAME:$PI_DIRECTORY || handle_error "Transferring .env.db failed"
 scp raspi-rust-api/.env.prod $PI_USERNAME@$PI_HOSTNAME:$PI_DIRECTORY || handle_error "Transferring API .env failed"
 scp frontend/.env $PI_USERNAME@$PI_HOSTNAME:$PI_DIRECTORY || handle_error "Transferring Frontend .env failed"
+scp .env.armv7 $PI_USERNAME@$PI_HOSTNAME:$PI_DIRECTORY || handle_error "Transferring .env.armv7 failed"
 
 # SSH into Raspberry Pi and start the services
 echo "Connecting to the Raspberry Pi to start the containers..."
