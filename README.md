@@ -8,6 +8,7 @@
   - SSH keys
   - Docker
   - Cloudflared (for hosting on the web using a tunnel, see [guide to running cloudflared as a service](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/local/))
+  - Zigbee2mqtt (see [docs](https://www.zigbee2mqtt.io/))
 
 ### Setup
 
@@ -25,12 +26,12 @@ POSTGRES_PASSWORD=<replace me>
 
 - Optional: If SQL queries/tables have been edited:
 `cd raspi-rust-api && cargo sqlx prepare`
-- From another machine:
-  `sh transfer.sh`
-- On the Raspberry Pi (user root directory):
-  `sh run.sh`
+- From development machine:
+`sh deploy-to-pi.sh` (some options here, see script for details or run `sh deploy-to-pi.sh --help`)
 
 ## Cross-compiling for Raspberry Pi
+
+This is all done in the `deploy-to-pi.sh` script, but here are the steps for reference.
 
 ### 1. Build the Images for ARM Architecture
 
@@ -125,3 +126,5 @@ docker compose -f docker-compose-armv7.yml up --build
    - `http://<ip of raspberry pi>:8081/report_ht/<room id>`
 
 ### Aqara Temperature Sensor
+
+- https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html
