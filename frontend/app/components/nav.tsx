@@ -6,9 +6,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import {AlignJustify, Moon} from "lucide-react";
-import {Button} from "~/components/ui/button";
+import {AlignJustify} from "lucide-react";
 import {homeLink, pageLinks} from "~/components/pageLinks";
+import {ThemePicker} from "~/components/themePicker";
 
 
 const Nav = () => {
@@ -48,12 +48,7 @@ const Nav = () => {
                 </DropdownMenu>
             </div>
             <div className="flex">
-                <Button size="sm" onClick={() => {
-                    // TODO: Re-enable dark mode
-                    console.log("TODO: Re-enable dark mode");
-                }} variant='outline'>
-                    <Moon />
-                </Button>
+                <ThemePicker />
             </div>
         </nav>
 
