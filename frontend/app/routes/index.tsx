@@ -118,7 +118,7 @@ export default function Index() {
                     {
                         room.temp &&
                         <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1">
-                            <Badge className="text-left w-16 text-md">
+                            <Badge className="text-left w-max text-md">
                                 {`${formatNumber(room.temp.temp, 1, 1)} °C`}
                             </Badge>
                             <p className={"ml-1"}>{dayjs(room.temp.time).fromNow()}</p>
@@ -129,7 +129,7 @@ export default function Index() {
                     <div className="grid grid-cols-[70px_auto] gap-1 p-1">
                         <p>Schedule</p>
                         {room.activeSchedule?.schedule && room.activeSchedule.temp ?
-                            <Badge variant="secondary" className="text-left w-16">
+                            <Badge variant="secondary" className="text-left w-max">
                                 {`${formatNumber(room.activeSchedule.temp, 1, 1)} °C`}
                             </Badge>
                             : <Badge
@@ -151,9 +151,20 @@ export default function Index() {
                                             <p>{plugStatus.name}</p>
                                             <Badge
                                                 className="max-w-max ml-1"
-                                                variant={plugStatus.is_on ? 'default' : 'secondary'}
+                                                variant={
+                                                plugStatus.is_on === null || plugStatus.power === null ?
+                                                    'destructive' :
+                                                    plugStatus.is_on ? 'default' : 'secondary'
+                                                }
                                             >
-                                                {plugStatus.is_on ? `${formatNumber(plugStatus.power, 1, 1)} W` : 'OFF'}
+                                                {
+                                                    plugStatus.is_on === null || plugStatus.power === null ?
+                                                        'ERROR'
+                                                        :
+                                                    plugStatus.is_on ?
+                                                        `${formatNumber(plugStatus.power, 1, 1)} W`
+                                                        : 'OFF'
+                                                }
                                             </Badge>
                                         </div>
                                     );
@@ -179,7 +190,7 @@ export default function Index() {
                 <div className="flex flex-col">
                     <h2 className="mb-1">Power</h2>
                     <div>
-                        <Tabs>
+                        <Tabs defaultValue="live-graph">
                             <TabsList>
                                 <TabsTrigger value="live-graph">Live</TabsTrigger>
                                 <TabsTrigger value="daily-graph">Today</TabsTrigger>
@@ -260,7 +271,7 @@ export default function Index() {
                 <div>
                     <div className="flex flex-row">
                         <h2 className="mb-1">Rooms</h2>
-                        <div className="ml-2 flex align-center">
+                        <div className="ml-2 flex items-center">
                             <label
                                 className="text-xs mb-0"
                                 htmlFor='hide-unscheduled-rooms'>
@@ -268,8 +279,8 @@ export default function Index() {
                             </label>
                             <Switch
                                 id='hide-unscheduled-rooms'
-                                onChange={() => setHideUnscheduledRooms((prev) => !prev)}
-                                defaultChecked={hideUnscheduledRooms}
+                                onCheckedChange={() => setHideUnscheduledRooms((prev) => !prev)}
+                                checked={hideUnscheduledRooms}
                             />
                         </div>
                     </div>

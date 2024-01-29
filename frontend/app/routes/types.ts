@@ -47,8 +47,8 @@ export interface PlugStatus {
     name: string,
     room_id: string,
     scheduled: boolean,
-    is_on: boolean,
-    power: number
+    is_on: boolean | null,
+    power: number | null
 }
 
 export interface ActiveSchedule {
