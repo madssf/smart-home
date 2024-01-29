@@ -1,7 +1,6 @@
 import {cssBundleHref} from "@remix-run/css-bundle";
 import type {LinksFunction, LoaderFunctionArgs} from "@remix-run/node";
 import {
-    isRouteErrorResponse,
     Links,
     LiveReload,
     Meta,
@@ -16,7 +15,7 @@ import styles from "./tailwind.css";
 import Layout from "~/components/layout";
 import {Theme, ThemeProvider, useTheme} from "remix-themes"
 import {themeSessionResolver} from "~/sessions.server";
-import {ApplicationError, CustomError, RouteErrorType} from "~/components/error";
+import {getErrorComponent} from "~/components/error";
 
 
 export const links: LinksFunction = () => [
@@ -68,6 +67,7 @@ function App() {
 
 export function ErrorBoundary() {
     const error = useRouteError();
+
     return (
         <html>
         <head>
@@ -83,27 +83,3 @@ export function ErrorBoundary() {
     );
 }
 
-const getErrorComponent = (error: unknown) => {
-    if (isRouteErrorResponse(error)) {
-        const errorType: RouteErrorType = {
-            type: 'ROUTE_ERROR',
-            status: error.status,
-            statusText: error.statusText,
-            data: error.data,
-        }
-        return (
-            <CustomError errorType={errorType}  />
-        );
-    } else if (error instanceof Error) {
-        const errorType: ApplicationError = {
-            type: 'ERROR',
-            message: error.message,
-            stack: error.stack ?? '',
-        }
-        return (
-            <CustomError errorType={errorType} />
-        );
-    } else {
-        return <CustomError />;
-    }
-}

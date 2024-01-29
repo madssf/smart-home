@@ -1,5 +1,5 @@
 export type CreateRequest<T> = Omit<T, 'id'>
-export type DataOrError<T> = T | 'ERROR'
+export type SimpleResult<T> = T | 'ERROR'
 export const BASE_URL = process.env.NODE_ENV === 'production' ? "http://raspi-rust-api:8081/" : "http://127.0.0.1:8081/";
 
 export async function getRequest<T>(endpoint: string): Promise<T> {
@@ -18,7 +18,7 @@ export async function getRequest<T>(endpoint: string): Promise<T> {
     return await response.json();
 }
 
-export async function getRequestOrError<T>(endpoint: string): Promise<DataOrError<T>> {
+export async function getRequestOrError<T>(endpoint: string): Promise<SimpleResult<T>> {
     const response = await fetch(
         `${BASE_URL}${endpoint}`,
         {

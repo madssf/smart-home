@@ -1,5 +1,5 @@
 import {Button} from "~/components/ui/button";
-import {Link} from "@remix-run/react";
+import {isRouteErrorResponse, Link} from "@remix-run/react";
 
 export type RouteErrorType = {
     type: 'ROUTE_ERROR',
@@ -23,9 +23,9 @@ type Props = {
 export function CustomError(props: Props) {
     return (
         <main className="m-auto flex flex-col items-center">
-            <h1 className="my-24 mx-16">Something went wrong!</h1>
+            <h1 className="my-12 mx-16">Something went wrong!</h1>
             <div
-                className="my-24 mx-16"
+                className="my-12 mx-16"
             >
                 {
                     props.errorType ?
@@ -34,7 +34,7 @@ export function CustomError(props: Props) {
                         "Unknown error"
                 }
             </div>
-            <Button className="mb-40">
+            <Button className="mb-24">
                 <Link to="/">
                     Home
                 </Link>
@@ -48,19 +48,44 @@ const renderErrorDetails = (errorType: ErrorType) => {
         case 'ROUTE_ERROR':
             return (
                 <div>
-                    <h2 className="text-24 mb-8">Error details</h2>
-                    <p className="text-16 mb-8">Status: {errorType.status}</p>
-                    <p className="text-16 mb-8">Status text: {errorType.statusText}</p>
-                    <p className="text-16 mb-8">Data: {errorType.data}</p>
+                    <h2 className="font-bold mb-4">Error details</h2>
+                    <p className="text-sm mb-2">Status: {errorType.status}</p>
+                    <p className="text-sm mb-2">Status text: {errorType.statusText}</p>
+                    <p className="text-sm mb-2">Data: {errorType.data}</p>
                 </div>
             );
         case 'ERROR':
             return (
                 <div>
-                    <h2 className="text-24 mb-8">Error details</h2>
-                    <p className="text-16 mb-8">Message: {errorType.message}</p>
-                    <p className="text-16 mb-8">Stack: {errorType.stack}</p>
+                    <h2 className="font-bold mb-4">Error details</h2>
+                    <p className="text-sm mb-2">Message: {errorType.message}</p>
+                    <p className="text-sm mb-2">Stack: {errorType.stack}</p>
                 </div>
             );
+    }
+}
+
+export const getErrorComponent = (error: unknown) => {
+    if (isRouteErrorResponse(error)) {
+        const errorType: RouteErrorType = {
+            type: 'ROUTE_ERROR',
+            status: error.status,
+            statusText: error.statusText,
+            data: error.data,
+        }
+        return (
+            <CustomError errorType={errorType}  />
+        );
+    } else if (error instanceof Error) {
+        const errorType: ApplicationError = {
+            type: 'ERROR',
+            message: error.message,
+            stack: error.stack ?? '',
+        }
+        return (
+            <CustomError errorType={errorType} />
+        );
+    } else {
+        return <CustomError />;
     }
 }

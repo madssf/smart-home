@@ -11,6 +11,7 @@ import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
+import {Label} from '~/components/ui/label';
 
 export interface PlugFormProps {
     plug?: Plug
@@ -56,17 +57,18 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold" htmlFor="priceLevel">Room</label>
-                <RadioGroup defaultValue={plug?.room_id} name="priceLevel">
-                    <div className="flex flex-row">
+                <label className="font-bold" htmlFor="room_id">Room</label>
+                <RadioGroup defaultValue={plug?.room_id} name="room_id">
+                    <div className="flex flex-row space-x-3">
                         {rooms.map((room) => {
-                            return <RadioGroupItem
-                                key={plug?.id + room.id}
-                                id="room_id"
-                                checked={plug?.room_id === room.id}
-                                value={room.id}>
-                                {capitalizeAndRemoveUnderscore(room.name)}
-                            </RadioGroupItem>;
+                            return <div className="flex items-center space-x-2" key={room.id}>
+                                <RadioGroupItem
+                                    key={plug?.id + room.id}
+                                    id={room.id}
+                                    value={room.id}
+                                />
+                                <Label htmlFor={room.id}>{capitalizeAndRemoveUnderscore(room.name)}</Label>
+                            </div>
                         })}
                     </div>
                 </RadioGroup>
@@ -101,11 +103,11 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
             </div>
             <div className="flex flex-col">
                 <label className="font-bold" htmlFor="scheduled">Scheduled</label>
-                    <Checkbox
-                        id="scheduled"
-                        name="scheduled"
-                        defaultChecked={plug?.scheduled}
-                    />
+                <Checkbox
+                    id="scheduled"
+                    name="scheduled"
+                    defaultChecked={plug?.scheduled}
+                />
                 {
                     !!errors?.scheduled &&
                     <p color="tomato">{errors.scheduled}</p>

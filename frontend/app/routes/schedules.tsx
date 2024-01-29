@@ -7,8 +7,7 @@ import {routes} from "~/routes";
 import {validateDays, validateTemps, validateTimeWindows} from "~/routes/schedules/utils/utils";
 import type {FormErrors} from "~/utils/types";
 import {Link, useLoaderData} from "@remix-run/react";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import React, {useState} from "react";
+import {useState} from "react";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createSchedule, deleteSchedule, getSchedules, updateSchedule} from "~/routes/schedules/schedules.server";
 import {validateNonEmptyList} from "~/utils/validation";
@@ -16,15 +15,17 @@ import {getRooms} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
 import {capitalizeAndRemoveUnderscore} from "~/utils/formattingUtils";
 import {PriceLevel} from "~/routes/types";
-import {CheckCircleIcon} from "lucide-react";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "~/components/ui/accordion";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
+import {Label} from "~/components/ui/label";
+import {Badge} from "~/components/ui/badge";
 
 interface ResponseData {
     schedules: Schedule[];
     rooms: Room[];
 }
+
 export type ScheduleFormErrors = FormErrors<Schedule>
 
 export const handle = {hydrate: true};
@@ -94,8 +95,8 @@ export const loader: LoaderFunction = async () => {
     const schedules = await getSchedules();
     const sorted = schedules
         .sort((a, b) => {
-        return b.days.length - a.days.length;
-    });
+            return b.days.length - a.days.length;
+        });
 
     const rooms = await getRooms();
 
@@ -109,7 +110,7 @@ export const loader: LoaderFunction = async () => {
 const Schedules = () => {
 
     const loaderData = useLoaderData<ResponseData>();
-    const [showNew, setShowNew] = useState( loaderData.schedules.length === 0);
+    const [showNew, setShowNew] = useState(loaderData.schedules.length === 0);
     const [roomFilters, setRoomFilters] = useState<string[]>([]);
     const [dayFilters, setDayFilters] = useState<Weekday[]>([]);
     const activeFilters = roomFilters.length > 0 || dayFilters.length > 0;
@@ -135,70 +136,73 @@ const Schedules = () => {
                 if (!activeFilters) {
                     return true;
                 } else {
-                   return filters.some((filter) => filter(schedule));
+                    return filters.some((filter) => filter(schedule));
                 }
             })
             .map((schedule) => {
-            return (
-                <ScheduleForm key={schedule.id} schedule={schedule} rooms={loaderData.rooms}/>
-            );
-        });
+                return (
+                    <ScheduleForm key={schedule.id} schedule={schedule} rooms={loaderData.rooms}/>
+                );
+            });
     };
 
     const renderFilters = () => {
         return (
-            <Accordion type="single" className="pb-4">
+            <Accordion type="single" className="pb-4" collapsible>
                 <AccordionItem value="filters">
-                    <h2>
-                        <AccordionTrigger>
-                            <div className="flex-1 text-left">
-                                Filters
-                            </div>
-                            {activeFilters &&
-                                <CheckCircleIcon />
-                            }
-                        </AccordionTrigger>
-                    </h2>
+                    <AccordionTrigger>
+                        <div className="flex-1 text-left">
+                            Filters
+                        </div>
+                        {activeFilters &&
+                            <Badge className="text-left text-xs mr-1">
+                                {`${roomFilters.length + dayFilters.length} active`}
+                            </Badge>
+                        }
+                    </AccordionTrigger>
                     <AccordionContent className="pb-4">
-                        <div className="flex flex-col">
+                        <div className="flex flex-col space-y-2">
                             <p className="font-bold">Weekdays</p>
-                            <div className="flex">
+                            <div className="flex space-x-2">
                                 {WEEKDAYS.map((day) => {
-                                    return <Checkbox
-                                        key={day}
-                                        className="mr-1"
-                                        checked={dayFilters.includes(day)}
-                                        onChange={() => {
-                                            if (dayFilters.includes(day)) {
-                                                setDayFilters((prev) => prev.filter((d) => d !== day));
-                                            } else {
-                                                setDayFilters((prev) => prev.concat([day]));
-                                            }
-                                        }}
-                                    >
-                                        {capitalizeAndRemoveUnderscore(day)}
-                                    </Checkbox>;
+                                    return <div key={day} className="flex flex-row space-x-1">
+                                        <Checkbox
+                                            id={day}
+                                            className="mr-1"
+                                            checked={dayFilters.includes(day)}
+                                            onCheckedChange={() => {
+                                                if (dayFilters.includes(day)) {
+                                                    setDayFilters((prev) => prev.filter((d) => d !== day));
+                                                } else {
+                                                    setDayFilters((prev) => prev.concat([day]));
+                                                }
+                                            }}
+                                        />
+                                        <Label htmlFor={day}>{capitalizeAndRemoveUnderscore(day)}</Label>
+                                    </div>
                                 })}
                             </div>
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col space-y-2">
                             <p className="font-bold">Rooms</p>
-                            <div className="flex">
+                            <div className="flex space-x-3">
                                 {loaderData.rooms.map((room) => {
-                                    return <Checkbox
-                                        key={room.id}
-                                        className="mr-1"
-                                        checked={roomFilters.includes(room.id)}
-                                        onChange={() => {
-                                            if (roomFilters.includes(room.id)) {
-                                                setRoomFilters((prev) => prev.filter((r) => r !== room.id));
-                                            } else {
-                                                setRoomFilters((prev) => prev.concat([room.id]));
-                                            }
-                                        }}
-                                    >
-                                        {capitalizeAndRemoveUnderscore(room.name)}
-                                    </Checkbox>;
+                                    return <div key={room.id} className="flex flex-row space-x-1">
+                                        <Checkbox
+                                            id={'room' + room.id}
+                                            className="mr-1"
+                                            checked={roomFilters.includes(room.id)}
+                                            onCheckedChange={() => {
+                                                if (roomFilters.includes(room.id)) {
+                                                    setRoomFilters((prev) => prev.filter((r) => r !== room.id));
+                                                } else {
+                                                    setRoomFilters((prev) => prev.concat([room.id]));
+                                                }
+                                            }}
+                                        />
+                                        <Label
+                                            htmlFor={'room' + room.id}>{capitalizeAndRemoveUnderscore(room.name)}</Label>
+                                    </div>
                                 })}
                             </div>
                         </div>
@@ -218,10 +222,11 @@ const Schedules = () => {
                     <>
                         {renderFilters()}
                         {renderSchedules(loaderData.schedules as Schedule[])}
-                        <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
+                        <Button className="my-1"
+                                onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add schedule'}</Button>
                         {
                             showNew &&
-                            <ScheduleForm rooms={loaderData.rooms} />
+                            <ScheduleForm rooms={loaderData.rooms}/>
                         }
                     </>
             }

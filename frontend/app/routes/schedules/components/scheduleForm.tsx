@@ -8,12 +8,13 @@ import {Form, useActionData} from "@remix-run/react";
 import {capitalizeAndRemoveUnderscore, formatPriceLevel} from '~/utils/formattingUtils';
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {Room} from "~/routes/rooms/types";
-import {PriceLevel} from '~/routes/types';
+import {PriceLevel, sortedPriceLevels} from '~/routes/types';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {useNavigation} from "react-router";
+import {Label} from '~/components/ui/label';
 
 export interface ScheduleFormProps {
     schedule?: Schedule
@@ -76,8 +77,9 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
         return <DropdownMenu>
             <DropdownMenuTrigger
                 aria-label='Add price level'
+                asChild
             >
-                Add price level
+                <Button className="w-32">Add price level</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 {
@@ -103,21 +105,26 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     };
 
     return (
-        <Form className="mb-2" ref={formRef} method="post" action={routes.SCHEDULES.ROOT}>
+        <Form className="mb-2" ref={formRef} method="post" action={routes.SCHEDULES.ROOT} reloadDocument>
             <input hidden readOnly name="id" value={schedule?.id}/>
             <div className="flex flex-col">
                 <p className="font-bold" >Rooms</p>
-                <div className="flex">
+                <div className="flex space-x-2">
                     {rooms.map((room) => {
-                        return <Checkbox
+                        return <div
                             key={schedule?.id + room.id}
-                            className="mr-1"
-                            id={room.id}
-                            name="room_ids"
-                            value={room.id}
-                            defaultChecked={schedule?.room_ids.includes(room.id)}>
-                            {room.name}
-                        </Checkbox>;
+                            className="flex flex-row space-x-1"
+                        >
+                            <Checkbox
+                                key={schedule?.id + room.id}
+                                className="mr-1"
+                                id={room.id}
+                                name="room_ids"
+                                value={room.id}
+                                defaultChecked={schedule?.room_ids.includes(room.id)}
+                            />
+                            <Label htmlFor={room.id}>{capitalizeAndRemoveUnderscore(room.name)}</Label>
+                        </div>;
                     })}
                 </div>
                 {
@@ -127,17 +134,21 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
             </div>
             <div className="flex flex-col">
                 <p className="font-bold">Weekdays</p>
-                <div className="flex">
+                <div className="flex space-x-2">
                 {WEEKDAYS.map((day) => {
-                    return <Checkbox
-                        key={schedule?.id + day}
-                        className="mr-1"
-                        id={day}
-                        name="days"
-                        value={day}
-                        defaultChecked={schedule?.days.map(str => str.toUpperCase()).includes(day.toUpperCase())}>
-                        {capitalizeAndRemoveUnderscore(day)}
-                    </Checkbox>;
+                    return <div
+                        key={day}
+                        className="flex flex-row space-x-1"
+                    >
+                            <Checkbox
+                                className="mr-1"
+                                id={day}
+                                name="days"
+                                value={day}
+                                defaultChecked={schedule?.days.map(str => str.toUpperCase()).includes(day.toUpperCase())}
+                            />
+                        <Label htmlFor={day}>{capitalizeAndRemoveUnderscore(day)}</Label>
+                    </div>;
                 })}
                 </div>
                 {
@@ -174,7 +185,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                 <p className="font-bold">Temperature by price level</p>
                 <div className="ml-2 mb-1">
                 {
-                    activePriceLevels.map((price_level, i) => {
+                    sortedPriceLevels(activePriceLevels).map((price_level, i) => {
                         return (
                             <div key={price_level} className="grid grid-cols-[80px_120px_40px_30px] items-center">
                                 <p className="text-sm">{formatPriceLevel(price_level)}</p>

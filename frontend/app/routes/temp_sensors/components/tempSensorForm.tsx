@@ -11,6 +11,7 @@ import {Badge} from "~/components/ui/badge";
 import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
+import {Label} from "~/components/ui/label";
 
 export interface TempSensorFormProps {
     rooms: Room[]
@@ -82,12 +83,14 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                             <RadioGroup name="room_id">
                                 <div className="flex flex-row">
                                     {rooms.map((room) => {
-                                        return <RadioGroupItem
-                                            key={room?.id}
-                                            id="room_id"
-                                            value={room.id}>
-                                            {capitalizeAndRemoveUnderscore(room.name)}
-                                        </RadioGroupItem>;
+                                        return <div className="flex items-center space-x-2" key={room.id}>
+                                            <RadioGroupItem
+                                                key={room?.id}
+                                                id={room.id}
+                                                value={room.id}
+                                            />
+                                            <Label htmlFor={room.id}>{capitalizeAndRemoveUnderscore(room.name)}</Label>
+                                        </div>;
                                     })}
                                 </div>
                             </RadioGroup>

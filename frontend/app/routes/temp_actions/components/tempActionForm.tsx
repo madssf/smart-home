@@ -14,6 +14,7 @@ import {Input} from "~/components/ui/input";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
+import {Label} from '~/components/ui/label';
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
@@ -54,13 +55,14 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
                 <RadioGroup defaultValue={tempAction?.action ?? ActionType.ON} name="actionType">
                     <div className="flex flex-row">
                         {Object.values(ActionType).map((actionType) => {
-                            return <RadioGroupItem
-                                key={tempAction?.id + actionType}
-                                id="actionType"
-                                checked={tempAction ? tempAction.action === actionType : tempAction === ActionType.ON}
-                                value={actionType}>
-                                {capitalizeAndRemoveUnderscore(actionType)}
-                            </RadioGroupItem>;
+                            return <div className="flex items-center space-x-2" key={tempAction?.id + actionType}>
+                                <RadioGroupItem
+                                    key={tempAction?.id + actionType}
+                                    id={actionType}
+                                    value={actionType}
+                                />
+                                <Label htmlFor={actionType}>{capitalizeAndRemoveUnderscore(actionType)}</Label>
+                            </div>;
                         })}
                     </div>
                 </RadioGroup>

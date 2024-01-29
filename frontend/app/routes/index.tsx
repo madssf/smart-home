@@ -8,7 +8,7 @@ import {
     getPlugStatuses,
     getRoomTemps,
 } from "~/routes/index.server";
-import {Link, useFetcher, useLoaderData} from "@remix-run/react";
+import {Link, Links, Meta, Scripts, useFetcher, useLoaderData, useRouteError} from "@remix-run/react";
 import type {Consumption, EnrichedRoomData, PriceInfo} from "./types";
 import React, {useEffect, useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
@@ -17,20 +17,22 @@ import {ClientOnly} from "remix-utils/client-only";
 import {formatNumber, formatPriceInfo} from "~/utils/formattingUtils";
 import dayjs from "dayjs";
 
-// import relativeTime from "dayjs/plugin/relativeTime";
+import relativeTime from "dayjs/plugin/relativeTime.js";
 import LiveConsumptionGraph from "~/components/liveConsumptionGraph";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import {routes} from "~/routes";
-import type {DataOrError} from "~/fetcher/fetcher.server";
+import type {SimpleResult} from "~/fetcher/fetcher.server";
 import {Alert, AlertDescription} from "~/components/ui/alert";
 import {Badge} from "~/components/ui/badge";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Switch} from "~/components/ui/switch";
+import {Theme, useTheme} from "remix-themes";
+import {getErrorComponent} from "~/components/error";
 
 interface ResponseData {
     rooms: EnrichedRoomData[],
-    price: DataOrError<PriceInfo>;
-    consumption: DataOrError<Consumption[]>;
+    price: SimpleResult<PriceInfo>;
+    consumption: SimpleResult<Consumption[]>;
 }
 
 export const handle = {hydrate: true};
@@ -60,7 +62,7 @@ export default function Index() {
     const liveFetcher = useFetcher<LiveConsumptionData>();
     const [fetchTrigger, setFetchTrigger] = useState(0);
     const [hideUnscheduledRooms, setHideUnscheduledRooms] = useState(true);
-    // dayjs.extend(relativeTime);
+    dayjs.extend(relativeTime);
 
     useEffect(() => {
         liveFetcher.load("/liveData");
@@ -278,5 +280,26 @@ export default function Index() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export function ErrorBoundary() {
+    const error = useRouteError();
+    const [theme] = useTheme()
+
+    return (
+        <html>
+        <head>
+            <title>Oops!</title>
+            <Meta />
+            <Links />
+        </head>
+        <body
+            className={theme === Theme.DARK ? 'dark' : ''}
+        >
+        {getErrorComponent(error)}
+        <Scripts />
+        </body>
+        </html>
     );
 }

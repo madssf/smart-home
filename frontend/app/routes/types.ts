@@ -17,6 +17,15 @@ export enum PriceLevel {
     VeryExpensive = 'VeryExpensive',
 }
 
+const sortPriceLevels = (a: PriceLevel, b: PriceLevel) => {
+    const order = [PriceLevel.VeryCheap, PriceLevel.Cheap, PriceLevel.Normal, PriceLevel.Expensive, PriceLevel.VeryExpensive];
+    return order.indexOf(a) - order.indexOf(b);
+}
+
+export const sortedPriceLevels = (priceLevels: PriceLevel[]) => {
+    return [...priceLevels].sort(sortPriceLevels);
+}
+
 export interface Consumption {
     label: string,
     kwh: number,
