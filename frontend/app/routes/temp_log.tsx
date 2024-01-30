@@ -2,7 +2,6 @@ import React from 'react';
 import type {LoaderFunction} from "@remix-run/node";
 import {json} from "@remix-run/node";
 import {Link, Outlet, useLoaderData, useParams} from "@remix-run/react";
-import {Heading} from "@chakra-ui/react";
 import {routes} from "~/routes";
 import type {Room} from './rooms/types';
 import {getRooms} from "~/routes/rooms/rooms.server";
@@ -27,7 +26,7 @@ const TempLog = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Temperature log</Heading>
+            <h1 className="pb-4">Temperature log</h1>
             <div className="flex flex-row justify-center">
                 {loaderData.rooms.map((room) => {
                     return <Link

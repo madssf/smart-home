@@ -11,12 +11,14 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
 
+use crate::configuration::MqttConfig;
 use crate::db;
 use crate::db::DbError;
 use crate::domain::WorkMessage;
 use crate::observability::{get_app_environment, Environment};
 
 pub struct MqttClient {
+    id: String,
     host: String,
     base_topic: String,
     pool: Arc<PgPool>,
@@ -34,15 +36,15 @@ pub enum MqttClientError {
 }
 
 impl MqttClient {
-    pub fn new(
-        host: String,
-        base_topic: String,
-        pool: Arc<PgPool>,
-        sender: Sender<WorkMessage>,
-    ) -> Self {
+    pub fn new(config: MqttConfig, pool: Arc<PgPool>, sender: Sender<WorkMessage>) -> Self {
         Self {
-            host,
-            base_topic,
+            id: if get_app_environment() == &Environment::Production {
+                format!("smarthome-{}", config.id)
+            } else {
+                format!("smarthome_dev-{}", config.id)
+            },
+            host: config.host,
+            base_topic: config.base_topic,
             pool,
             sender,
         }
@@ -61,12 +63,7 @@ impl MqttClient {
     }
 
     async fn subscribe_loop(&self) -> Result<(), MqttClientError> {
-        let id = if get_app_environment() == &Environment::Production {
-            "smarthome"
-        } else {
-            "smarthome_dev"
-        };
-        let mut mqttoptions = MqttOptions::new(id, self.host.to_string(), 1883);
+        let mut mqttoptions = MqttOptions::new(&self.id, self.host.to_string(), 1883);
         mqttoptions.set_keep_alive(Duration::from_secs(15));
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);

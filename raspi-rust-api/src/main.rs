@@ -47,12 +47,8 @@ async fn main() -> std::io::Result<()> {
 
     if configuration.mqtt.run_mqtt {
         let configuration = configuration.clone();
-        let mqtt_client = MqttClient::new(
-            configuration.mqtt.host,
-            configuration.mqtt.base_topic,
-            pool.clone(),
-            work_message_tx.clone(),
-        );
+        let mqtt_client =
+            MqttClient::new(configuration.mqtt, pool.clone(), work_message_tx.clone());
         tokio::spawn(async move { mqtt_client.start().await });
     } else {
         info!("Not running MQTT, disabled in config")

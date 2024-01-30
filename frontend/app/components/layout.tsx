@@ -1,7 +1,5 @@
 import React from 'react';
-import Nav from "~/components/nav";
-import {ChakraProvider, ColorModeScript} from "@chakra-ui/react";
-import {theme} from "~/root";
+import Header from "~/components/header";
 
 export interface LayoutProps {
     children: React.ReactNode
@@ -9,13 +7,12 @@ export interface LayoutProps {
 
 const Layout = ({children}: LayoutProps) => {
     return (
-    <>
-        <ColorModeScript initialColorMode={'dark'} />
-        <ChakraProvider theme={theme}>
-            <Nav />
-            {children}
-       </ChakraProvider>
-    </>
+        <>
+            <Header/>
+            <div className="mt-16 pt-safe-top mx-1">
+                {children}
+            </div>
+        </>
     );
 };
 

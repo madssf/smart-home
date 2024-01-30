@@ -1,10 +1,12 @@
 import type {Room} from "~/routes/rooms/types";
-import React, {useEffect, useRef, useState} from 'react';
-import {Form, useActionData, useTransition} from "@remix-run/react";
+import {useEffect, useRef, useState} from 'react';
+import {Form, useActionData} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {RoomFormErrors} from "~/routes/rooms";
 import {routes} from "~/routes";
-import {Button, Input, InputGroup, InputRightAddon, Text} from "@chakra-ui/react";
+import {Input} from "~/components/ui/input";
+import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface RoomFormProps {
     room?: Room
@@ -13,9 +15,9 @@ export interface RoomFormProps {
 
 const RoomForm = ({room}: RoomFormProps) => {
     const actionData = useActionData<RoomFormErrors>();
-    const transition = useTransition();
 
-    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, room);
+    const navigation = useNavigation();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(room);
     const formRef = useRef<HTMLFormElement>(null);
     const [errors, setErrors] = useState<RoomFormErrors | null>(null);
 
@@ -34,25 +36,25 @@ const RoomForm = ({room}: RoomFormProps) => {
             formRef.current?.reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.ROOMS.ROOT}>
             <input hidden readOnly name="id" value={room?.id}/>
             <div>
-                <label className="font-bold">Name</label>
+                <label className="font-bold" htmlFor="name">Name</label>
                 <Input name="name" defaultValue={room?.name}/>
                 {
                     !!errors?.name &&
-                    <Text color="tomato">{errors.name}</Text>
+                    <p color="tomato">{errors.name}</p>
                 }
             </div>
             {room?.id &&
                 <p className="text-sm text-gray-400">{room.id}</p>
             }
             <div className="mt-1">
-                <label className="font-bold">Min temp</label>
-                <InputGroup>
+                <label className="font-bold" htmlFor="min_temp">Min temp</label>
+                <div>
                     <Input
                         type="number"
                         min="1"
@@ -61,8 +63,8 @@ const RoomForm = ({room}: RoomFormProps) => {
                         name="min_temp"
                         defaultValue={room?.min_temp ?? undefined}
                     />
-                    <InputRightAddon children="°C" />
-                </InputGroup>
+                    <p>°C</p>
+                </div>
             </div>
             <div className="mt-1">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}

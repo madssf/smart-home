@@ -1,17 +1,17 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import PlugForm from "~/routes/plugs/components/plugForm";
-import {useLoaderData} from "@remix-run/react";
-import {Button, Heading, Link} from "@chakra-ui/react";
+import {Link, useLoaderData} from "@remix-run/react";
 import {validateBoolean, validateIpAddress, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {createPlug, deletePlug, getPlugs, updatePlug} from "~/routes/plugs/plugs.server";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import type {Room} from "~/routes/rooms/types";
+import {Button} from "~/components/ui/button";
 
 interface ResponseData {
     plugs: Plug[];
@@ -22,7 +22,7 @@ export type PlugFormErrors = FormErrors<Plug>;
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 
@@ -117,10 +117,10 @@ const Plugs = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Plugs</Heading>
+            <h1 className="pb-4">Plugs</h1>
             {
                 loaderData.rooms.length === 0 ?
-                    <p>No rooms yet, please <Link href={routes.ROOMS.ROOT}>add one</Link> before adding a plug</p>
+                    <p>No rooms yet, please <Link to={routes.ROOMS.ROOT}>add one</Link> before adding a plug</p>
                     :
                     <>
                         {renderPlugs(loaderData.plugs)}

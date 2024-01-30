@@ -2,16 +2,16 @@ import React, {useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
 import type {FormErrors} from "~/utils/types";
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
-import {useLoaderData} from "@remix-run/react";
-import {Button, Heading, Link} from "@chakra-ui/react";
+import {Link, useLoaderData} from "@remix-run/react";
 import {validateIpAddress, validateNonEmptyList, validateNonEmptyString} from "~/utils/validation";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {getPlugs} from "~/routes/plugs/plugs.server";
 import type {ButtonType} from "~/routes/buttons/types";
 import {createButton, deleteButton, getButtons, updateButton} from "~/routes/buttons/buttons.server";
 import ButtonForm from "~/routes/buttons/components/buttonForm";
+import {Button} from "~/components/ui/button";
 
 interface ResponseData {
     buttons: ButtonType[];
@@ -22,7 +22,7 @@ export type ButtonFormErrors = FormErrors<ButtonType>;
 
 export const handle = {hydrate: true};
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 
@@ -107,10 +107,10 @@ const Buttons = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Buttons</Heading>
+            <h1 className="pb-4">Buttons</h1>
             {
                 loaderData.plugs.length === 0 ?
-                    <p>No plugs yet, please <Link href={routes.PLUGS.ROOT}>add one</Link> before adding a button</p>
+                    <p>No plugs yet, please <Link to={routes.PLUGS.ROOT}>add one</Link> before adding a button</p>
                     :
                     <>
                         {renderButtons(loaderData.buttons)}

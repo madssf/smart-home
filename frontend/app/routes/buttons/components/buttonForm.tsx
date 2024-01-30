@@ -1,11 +1,14 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {routes} from "~/routes";
 import type {Plug} from "~/routes/plugs/types";
-import {Form, useActionData, useTransition} from "@remix-run/react";
-import {Button, Checkbox, Input, Text} from "@chakra-ui/react";
+import {Form, useActionData} from "@remix-run/react";
 import {useSubmissionStatus} from "~/hooks/useSubmissionStatus";
 import type {ButtonType} from "~/routes/buttons/types";
 import type {ButtonFormErrors} from "~/routes/buttons";
+import {Input} from "~/components/ui/input";
+import {Checkbox} from "~/components/ui/checkbox";
+import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface ButtonFormProps {
     button?: ButtonType
@@ -14,9 +17,9 @@ export interface ButtonFormProps {
 
 const ButtonForm = ({button, plugs}: ButtonFormProps) => {
     const actionData = useActionData<ButtonFormErrors>();
-    const transition = useTransition();
 
-    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(transition, button);
+    const navigation = useNavigation();
+    const {isCreating, isDeleting, isUpdating, isNew} = useSubmissionStatus(button);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -37,7 +40,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
             formRef.current?.reset();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transition]);
+    }, [navigation]);
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.BUTTONS.ROOT}>
@@ -47,7 +50,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 <Input name="name" defaultValue={button?.name}/>
                 {
                     !!errors?.name &&
-                    <Text color="tomato">{errors.name}</Text>
+                    <p color="tomato">{errors.name}</p>
                 }
             </div>
             {button?.id &&
@@ -59,7 +62,6 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                     {plugs.map((plug) => {
                         return <Checkbox
                             key={button?.id + plug.id}
-                            size="sm"
                             className="mr-1"
                             id={plug.id}
                             name="plug_id"
@@ -71,7 +73,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 </div>
                 {
                     !!errors?.plug_ids &&
-                    <Text color="tomato">{errors.plug_ids}</Text>
+                    <p color="tomato">{errors.plug_ids}</p>
                 }
             </div>
             <div>
@@ -79,7 +81,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 <Input name="ip" defaultValue={button?.ip}/>
                 {
                     !!errors?.ip &&
-                    <Text color="tomato">{errors.ip}</Text>
+                    <p color="tomato">{errors.ip}</p>
                 }
             </div>
             <div>
@@ -87,7 +89,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 <Input name="username" defaultValue={button?.username}/>
                 {
                     !!errors?.username &&
-                    <Text color="tomato">{errors.username}</Text>
+                    <p color="tomato">{errors.username}</p>
                 }
             </div>
             <div>
@@ -95,7 +97,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 <Input name="password" defaultValue={button?.password}/>
                 {
                     !!errors?.password &&
-                    <Text color="tomato">{errors.password}</Text>
+                    <p color="tomato">{errors.password}</p>
                 }
             </div>
             <div className="mt-1">

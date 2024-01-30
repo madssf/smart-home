@@ -1,17 +1,17 @@
-import {Link} from "@chakra-ui/react";
 import {routes} from "~/routes";
 
-const homeLink = <Link className="my-2 text-xl" key={routes.HOME} href={routes.HOME}>Home</Link>;
+const homeLink = {key: routes.HOME, name: "Home"};
 
 const pageLinks = [
-    <Link className="my-2 text-xl" key={routes.ROOMS.ROOT} href={routes.ROOMS.ROOT}>Rooms</Link>,
-    <Link className="my-2 text-xl" key={routes.PLUGS.ROOT} href={routes.PLUGS.ROOT}>Plugs</Link>,
-    <Link className="my-2 text-xl" key={routes.BUTTONS.ROOT} href={routes.BUTTONS.ROOT}>Buttons</Link>,
-    <Link className="my-2 text-xl" key={routes.TEMP_SENSORS.ROOT} href={routes.TEMP_SENSORS.ROOT}>Sensors</Link>,
-    <Link className="my-2 text-xl" key={routes.SCHEDULES.ROOT} href={routes.SCHEDULES.ROOT}>Schedules</Link>,
-    <Link className="my-2 text-xl" key={routes.TEMP_ACTIONS.ROOT} href={routes.TEMP_ACTIONS.ROOT}>Actions</Link>,
-    <Link className="my-2 text-xl" key={routes.TEMP_LOG.ROOT} href={routes.TEMP_LOG.ROOT}>Temperatures</Link>,
-    <Link className="my-2 text-xl" key={routes.NOTIFICATIONS.ROOT} href={routes.NOTIFICATIONS.ROOT}>Notifications</Link>,
+    {key: routes.ROOMS.ROOT, name: "Rooms"},
+    {key: routes.PLUGS.ROOT, name: "Plugs"},
+    {key: routes.BUTTONS.ROOT, name: "Buttons"},
+    {key: routes.TEMP_SENSORS.ROOT, name: "Sensors"},
+    {key: routes.SCHEDULES.ROOT, name: "Schedules"},
+    {key: routes.TEMP_ACTIONS.ROOT, name: "Actions"},
+    {key: routes.TEMP_LOG.ROOT, name: "Temperatures"},
+    {key: routes.NOTIFICATIONS.ROOT, name: "Notifications"},
 ];
+
 
 export {homeLink, pageLinks};

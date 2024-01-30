@@ -1,120 +1,169 @@
-import {useShouldHydrate} from "remix-utils";
-import styles from "./styles/app.css";
-import {Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useNavigate} from "@remix-run/react";
-import {ClientStyleContext, ServerStyleContext} from './context';
-import React, {useContext, useEffect} from "react";
-import {withEmotionCache} from "@emotion/react";
-import {Box, Button, ButtonGroup, extendTheme, Heading, withDefaultColorScheme} from "@chakra-ui/react";
+import {cssBundleHref} from "@remix-run/css-bundle";
+import type {LinksFunction, LoaderFunctionArgs} from "@remix-run/node";
+import {
+    Links,
+    LiveReload,
+    Meta,
+    Outlet,
+    Scripts,
+    ScrollRestoration,
+    useLoaderData,
+    useRouteError,
+} from "@remix-run/react";
+
+import styles from "./tailwind.css";
 import Layout from "~/components/layout";
-import {routes} from "~/routes";
+import {Theme, ThemeProvider, useTheme} from "remix-themes"
+import {themeSessionResolver} from "~/sessions.server";
+import {getErrorComponent} from "~/components/error";
 
-export const theme = extendTheme(
-    withDefaultColorScheme({ colorScheme: 'teal' }),
-);
 
-export function links() {
-    return [{rel: "stylesheet", href: styles}];
+export const links: LinksFunction = () => [
+    {rel: "stylesheet", href: styles},
+    ...(cssBundleHref ? [{rel: "stylesheet", href: cssBundleHref}] : []),
+];
+
+export async function loader({request}: LoaderFunctionArgs) {
+    const {getTheme} = await themeSessionResolver(request)
+    return {
+        theme: getTheme(),
+    }
 }
 
-interface DocumentProps {
-    children: React.ReactNode;
+export default function AppWithProviders() {
+    const data = useLoaderData<typeof loader>()
+    return (
+        <ThemeProvider specifiedTheme={data.theme} themeAction="/set-theme">
+            <App/>
+        </ThemeProvider>
+    )
 }
 
-const Document = withEmotionCache(
-    ({ children }: DocumentProps, emotionCache) => {
-        const serverStyleData = useContext(ServerStyleContext);
-        const clientStyleData = useContext(ClientStyleContext);
-
-        // Control if page loads JS https://github.com/sergiodxa/remix-utils#useshouldhydrate
-        const shouldHydrate = useShouldHydrate();
-
-        // Only executed on client
-        useEffect(() => {
-            // re-link sheet container
-            emotionCache.sheet.container = document.head;
-            // re-inject tags
-            const tags = emotionCache.sheet.tags;
-            emotionCache.sheet.flush();
-            tags.forEach((tag) => {
-                (emotionCache.sheet as any)._insertTag(tag);
-            });
-            // reset cache to reapply global styles
-            clientStyleData?.reset();
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, []);
-
-        return (
-            <html lang="en">
-            <head>
-                <meta charSet="utf-8"/>
-                <meta name="viewport" content="width=device-width,initial-scale=1"/>
-                <meta name="robots" content="noindex"/>
-                <Meta/>
-                <Links/>
-                <title>Smart Home</title>
-                <Meta />
-                <Links />
-                {serverStyleData?.map(({ key, ids, css }) => (
-                    <style
-                        key={key}
-                        data-emotion={`${key} ${ids.join(' ')}`}
-                        dangerouslySetInnerHTML={{ __html: css }}
-                    />
-                ))}
-
-            </head>
-            <body>
-            {children}
-            <ScrollRestoration/>
-            {shouldHydrate && <Scripts/>}
-            {process.env.NODE_ENV === "development" && <LiveReload/>}
-            </body>
-            </html>
-        );
-    },
-);
-
-
-export default function App() {
+function App() {
+    const [theme] = useTheme()
 
     return (
-        <Document>
-            <Layout>
-                <Box className="mx-3 pb-8">
-                    <Outlet />
-                </Box>
-            </Layout>
-        </Document>
+        <html lang="en">
+        <head>
+            <meta charSet="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale="/>
+            <Meta/>
+            <PwaLinksAndMeta/>
+            <Links/>
+        </head>
+        <body
+            className={theme === Theme.DARK ? 'dark' : ''}
+        >
+        <Layout>
+            <Outlet/>
+        </Layout>
+        <ScrollRestoration/>
+        <Scripts/>
+        <LiveReload/>
+        </body>
+        </html>
     );
 }
 
-
-export function ErrorBoundary({error}: { error: Error }) {
-    console.error(error);
-
-    const navigate = useNavigate();
+export function ErrorBoundary() {
+    const error = useRouteError();
 
     return (
-        <Document>
-            <Layout>
-                <Box className="flex flex-col items-center text-center">
-
-                    <Heading size="md" pb={4}>
-                        Oops!
-                    </Heading>
-
-                    <p className="text-center pb-4">{error.message}</p>
-                    <ButtonGroup>
-                        <Button p={1} onClick={() => window.location.reload()}>
-                            Reload
-                        </Button>
-                        <Button p={1} variant="outline" onClick={() => navigate(routes.HOME)}>
-                            Home
-                        </Button>
-                    </ButtonGroup>
-                </Box>
-            </Layout>
-        </Document>
-
+        <html>
+        <head>
+            <title>Oops!</title>
+            <Meta/>
+            <PwaLinksAndMeta/>
+            <Links/>
+        </head>
+        <body>
+        {getErrorComponent(error)}
+        <Scripts/>
+        </body>
+        </html>
     );
 }
+
+const PwaLinksAndMeta = () => <>
+    <link rel="manifest" href="/manifest/webmanifest"/>
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"
+    />
+    <meta
+        name="viewport"
+        content="initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="viewport" content="initial-scale=1, viewport-fit=cover"/>
+    {/*
+        pwa-asset-generator
+        npx pwa-asset-generator app/images/smarthome-logo.svg public/icons -b "linear-gradient(29deg, rgba(2,0,36,1) 0%, rgba(9,43,121,1) 31%, rgba(0,255,93,1) 100%)" -q 100 --favicon
+    */}
+    <link rel="icon" type="image/png" sizes="196x196" href="/icons/favicon-196.png"/>
+
+    <link rel="apple-touch-icon" href="/icons/apple-icon-180.png"/>
+
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2048-2732.jpg"
+          media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2732-2048.jpg"
+          media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1668-2388.jpg"
+          media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2388-1668.jpg"
+          media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1536-2048.jpg"
+          media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2048-1536.jpg"
+          media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1668-2224.jpg"
+          media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2224-1668.jpg"
+          media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1620-2160.jpg"
+          media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2160-1620.jpg"
+          media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1290-2796.jpg"
+          media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2796-1290.jpg"
+          media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1179-2556.jpg"
+          media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2556-1179.jpg"
+          media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1284-2778.jpg"
+          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2778-1284.jpg"
+          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1170-2532.jpg"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2532-1170.jpg"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1125-2436.jpg"
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2436-1125.jpg"
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1242-2688.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2688-1242.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-828-1792.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1792-828.jpg"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1242-2208.jpg"
+          media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-2208-1242.jpg"
+          media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-750-1334.jpg"
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1334-750.jpg"
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-640-1136.jpg"
+          media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
+    <link rel="apple-touch-startup-image" href="/icons/apple-splash-1136-640.jpg"
+          media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
+</>

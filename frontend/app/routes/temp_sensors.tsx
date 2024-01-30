@@ -10,8 +10,8 @@ import {createTempSensor, deleteTempSensor, getTempSensors} from "~/routes/temp_
 import type {FormErrors} from "~/utils/types";
 import {useLoaderData} from "@remix-run/react";
 import React, {useState} from "react";
-import {Button, Heading} from "@chakra-ui/react";
 import TempSensorForm from "~/routes/temp_sensors/components/tempSensorForm";
+import {Button} from "~/components/ui/button";
 
 interface ResponseData {
     rooms: Room[],
@@ -85,7 +85,7 @@ const TempSensors = () => {
 
     return (
         <div>
-            <Heading className="pb-4">Sensors</Heading>
+            <h1 className="pb-4">Sensors</h1>
             {renderTempSensors(loaderData.temp_sensors, loaderData.rooms)}
             <Button className="my-1" onClick={() => setShowNew((prev) => (!prev))}>{showNew ? 'Cancel' : 'Add sensor'}</Button>
             {

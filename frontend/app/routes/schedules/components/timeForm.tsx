@@ -1,7 +1,6 @@
 import React from 'react';
 import type {TimeWindow} from "~/routes/schedules/types";
-import {Button, IconButton} from "@chakra-ui/react";
-import {SmallAddIcon, SmallCloseIcon} from "@chakra-ui/icons";
+import {Button} from "~/components/ui/button";
 
 export interface TimeFormProps {
     window: TimeWindow;
@@ -20,11 +19,16 @@ const TimeForm = ({window, handleRemove, handleAdd}: TimeFormProps) => {
                 <Button className="mx-1" size="sm" variant="outline" type="button" onClick={() => {
                     handleRemove();
                 }}>
-                    <SmallCloseIcon/>
+                    ❌
                 </Button>
                 {
                     handleAdd !== undefined &&
-                    <IconButton icon={<SmallAddIcon />} aria-label='Add time window' size="sm" type="button" onClick={handleAdd} />
+                    <Button aria-label='Add time window' className="mx-1" size="sm" variant="outline" type="button" onClick={() => {
+                        handleAdd();
+                    }
+                    }>
+                        ➕
+                    </Button>
                 }
 
             </div>

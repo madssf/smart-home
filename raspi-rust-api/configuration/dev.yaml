@@ -8,3 +8,4 @@ database:
 run_live_consumption_subscriber: false
 mqtt:
   run_mqtt: false
+  id: "dummy-dev"

@@ -1,5 +1,4 @@
-import React from 'react';
-import type {ActionArgs, LoaderFunction} from "@remix-run/node";
+import type {ActionFunctionArgs, LoaderFunction} from "@remix-run/node";
 import {json, redirect} from "@remix-run/node";
 import {piTriggerRefresh} from "~/utils/piHooks";
 import {routes} from "~/routes";
@@ -7,8 +6,10 @@ import {validateNonEmptyString, validatePositiveNonZeroInteger} from "~/utils/va
 import type {FormErrors} from "~/utils/types";
 import type {NotificationSettings} from "~/routes/notifications/types";
 import {getNotificationSettings, upsertNotificationSettings} from "~/routes/notifications/notifications.server";
-import {Button, Heading, Input, InputGroup, InputRightAddon, Text} from "@chakra-ui/react";
-import {Form, useActionData, useLoaderData, useTransition} from "@remix-run/react";
+import {Form, useActionData, useLoaderData} from "@remix-run/react";
+import {Input} from "~/components/ui/input";
+import {Button} from "~/components/ui/button";
+import {useNavigation} from "react-router";
 
 export interface SettingsProps {
     max_consumption: number | null
@@ -18,7 +19,7 @@ interface ResponseData {
     settings: NotificationSettings | null,
 }
 
-export async function action({request}: ActionArgs) {
+export async function action({request}: ActionFunctionArgs) {
 
     const body = await request.formData();
 
@@ -71,58 +72,58 @@ const Notifications = () => {
     const loaderData = useLoaderData<ResponseData>();
     const settings = loaderData.settings;
     const actionData = useActionData<FormErrors<NotificationSettings>>();
-    const transition = useTransition();
+    const navigation = useNavigation();
 
     return (
         <div>
-            <Heading className="pb-4">Notifications</Heading>
+            <h1 className="pb-4">Notifications</h1>
             <Form className="mb-2" method="post" action={routes.NOTIFICATIONS.ROOT}>
-                <label className="font-bold">Max consumption</label>
-                <InputGroup>
+                <p className="font-bold">Max consumption</p>
+                <div>
                     <Input
                         type="number"
-                        maxW={150}
+                        style={{maxWidth: "150px"}}
                         pattern="[0-9]*"
                         min="1"
                         step="1"
                         name="max_consumption"
                         defaultValue={settings?.max_consumption ?? undefined}
                     />
-                    <InputRightAddon children="W" />
-                </InputGroup>
+                    <p>W</p>
+                </div>
                 {
                     !!actionData?.max_consumption &&
-                    <Text color="tomato">{actionData?.max_consumption}</Text>
+                    <p color="tomato">{actionData?.max_consumption}</p>
                 }
-                <label className="font-bold">Max consumption timeout</label>
-                <InputGroup>
+                <p className="font-bold">Max consumption timeout</p>
+                <div>
                     <Input
                         type="number"
-                        maxW={150}
+                        style={{maxWidth: "150px"}}
                         pattern="[0-9]*"
                         min="1"
                         step="1"
                         name="max_consumption_timeout_minutes"
                         defaultValue={settings?.max_consumption_timeout_minutes ?? undefined}
                     />
-                    <InputRightAddon children="minutes" />
-                </InputGroup>
+                    <p>minutes</p>
+                </div>
                 {
                     !!actionData?.max_consumption_timeout_minutes &&
-                    <Text color="tomato">{actionData?.max_consumption_timeout_minutes}</Text>
+                    <p color="tomato">{actionData?.max_consumption_timeout_minutes}</p>
                 }
-                <label className="font-bold">NTFY topic</label>
+                <p className="font-bold">NTFY topic</p>
                 <Input name="ntfy_topic" defaultValue={settings?.ntfy_topic ?? undefined}/>
                 {
                     !!actionData?.ntfy_topic &&
-                    <Text color="tomato">{actionData?.ntfy_topic}</Text>
+                    <p color="tomato">{actionData?.ntfy_topic}</p>
                 }
                 <Button
                     className="mr-1 mt-2"
                     type="submit"
-                    disabled={transition.state === 'submitting'}
+                    disabled={navigation.state === 'submitting'}
                 >
-                    {transition.state === 'submitting' ? "Updating" : "Update"}
+                    {navigation.state === 'submitting' ? "Updating" : "Update"}
                 </Button>
             </Form>
 
