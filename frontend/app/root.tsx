@@ -48,7 +48,7 @@ function App() {
             <meta charSet="utf-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1"/>
             <Meta/>
-            <PwaLinks/>
+            <PwaLinksAndMeta/>
             <Links/>
         </head>
         <body
@@ -73,7 +73,7 @@ export function ErrorBoundary() {
         <head>
             <title>Oops!</title>
             <Meta />
-            <PwaLinks />
+            <PwaLinksAndMeta />
             <Links />
         </head>
         <body>
@@ -84,10 +84,19 @@ export function ErrorBoundary() {
     );
 }
 
-const PwaLinks = () => <>
+const PwaLinksAndMeta = () => <>
     <link rel="manifest" href="/manifest/webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-icon-180.png"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"
+    />
+    <meta
+        name="viewport"
+        content="initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="viewport" content="initial-scale=1, viewport-fit=cover" />
     <link rel="apple-touch-startup-image" href="/icons/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>
     <link rel="apple-touch-startup-image" href="/icons/apple-splash-2732-2048.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)"/>
     <link rel="apple-touch-startup-image" href="/icons/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"/>

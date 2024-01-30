@@ -1,5 +1,5 @@
 import React from 'react';
-import Nav from "~/components/nav";
+import Header from "~/components/header";
 
 export interface LayoutProps {
     children: React.ReactNode
@@ -8,8 +8,10 @@ export interface LayoutProps {
 const Layout = ({children}: LayoutProps) => {
     return (
         <>
-            <Nav/>
-            {children}
+            <Header/>
+            <div className="mt-20 pt-safe-top">
+                {children}
+            </div>
         </>
     );
 };

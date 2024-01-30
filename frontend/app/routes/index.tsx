@@ -183,9 +183,6 @@ export default function Index() {
 
     return (
         <div>
-            <h1>
-                Smart Home
-            </h1>
             <div className="flex flex-col mt-2">
                 <div className="flex flex-col">
                     <h2 className="mb-1">Power</h2>

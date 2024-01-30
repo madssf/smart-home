@@ -88,4 +88,10 @@ h3 {
     @apply text-xl font-semibold;
 }
 
+header {
+    padding-top: env(safe-area-inset-top);
+}
 
+body {
+    -webkit-tap-highlight-color: transparent;
+}

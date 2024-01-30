@@ -14,19 +14,23 @@ import {
 } from "~/components/ui/navigation-menu"
 import * as React from "react"
 
-const Nav = () => {
+const Header = () => {
     return (
-        <nav
-            className="flex align-middle justify-between m-3"
+        <header
+            className="fixed top-0 pt-safe-top flex flex-row justify-between items-center w-full h-16 px-4 bg-accent-foreground z-50"
         >
-
             <div>
                 <NavMenu/>
             </div>
+            <p
+                className="text-2xl font-bold text-accent"
+            >
+                Smart Home
+            </p>
             <div className="flex">
                 <ThemePicker/>
             </div>
-        </nav>
+        </header>
 
 
     );
@@ -90,4 +94,4 @@ const ListItem = React.forwardRef<
 ListItem.displayName = "ListItem"
 
 
-export default Nav;
+export default Header;
