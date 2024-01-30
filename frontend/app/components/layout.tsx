@@ -9,7 +9,7 @@ const Layout = ({children}: LayoutProps) => {
     return (
         <>
             <Header/>
-            <div className="mt-20 pt-safe-top">
+            <div className="mt-16 pt-safe-top">
                 {children}
             </div>
         </>

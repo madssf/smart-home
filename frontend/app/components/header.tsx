@@ -17,17 +17,19 @@ import * as React from "react"
 const Header = () => {
     return (
         <header
-            className="fixed top-0 pt-safe-top flex flex-row justify-between items-center w-full h-16 px-4 bg-accent-foreground z-50"
+            className="fixed top-0 pt-safe-top flex flex-row justify-between items-center w-full pb-2 px-4 header-background z-50"
         >
-            <div>
+            <div
+                className="pt-2"
+            >
                 <NavMenu/>
             </div>
             <p
-                className="text-2xl font-bold text-accent"
+                className="text-2xl font-bold text-white"
             >
                 Smart Home
             </p>
-            <div className="flex">
+            <div className="flex pt-2">
                 <ThemePicker/>
             </div>
         </header>
