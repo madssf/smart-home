@@ -266,9 +266,9 @@ export default function Index() {
 
                 </div>
                 <div>
-                    <div className="flex flex-row">
+                    <div className="flex flex-row items-center gap-4">
                         <h2 className="mb-1">Rooms</h2>
-                        <div className="ml-2 flex items-center">
+                        <div className="flex items-center gap-2">
                             <label
                                 className="text-xs mb-0"
                                 htmlFor='hide-unscheduled-rooms'>
