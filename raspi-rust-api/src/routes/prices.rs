@@ -1,9 +1,15 @@
+use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
 
+use async_stream::stream;
+use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{Extension, Json, Router};
+use futures::stream::Stream;
 use serde::Serialize;
+use serde_json::to_string;
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 
@@ -22,6 +28,7 @@ pub fn prices_router(
         .route("/current", get(get_current_price))
         .route("/consumption", get(get_consumption))
         .route("/live_consumption", get(get_live_consumption))
+        .route("/live_consumption_sse", get(consumption_sse))
         .layer(Extension(pool))
         .layer(Extension(tibber_client))
         .layer(Extension(consumption_cache))
@@ -75,4 +82,25 @@ async fn get_live_consumption(
         .cloned()
         .collect::<Vec<LiveConsumption>>();
     Json(res)
+}
+
+pub async fn consumption_sse(
+    Extension(consumption_cache): Extension<Arc<RwLock<ConsumptionCache>>>,
+) -> Sse<impl Stream<Item = Result<SseEvent, Infallible>>> {
+    Sse::new(stream! {
+        loop {
+            let cache = consumption_cache.read().await;
+            let res = cache
+                .get_all()
+                .into_iter()
+                .cloned()
+                .collect::<Vec<LiveConsumption>>();
+            yield Ok(SseEvent::default().data(to_string(&res).unwrap()));
+
+            // Wait for a specified interval before the next iteration.
+            // This introduces a delay, during which new data can be collected.
+            tokio::time::sleep(Duration::from_millis(2500)).await;
+        }
+    })
+    .keep_alive(KeepAlive::default().interval(Duration::from_millis(2500)))
 }

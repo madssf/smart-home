@@ -11,6 +11,7 @@ import type {
     RoomTemp,
 } from "~/routes/types";
 import type {Room} from "~/routes/rooms/types";
+import {fromLiveConsumption, LiveConsumptionData} from "~/routes/liveData";
 
 export async function getCurrentPriceOrError(): Promise<SimpleResult<PriceInfo>> {
     return await getRequestOrError<PriceInfo>(apiRoutes.prices.current);
@@ -20,8 +21,9 @@ export async function getConsumptionOrError(): Promise<SimpleResult<Consumption[
     return await getRequestOrError<Consumption[]>(apiRoutes.prices.consumption);
 }
 
-export async function getLiveConsumption(): Promise<LiveConsumption[]> {
-    return await getRequest<LiveConsumption[]>(apiRoutes.prices.live_consumption);
+export async function getLiveConsumption(): Promise<LiveConsumptionData> {
+    const result = await getRequest<LiveConsumption[]>(apiRoutes.prices.live_consumption);
+    return fromLiveConsumption(result);
 }
 
 export async function getRoomTemps(): Promise<RoomTemp[]> {

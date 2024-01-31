@@ -1,6 +1,3 @@
-import type {LoaderFunction} from "@remix-run/node";
-import {json} from "@remix-run/node";
-import {getLiveConsumption} from "~/routes/index.server";
 import type {LiveConsumption} from "~/routes/types";
 
 export interface LiveConsumptionData {
@@ -11,16 +8,7 @@ export interface LiveConsumptionData {
 export type LiveConsumptionChange = 'UP' | 'NONE' | 'DOWN'
 export type LiveConsumptionStats = { consumption: number | null, consumptionChange: LiveConsumptionChange, consumptionTime: string | null }
 
-export const loader: LoaderFunction = async () => {
-    const liveConsumption = await getLiveConsumption();
-
-    return json<LiveConsumptionData>({
-        liveConsumption: [...liveConsumption].reverse(),
-        liveConsumptionStats: getLiveConsumptionStats([...liveConsumption]),
-    });
-};
-
-const getLiveConsumptionStats = (data: LiveConsumption[]): LiveConsumptionStats => {
+export const getLiveConsumptionStats = (data: LiveConsumption[]): LiveConsumptionStats => {
     if (data.length === 0) {
         return { consumption: null, consumptionChange: 'NONE', consumptionTime: null };
     } else if (data.length === 1) {
@@ -35,3 +23,17 @@ const getLiveConsumptionStats = (data: LiveConsumption[]): LiveConsumptionStats 
         };
     }
 };
+
+export const fromLiveConsumption = (data: LiveConsumption[]): LiveConsumptionData => {
+    return {
+        liveConsumption: [...data].reverse(),
+        liveConsumptionStats: getLiveConsumptionStats([...data]),
+    };
+}
+export const fromSseEvent = (sseEvent: string) => {
+    const data: LiveConsumption[] = JSON.parse(sseEvent);
+    return {
+        liveConsumption: [...data].reverse(),
+        liveConsumptionStats: getLiveConsumptionStats([...data]),
+    };
+}

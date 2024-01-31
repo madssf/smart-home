@@ -16,6 +16,7 @@ export const apiRoutes = {
         current: 'prices/current',
         consumption: 'prices/consumption',
         live_consumption: 'prices/live_consumption',
+        live_consumption_sse: 'prices/live_consumption_sse',
     },
     notification_settings: 'notification_settings',
     temp_sensors: 'temp_sensors',

@@ -5,7 +5,7 @@ database:
   username: "postgres"
   password: "password"
   database_name: "smarthome"
-run_live_consumption_subscriber: false
+run_live_consumption_subscriber: true
 mqtt:
   run_mqtt: false
   id: "dummy-dev"

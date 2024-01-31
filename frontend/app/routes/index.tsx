@@ -5,14 +5,16 @@ import {
     getActiveSchedules,
     getConsumptionOrError,
     getCurrentPriceOrError,
+    getLiveConsumption,
     getPlugStatuses,
     getRoomTemps,
 } from "~/routes/index.server";
-import {Link, Links, Meta, Scripts, useFetcher, useLoaderData, useRouteError} from "@remix-run/react";
+import {Link, Links, Meta, Scripts, useLoaderData, useRouteError} from "@remix-run/react";
 import type {Consumption, EnrichedRoomData, PriceInfo} from "./types";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
 import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData";
+import {fromSseEvent} from "~/routes/liveData";
 import {ClientOnly} from "remix-utils/client-only";
 import {formatNumber, formatPriceInfo} from "~/utils/formattingUtils";
 import dayjs from "dayjs";
@@ -28,30 +30,34 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "~/components/ui/tabs";
 import {Switch} from "~/components/ui/switch";
 import {Theme, useTheme} from "remix-themes";
 import {getErrorComponent} from "~/components/error";
+import {useEventSource} from "remix-utils/sse/react";
 
 interface ResponseData {
     rooms: EnrichedRoomData[],
     price: SimpleResult<PriceInfo>;
     consumption: SimpleResult<Consumption[]>;
+    liveConsumption: LiveConsumptionData;
 }
 
 export const handle = {hydrate: true};
 
 export const loader: LoaderFunction = async () => {
 
-    const [rooms, activeSchedules, price, consumption, roomTemps, plugStatuses] = await Promise.all([
+    const [rooms, activeSchedules, price, consumption, roomTemps, plugStatuses, liveConsumption] = await Promise.all([
         getRooms(),
         getActiveSchedules(),
         getCurrentPriceOrError(),
         getConsumptionOrError(),
         getRoomTemps(),
         getPlugStatuses(),
+        getLiveConsumption(),
     ]);
 
     return json<ResponseData>({
         rooms: rooms.map((r) => enrichRoomData(r, activeSchedules, roomTemps, plugStatuses)),
         price,
         consumption,
+        liveConsumption,
     });
 
 };
@@ -59,19 +65,15 @@ export const loader: LoaderFunction = async () => {
 export default function Index() {
 
     const data = useLoaderData<ResponseData>();
-    const liveFetcher = useFetcher<LiveConsumptionData>();
-    const [fetchTrigger, setFetchTrigger] = useState(0);
     const [hideUnscheduledRooms, setHideUnscheduledRooms] = useState(true);
     dayjs.extend(relativeTime);
 
-    useEffect(() => {
-        liveFetcher.load("/liveData");
-        const interval = setInterval(() => {
-            setFetchTrigger((prev) => prev + 1);
-        }, 2500);
-        return () => clearInterval(interval);
+    const liveConsumptionSseData = useEventSource("sse/liveConsumption")
+    const liveConsumptionData = (liveConsumptionSseData ?
+        fromSseEvent(liveConsumptionSseData)
+        : null)
+        ?? data.liveConsumption;
 
-    }, [fetchTrigger]);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const getColorForConsumptionChange = (change?: LiveConsumptionChange) => {
         switch (change) {
@@ -178,8 +180,8 @@ export default function Index() {
         );
     };
 
-    const consumptionGraphData = liveFetcher.data?.liveConsumption;
-    const consumptionStats = liveFetcher.data?.liveConsumptionStats;
+    const consumptionGraphData = liveConsumptionData?.liveConsumption;
+    const consumptionStats = liveConsumptionData?.liveConsumptionStats;
 
     return (
         <div>
