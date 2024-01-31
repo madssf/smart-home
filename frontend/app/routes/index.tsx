@@ -115,7 +115,7 @@ export default function Index() {
     const renderRoomData = (room: EnrichedRoomData) => {
         return (
             <div className="ml-1 mb-1">
-                <div className="flex flex-row items-baseline">
+                <div className="flex flex-row items-center">
                     <Link to={routes.TEMP_LOG.ROOM_ID(room.id)}>{room.name}</Link>
                     {
                         room.temp &&
@@ -123,7 +123,7 @@ export default function Index() {
                             <Badge className="text-left w-max text-md">
                                 {`${formatNumber(room.temp.temp, 1, 1)} °C`}
                             </Badge>
-                            <p className={"ml-1"}>{dayjs(room.temp.time).fromNow()}</p>
+                            <p className={"ml-3"}>{dayjs(room.temp.time).fromNow()}</p>
                         </div>
                     }
                 </div>
