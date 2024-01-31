@@ -17,19 +17,19 @@ import * as React from "react"
 const Header = () => {
     return (
         <header
-            className="fixed top-0 pt-safe-top flex flex-row justify-between items-center w-full pb-2 px-4 header-background z-50"
+            className="fixed top-0 w-full pb-2 px-4 header-background z-50 pt-safe-top grid grid-cols-3 items-center"
         >
             <div
-                className="pt-2"
+                className="flex justify-start pl-2 pt-2" // Added padding to align with the center text margin.
             >
                 <NavMenu/>
             </div>
             <p
-                className="text-2xl font-bold text-white"
+                className="text-xl sm:text-2xl pt-2 font-bold text-white justify-self-center self-center whitespace-nowrap"
             >
                 Smart Home
             </p>
-            <div className="flex pt-2">
+            <div className="flex justify-end pr-2 pt-2">
                 <ThemePicker/>
             </div>
         </header>
