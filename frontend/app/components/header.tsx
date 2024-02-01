@@ -89,7 +89,7 @@ const ListItem = React.forwardRef<
                 to={href ?? "/"}
                 {...props}
             >
-                <div className="text-sm font-medium leading-none">{title}</div>
+                <div className="font-medium leading-none">{title}</div>
             </Link>
         </NavigationMenuLink>
     )

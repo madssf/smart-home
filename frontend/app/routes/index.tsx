@@ -11,6 +11,7 @@ import {
 } from "~/routes/index.server";
 import {Links, Meta, Scripts, useLoaderData, useRouteError} from "@remix-run/react";
 import type {Consumption, EnrichedRoomData, PriceInfo} from "./types";
+import {PriceLevel} from "./types";
 import {useState} from "react";
 import ConsumptionGraph from "~/components/consumptionGraph";
 import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData";
@@ -53,9 +54,16 @@ export const loader: LoaderFunction = async () => {
         getLiveConsumption(),
     ]);
 
+    const priceInfo: PriceInfo = {
+        amount: 3.5,
+        currency: 'NOK',
+        price_level: PriceLevel.VeryExpensive,
+        ext_price_level: PriceLevel.VeryExpensive,
+        starts_at: "",
+    }
     return json<ResponseData>({
         rooms: rooms.map((r) => enrichRoomData(r, activeSchedules, roomTemps, plugStatuses)),
-        price,
+        price: priceInfo,
         consumption,
         liveConsumption,
     });
@@ -73,20 +81,6 @@ export default function Index() {
         fromSseEvent(liveConsumptionSseData)
         : null)
         ?? data.liveConsumption;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const getColorForConsumptionChange = (change?: LiveConsumptionChange) => {
-        switch (change) {
-            case "UP":
-                return 'red';
-            case "DOWN":
-                return 'green';
-            case "NONE":
-            case undefined:
-                return 'gray';
-
-        }
-    };
 
     const roomsToRender = (rooms: EnrichedRoomData[]) => {
         if (hideUnscheduledRooms) {
@@ -122,13 +116,13 @@ export default function Index() {
                                         <div className="flex flex-row">
                                             <Badge
                                                 className="max-w-max ml-1"
-                                                // TODO: Add color
+                                                variant={getVariantForConsumptionChange(consumptionStats?.consumptionChange)}
                                             >
                                                 {consumptionStats?.consumption ?? '-'} W
                                             </Badge>
                                             {consumptionStats?.consumptionTime &&
                                                 Math.abs(dayjs(consumptionStats.consumptionTime).diff(dayjs(), 'seconds')) > 10 &&
-                                                <p className={"ml-1"}>{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
+                                                <p className="ml-1 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
                                             }
                                         </div>
                                     </div>
@@ -145,7 +139,7 @@ export default function Index() {
                                                 :
                                                 <Badge
                                                     className="max-w-max ml-1"
-                                                    // TODO: Add color
+                                                    variant={getVariantForPriceInfo(data.price)}
                                                 >
                                                     {formatPriceInfo(data.price)}
                                                 </Badge>
@@ -205,12 +199,47 @@ export default function Index() {
     );
 }
 
+const getVariantForConsumptionChange = (change?: LiveConsumptionChange): 'positive' | 'negative' | 'outline' => {
+    switch (change) {
+        case "UP":
+            return 'negative';
+        case "DOWN":
+            return 'positive';
+        case "NONE":
+        case undefined:
+            return 'outline';
+
+    }
+};
+
+
+const getVariantForPriceInfo = (priceInfo: PriceInfo): 'positive' | 'veryPositive' | 'veryNegative' | 'negative' | 'default' => {
+    if (priceInfo.price_level) {
+        switch (priceInfo.price_level) {
+            case PriceLevel.VeryCheap:
+                return 'veryPositive';
+            case PriceLevel.Cheap:
+                return 'positive';
+            case PriceLevel.Expensive:
+                return 'negative';
+            case PriceLevel.VeryExpensive:
+                return 'veryNegative';
+            default:
+                return 'default';
+        }
+    } else {
+        return 'default';
+    }
+}
+
 export function ErrorBoundary() {
     const error = useRouteError();
     const [theme] = useTheme()
 
     return (
-        <html>
+        <html
+            lang="en"
+        >
         <head>
             <title>Oops!</title>
             <Meta />

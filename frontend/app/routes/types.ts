@@ -17,6 +17,21 @@ export enum PriceLevel {
     VeryExpensive = 'VeryExpensive',
 }
 
+export const displayPriceLevel = (priceLevel: PriceLevel) => {
+    switch (priceLevel) {
+        case PriceLevel.VeryCheap:
+            return 'Very cheap';
+        case PriceLevel.Cheap:
+            return 'Cheap';
+        case PriceLevel.Normal:
+            return 'Normal';
+        case PriceLevel.Expensive:
+            return 'Expensive';
+        case PriceLevel.VeryExpensive:
+            return 'Very expensive';
+    }
+}
+
 const sortPriceLevels = (a: PriceLevel, b: PriceLevel) => {
     const order = [PriceLevel.VeryCheap, PriceLevel.Cheap, PriceLevel.Normal, PriceLevel.Expensive, PriceLevel.VeryExpensive];
     return order.indexOf(a) - order.indexOf(b);
