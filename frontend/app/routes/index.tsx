@@ -102,7 +102,12 @@ export default function Index() {
                                 >
                                     <ClientOnly>
                                         {
-                                            () => <LiveConsumptionGraph liveConsumption={consumptionGraphData}/>
+                                            () => <div
+                                                className="my-4"
+                                            >
+                                                <LiveConsumptionGraph liveConsumption={consumptionGraphData}/>
+
+                                            </div>
 
                                         }
                                     </ClientOnly>
@@ -110,14 +115,14 @@ export default function Index() {
                                         <b>Consumption</b>
                                         <div className="flex flex-row gap-1 items-end">
                                             <Badge
-                                                className="w-max text-left"
+                                                className="w-max text-left text-sm"
                                                 variant={getVariantForConsumptionChange(consumptionStats?.consumptionChange)}
                                             >
                                                 {consumptionStats?.consumption ?? '-'} W
                                             </Badge>
                                             {consumptionStats?.consumptionTime &&
                                                 Math.abs(dayjs(consumptionStats.consumptionTime).diff(dayjs(), 'seconds')) > 10 &&
-                                                <p className="ml-2 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
+                                                <p className="ml-1 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
                                             }
                                         </div>
                                     </div>
@@ -126,14 +131,14 @@ export default function Index() {
                                         {
                                             data.price === 'ERROR' ?
                                                 <Badge
-                                                    className="max-w-max ml-1"
+                                                    className="max-w-max ml-1 text-sm"
                                                     variant="destructive"
                                                 >
                                                     Unavailable
                                                 </Badge>
                                                 :
                                                 <Badge
-                                                    className="max-w-max ml-1"
+                                                    className="max-w-max ml-1 text-sm"
                                                     variant={getVariantForPriceInfo(data.price)}
                                                 >
                                                     {formatPriceInfo(data.price)}
@@ -160,7 +165,11 @@ export default function Index() {
                                                         </AlertDescription>
                                                     </Alert>
                                                     :
-                                                    <ConsumptionGraph consumption={data.consumption}/>;
+                                                    <div
+                                                        className="my-4"
+                                                    >
+                                                        <ConsumptionGraph consumption={data.consumption}/>
+                                                    </div>
                                         }
                                     }
                                 </ClientOnly>
