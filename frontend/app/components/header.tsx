@@ -13,14 +13,15 @@ import {
     NavigationMenuTrigger,
 } from "~/components/ui/navigation-menu"
 import * as React from "react"
+import RefreshPageButton from "~/components/refreshPageButton";
 
 const Header = () => {
-    return (
+    const header = <>
         <header
-            className="fixed top-0 w-full pb-2 px-4 header-background z-50 pt-safe-top grid grid-cols-3 items-center"
+            className="fixed top-0 w-full pb-2 px-2 header-background z-50 pt-safe-top grid grid-cols-3 items-center"
         >
             <div
-                className="flex justify-start pl-2 pt-2" // Added padding to align with the center text margin.
+                className="flex justify-start pt-2" // Added padding to align with the center text margin.
             >
                 <NavMenu/>
             </div>
@@ -29,13 +30,13 @@ const Header = () => {
             >
                 Smart Home
             </p>
-            <div className="flex justify-end pr-2 pt-2">
+            <div className="flex justify-end pt-2 gap-1">
+                <RefreshPageButton/>
                 <ThemePicker/>
             </div>
         </header>
-
-
-    );
+    </>;
+    return header;
 };
 
 
