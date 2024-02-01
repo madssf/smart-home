@@ -54,16 +54,9 @@ export const loader: LoaderFunction = async () => {
         getLiveConsumption(),
     ]);
 
-    const priceInfo: PriceInfo = {
-        amount: 3.5,
-        currency: 'NOK',
-        price_level: PriceLevel.VeryExpensive,
-        ext_price_level: PriceLevel.VeryExpensive,
-        starts_at: "",
-    }
     return json<ResponseData>({
         rooms: rooms.map((r) => enrichRoomData(r, activeSchedules, roomTemps, plugStatuses)),
-        price: priceInfo,
+        price,
         consumption,
         liveConsumption,
     });
