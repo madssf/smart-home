@@ -16,7 +16,7 @@ import * as React from "react"
 import RefreshPageButton from "~/components/refreshPageButton";
 
 const Header = () => {
-    const header = <>
+    return <>
         <header
             className="fixed top-0 w-full pb-2 px-2 header-background z-50 pt-safe-top grid grid-cols-3 items-center"
         >
@@ -36,7 +36,6 @@ const Header = () => {
             </div>
         </header>
     </>;
-    return header;
 };
 
 
