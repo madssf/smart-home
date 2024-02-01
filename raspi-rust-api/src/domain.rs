@@ -378,7 +378,7 @@ pub enum TempActionType {
     OFF,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TemperatureLog {
     pub room_id: Uuid,
     pub time: NaiveDateTime,

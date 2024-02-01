@@ -17,6 +17,7 @@ use crate::db::DbError;
 use crate::domain::{
     ActionType, Plug, PriceInfo, Room, TempAction, TempActionType, TemperatureLog, WorkMessage,
 };
+use crate::service::plugs::is_dummy_plug;
 use crate::{db, now, service};
 
 #[derive(Error, Debug)]
@@ -164,6 +165,10 @@ impl WorkHandler {
                     .filter(|p| button.plug_ids.contains(&p.id))
                     .collect();
                 for plug in plugs {
+                    if is_dummy_plug(plug) {
+                        debug!("Dummy plug, skipping");
+                        continue;
+                    }
                     self.shelly_client.execute_action(plug, action).await?;
                 }
 
@@ -234,6 +239,10 @@ impl WorkHandler {
 
             for plug in room_plugs {
                 if plug.scheduled {
+                    if is_dummy_plug(&plug) {
+                        debug!("Dummy plug, skipping");
+                        continue;
+                    }
                     match self.shelly_client.execute_action(&plug, &action).await {
                         Ok(_) => debug!("Turned plug {} {}", plug.name, action),
                         Err(e) => {

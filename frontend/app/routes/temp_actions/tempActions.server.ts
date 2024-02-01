@@ -7,12 +7,12 @@ export async function getTempActions(): Promise<TempAction[]> {
     return await getRequest<TempAction[]>(apiRoutes.temp_actions);
 }
 
-export async function createTempAction(room: CreateRequest<TempAction>): Promise<void> {
-    return await createRequest<CreateRequest<TempAction>>(apiRoutes.temp_actions, room);
+export async function createTempAction(action: CreateRequest<TempAction>): Promise<void> {
+    return await createRequest<CreateRequest<TempAction>>(apiRoutes.temp_actions, action);
 }
 
-export async function updateTempAction(room: TempAction): Promise<void> {
-    return await updateRequest<TempAction>(apiRoutes.temp_actions, room);
+export async function updateTempAction(action: TempAction): Promise<void> {
+    return await updateRequest<TempAction>(apiRoutes.temp_actions, action);
 }
 
 export async function deleteTempAction(id: string): Promise<void> {

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::routing::post;
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
@@ -8,11 +9,13 @@ use axum::{
     Router,
 };
 use chrono::NaiveDateTime;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::db;
+use crate::domain::TemperatureLog;
 use crate::routes::lib::internal_server_error;
 use crate::service::temperature_logs::{generate_temperature_graph, TimePeriod};
 
@@ -20,6 +23,7 @@ use crate::service::temperature_logs::{generate_temperature_graph, TimePeriod};
 pub fn temperature_logs_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/", get(get_temperature_logs))
+        .route("/", post(create_temperature_log))
         .route("/:room_id/:time_period", get(get_room_temperature_logs))
         .route("/current", get(get_current_temps))
         .layer(Extension(pool))
@@ -89,4 +93,19 @@ async fn get_current_temps(Extension(pool): Extension<Arc<PgPool>>) -> impl Into
             Json(room_temps)
         })
         .map_err(internal_server_error)
+}
+
+async fn create_temperature_log(
+    Extension(pool): Extension<Arc<PgPool>>,
+    Json(body): Json<TemperatureLog>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    match db::temperature_logs::create_temp_log(&pool, body).await {
+        Ok(log) => log,
+        Err(e) => {
+            error!("Failed to create temperature log: {}", e);
+            return Err(internal_server_error(e));
+        }
+    };
+    info!("Created temperature log");
+    Ok(StatusCode::CREATED)
 }
