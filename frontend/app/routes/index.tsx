@@ -91,13 +91,15 @@ export default function Index() {
                 <div className="flex flex-col">
                     <h2 className="mb-1">Power usage</h2>
                     <div>
-                        <Tabs defaultValue="live-graph">
+                        <Tabs defaultValue="live-graph" className="mt-2">
                             <TabsList>
                                 <TabsTrigger value="live-graph">Live</TabsTrigger>
                                 <TabsTrigger value="daily-graph">Today</TabsTrigger>
                             </TabsList>
                             <TabsContent value="live-graph">
-                                <div>
+                                <div
+                                    className="flex flex-col gap-1"
+                                >
                                     <ClientOnly>
                                         {
                                             () => <LiveConsumptionGraph liveConsumption={consumptionGraphData}/>
@@ -106,16 +108,16 @@ export default function Index() {
                                     </ClientOnly>
                                     <div className="grid grid-cols-[110px_auto_auto] p-1">
                                         <b>Consumption</b>
-                                        <div className="flex flex-row">
+                                        <div className="flex flex-row gap-1 items-end">
                                             <Badge
-                                                className="max-w-max ml-1"
+                                                className="w-max text-left"
                                                 variant={getVariantForConsumptionChange(consumptionStats?.consumptionChange)}
                                             >
                                                 {consumptionStats?.consumption ?? '-'} W
                                             </Badge>
                                             {consumptionStats?.consumptionTime &&
                                                 Math.abs(dayjs(consumptionStats.consumptionTime).diff(dayjs(), 'seconds')) > 10 &&
-                                                <p className="ml-1 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
+                                                <p className="ml-2 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
                                             }
                                         </div>
                                     </div>
@@ -169,7 +171,7 @@ export default function Index() {
 
 
                 </div>
-                <div>
+                <div className="mt-4">
                     <div className="flex flex-row items-center gap-4">
                         <h2 className="mb-1">Rooms</h2>
                         <div className="flex items-center gap-2">
