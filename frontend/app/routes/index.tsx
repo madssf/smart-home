@@ -102,7 +102,7 @@ export default function Index() {
         <div>
             <div className="flex flex-col mt-2">
                 <div className="flex flex-col">
-                    <h2 className="mb-1">Power</h2>
+                    <h2 className="mb-1">Power usage</h2>
                     <div>
                         <Tabs defaultValue="live-graph">
                             <TabsList>

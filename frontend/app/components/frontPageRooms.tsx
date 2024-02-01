@@ -37,17 +37,17 @@ const FrontPageRoom = ({room}: { room: EnrichedRoomData }) => {
                 </Link>
                 {
                     room.temp &&
-                    <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1 items-baseline">
-                        <Badge className="text-left w-max text-md">
+                    <div className="ml-2 grid grid-cols-[65px_auto] gap-1 p-1 items-end">
+                        <Badge className="text-left w-max">
                             {`${formatNumber(room.temp.temp, 1, 1)} °C`}
                         </Badge>
-                        <p className={"ml-3"}>{dayjs(room.temp.time).fromNow()}</p>
+                        <p className="ml-2 mb-0 text-sm">{dayjs(room.temp.time).fromNow()}</p>
                     </div>
                 }
             </div>
             <div className="ml-1">
-                <div className="grid grid-cols-[70px_auto] gap-1 p-1">
-                    <p>Schedule</p>
+                <div className="grid grid-cols-[70px_auto] gap-1 p-1 items-baseline">
+                    <p className="">Schedule</p>
                     {room.activeSchedule?.schedule && room.activeSchedule.temp ?
                         <Badge variant="secondary" className="text-left w-max">
                             {`${formatNumber(room.activeSchedule.temp, 1, 1)} °C`}
@@ -67,7 +67,7 @@ const FrontPageRoom = ({room}: { room: EnrichedRoomData }) => {
                         {
                             room.plugStatuses.sort((a, b) => a.name.localeCompare(b.name)).map((plugStatus) => {
                                 return (
-                                    <div key={plugStatus.name} className="grid grid-cols-[100px_auto] gap-1 p-1">
+                                    <div key={plugStatus.name} className="grid grid-cols-[100px_auto] gap-1 p-1 text-sm">
                                         <p>{plugStatus.name}</p>
                                         <Badge
                                             className="max-w-max ml-1"
