@@ -1,4 +1,5 @@
 import {differenceInSeconds, formatISO} from 'date-fns';
+import * as process from "process";
 
 /**
  * Determines if two datetimes are within a specified number of seconds from each other.
@@ -13,7 +14,13 @@ export function isWithinIntervalInSeconds(date1: Date | string, date2: Date | st
     return Math.abs(differenceInSeconds(parsedDate1, parsedDate2)) <= seconds;
 }
 
-const timeZone = process.env.TIMEZONE || 'Europe/Oslo';
+const timeZone = () => {
+    try {
+        return process.env.TIMEZONE
+    } catch (error) {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+}
 export function now(): string {
-    return formatISO(new Date().toLocaleString('en-US', { timeZone }));
+    return formatISO(new Date().toLocaleString('en-US', { timeZone: timeZone() }));
 }

@@ -120,7 +120,7 @@ export default function Index() {
                                                 {consumptionStats?.consumption ?? '-'} W
                                             </Badge>
                                             {consumptionStats?.consumptionTime &&
-                                                isWithinIntervalInSeconds(new Date(), new Date(consumptionStats.consumptionTime), 10) &&
+                                                !isWithinIntervalInSeconds(new Date(), new Date(consumptionStats.consumptionTime), 10) &&
                                                 <p className="ml-1 mb-0 text-sm">{formatDistanceToNow(new Date(consumptionStats.consumptionTime), { addSuffix: true })}</p>
                                             }
                                         </div>
