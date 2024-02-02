@@ -4,7 +4,8 @@ import {Link} from "@remix-run/react";
 import {routes} from "~/routes";
 import {Badge} from "~/components/ui/badge";
 import {formatNumber} from "~/utils/formattingUtils";
-import dayjs from "dayjs";
+import {formatDistanceToNow} from 'date-fns';
+
 
 type Props = {
     rooms: EnrichedRoomData[]
@@ -41,7 +42,9 @@ const FrontPageRoom = ({room}: { room: EnrichedRoomData }) => {
                         <Badge className="text-left w-max text-sm">
                             {`${formatNumber(room.temp.temp, 1, 1)} °C`}
                         </Badge>
-                        <p className="ml-3 mb-0 text-sm">{dayjs(room.temp.time).fromNow()}</p>
+                        <p className="ml-3 mb-0 text-sm">
+                            {formatDistanceToNow(new Date(room.temp.time), { addSuffix: true })}
+                        </p>
                     </div>
                 }
             </div>

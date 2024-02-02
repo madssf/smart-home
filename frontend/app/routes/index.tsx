@@ -18,9 +18,7 @@ import type {LiveConsumptionChange, LiveConsumptionData} from "~/routes/liveData
 import {fromSseEvent} from "~/routes/liveData";
 import {ClientOnly} from "remix-utils/client-only";
 import {formatPriceInfo} from "~/utils/formattingUtils";
-import dayjs from "dayjs";
-
-import relativeTime from "dayjs/plugin/relativeTime.js";
+import {formatDistanceToNow} from 'date-fns';
 import LiveConsumptionGraph from "~/components/liveConsumptionGraph";
 import {getRooms} from "~/routes/rooms/rooms.server";
 import type {SimpleResult} from "~/fetcher/fetcher.server";
@@ -32,6 +30,8 @@ import {Theme, useTheme} from "remix-themes";
 import {getErrorComponent} from "~/components/error";
 import {useEventSource} from "remix-utils/sse/react";
 import FrontPageRooms from "~/components/frontPageRooms";
+import {isWithinIntervalInSeconds} from "~/utils/time";
+
 
 interface ResponseData {
     rooms: EnrichedRoomData[],
@@ -67,7 +67,6 @@ export default function Index() {
 
     const data = useLoaderData<ResponseData>();
     const [hideUnscheduledRooms, setHideUnscheduledRooms] = useState(true);
-    dayjs.extend(relativeTime);
 
     const liveConsumptionSseData = useEventSource("sse/liveConsumption")
     const liveConsumptionData = (liveConsumptionSseData ?
@@ -121,8 +120,8 @@ export default function Index() {
                                                 {consumptionStats?.consumption ?? '-'} W
                                             </Badge>
                                             {consumptionStats?.consumptionTime &&
-                                                Math.abs(dayjs(consumptionStats.consumptionTime).diff(dayjs(), 'seconds')) > 10 &&
-                                                <p className="ml-1 mb-0 text-sm">{dayjs(consumptionStats.consumptionTime).fromNow()}</p>
+                                                isWithinIntervalInSeconds(new Date(), new Date(consumptionStats.consumptionTime), 10) &&
+                                                <p className="ml-1 mb-0 text-sm">{formatDistanceToNow(new Date(consumptionStats.consumptionTime), { addSuffix: true })}</p>
                                             }
                                         </div>
                                     </div>

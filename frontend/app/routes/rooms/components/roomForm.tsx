@@ -44,7 +44,9 @@ const RoomForm = ({room}: RoomFormProps) => {
                 className="flex flex-row gap-1"
             >
                 <input hidden readOnly name="id" value={room?.id}/>
-                <div>
+                <div
+                    className="w-3/4"
+                >
                     <label className="font-bold" htmlFor="name">Name</label>
                     <Input name="name" defaultValue={room?.name}/>
                     {
@@ -52,10 +54,12 @@ const RoomForm = ({room}: RoomFormProps) => {
                         <p color="tomato">{errors.name}</p>
                     }
                     {room?.id &&
-                        <p className="text-xs text-gray-500 dark:text-gray-200">{room.id}</p>
+                        <pre className="ml-1 text-xs text-gray-500 dark:text-gray-200 my-2">{room.id}</pre>
                     }
                 </div>
-                <div>
+                <div
+                    className="w-1/5"
+                >
                     <label className="font-bold" htmlFor="min_temp">Min temp</label>
                     <div
                         className="flex items-center"

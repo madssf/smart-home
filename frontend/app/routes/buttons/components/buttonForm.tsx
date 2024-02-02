@@ -47,7 +47,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
         <Form className="mb-2" ref={formRef} method="post" action={routes.BUTTONS.ROOT}>
             <input hidden readOnly name="id" value={button?.id}/>
             <div>
-                <label htmlFor="name" className="font-bold">Name</label>
+                <Label htmlFor="name" className="font-bold">Name</Label>
                 <Input name="name" defaultValue={button?.name}/>
                 {
                     !!errors?.name &&
@@ -82,7 +82,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold">IP address</label>
+                <Label htmlFor="ip" className="font-bold">IP address</Label>
                 <Input name="ip" defaultValue={button?.ip}/>
                 {
                     !!errors?.ip &&
@@ -90,7 +90,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold">Username</label>
+                <Label htmlFor="username" className="font-bold">Username</Label>
                 <Input name="username" defaultValue={button?.username}/>
                 {
                     !!errors?.username &&
@@ -98,7 +98,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold">Password</label>
+                <Label htmlFor="password" className="font-bold">Password</Label>
                 <Input name="password" defaultValue={button?.password}/>
                 {
                     !!errors?.password &&

@@ -15,6 +15,7 @@ import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
 import {Label} from '~/components/ui/label';
+import {now} from "~/utils/time";
 
 export interface TempActionFormProps {
     tempAction?: TempAction;
@@ -53,9 +54,9 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
             <div className="flex flex-col">
                 <p className="font-bold">Action</p>
                 <RadioGroup defaultValue={tempAction?.action ?? ActionType.ON} name="actionType">
-                    <div className="flex flex-row">
+                    <div className="flex flex-row space-x-2 my-2">
                         {Object.values(ActionType).map((actionType) => {
-                            return <div className="flex items-center space-x-2" key={tempAction?.id + actionType}>
+                            return <div className="flex items-center space-x-1" key={tempAction?.id + actionType}>
                                 <RadioGroupItem
                                     key={tempAction?.id + actionType}
                                     id={actionType}
@@ -118,23 +119,23 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
                     <p color="tomato">{errors.room_ids}</p>
                 }
             </div>
-            <div className="mt-2">
-                <label className="font-bold">Starts at</label>
-                <DatePicker name={'startsAt'} defaultValue={tempAction?.starts_at ?? undefined}/>
+            <div className="mt-2 flex flex-col">
+                <label htmlFor="startsAt" className="font-bold">Starts at</label>
+                <DatePicker name="startsAt" defaultValue={tempAction?.starts_at ?? now()}/>
                 {
                     !!errors?.starts_at &&
                     <p color="tomato">{errors.starts_at}</p>
                 }
             </div>
             <div className="mt-2">
-                <label className="font-bold">Expires at</label>
-                <DatePicker name={'expiresAt'} defaultValue={tempAction?.expires_at}/>
+                <label htmlFor="expiresAt" className="font-bold">Expires at</label>
+                <DatePicker name="expiresAt" defaultValue={tempAction?.expires_at ?? now()}/>
                 {
                     !!errors?.expires_at &&
                     <p color="tomato">{errors.expires_at}</p>
                 }
             </div>
-            <div className="mt-1">
+            <div className="mt-4">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
                         disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
                 {
