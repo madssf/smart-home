@@ -6,3 +6,4 @@ zigbee2mqtt
 *.tar
 .env.macos
 .env.armv7
+google-cloudflare-oauth.json

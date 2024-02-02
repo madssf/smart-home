@@ -126,3 +126,7 @@ docker compose -f docker-compose-armv7.yml up --build
 ### Aqara Temperature Sensor
 
 - https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html
+
+## SSO Cloudflare Zero Trust setup
+
+https://developers.cloudflare.com/cloudflare-one/identity/idp-integration/google/
