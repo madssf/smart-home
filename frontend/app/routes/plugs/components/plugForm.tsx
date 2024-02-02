@@ -46,10 +46,10 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
     }, [navigation]);
 
     return (
-        <Form className="mb-2" ref={formRef} method="post" action={routes.PLUGS.ROOT}>
+        <Form className="mb-2 flex flex-col gap-2" ref={formRef} method="post" action={routes.PLUGS.ROOT}>
             <input hidden readOnly name="id" value={plug?.id}/>
             <div>
-                <label className="font-bold" htmlFor="name">Name</label>
+                <Label htmlFor="name">Name</Label>
                 <Input name="name" defaultValue={plug?.name}/>
                 {
                     !!errors?.name &&
@@ -57,9 +57,9 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div className="flex flex-col">
-                <label className="font-bold" htmlFor="room_id">Room</label>
+                <Label htmlFor="room_id">Room</Label>
                 <RadioGroup defaultValue={plug?.room_id} name="room_id">
-                    <div className="flex flex-row space-x-3">
+                    <div className="flex flex-col space-y-3 my-2">
                         {rooms.map((room) => {
                             return <div className="flex items-center space-x-2" key={room.id}>
                                 <RadioGroupItem
@@ -78,7 +78,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold" htmlFor="ip">IP address</label>
+                <Label htmlFor="ip">IP address</Label>
                 <Input name="ip" defaultValue={plug?.ip}/>
                 {
                     !!errors?.ip &&
@@ -86,7 +86,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold" htmlFor="username">Username</label>
+                <Label htmlFor="username">Username</Label>
                 <Input name="username" defaultValue={plug?.username}/>
                 {
                     !!errors?.username &&
@@ -94,7 +94,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div>
-                <label className="font-bold" htmlFor="password">Password</label>
+                <Label htmlFor="password">Password</Label>
                 <Input name="password" defaultValue={plug?.password}/>
                 {
                     !!errors?.password &&
@@ -102,7 +102,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                 }
             </div>
             <div className="flex flex-row gap-2 items-center my-2">
-                <label className="font-bold" htmlFor="scheduled">Scheduled</label>
+                <Label htmlFor="scheduled">Scheduled</Label>
                 <Checkbox
                     id="scheduled"
                     name="scheduled"

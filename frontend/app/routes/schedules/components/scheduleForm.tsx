@@ -15,6 +15,7 @@ import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
 import {useNavigation} from "react-router";
 import {Label} from '~/components/ui/label';
+import {Trash} from "lucide-react";
 
 export interface ScheduleFormProps {
     schedule?: Schedule
@@ -109,7 +110,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
             <input hidden readOnly name="id" value={schedule?.id}/>
             <div className="flex flex-col gap-2">
                 <p className="font-bold" >Rooms</p>
-                <div className="flex space-x-2">
+                <div className="flex flex-col space-y-3">
                     {rooms.map((room) => {
                         return <div
                             key={schedule?.id + room.id}
@@ -134,7 +135,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
             </div>
             <div className="flex flex-col gap-2">
                 <p className="font-bold">Weekdays</p>
-                <div className="flex flex-col space-y-2">
+                <div className="flex flex-col space-y-3">
                 {WEEKDAYS.map((day) => {
                     return <div
                         key={day}
@@ -204,19 +205,21 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                                         defaultValue={schedule?.temps[price_level]}
                                     />
                                     <span
-                                        className="ml-2 text-gray-600 dark:text-gray-400"
+                                        className="ml-1 text-gray-600 dark:text-gray-400"
                                     >
                                         °C
                                     </span>
                                 </div>
                                 <Button
-                                    size="sm"
+                                    className="ml-2"
+                                    size="icon"
                                     variant="outline"
                                     type="button"
-                                    className="mx-1 w-8"
                                     onClick={() => setActivePriceLevels((prev) => prev.filter(p => p !== price_level))}
                                 >
-                                    ❌
+                                    <Trash
+                                        className="w-4 h-4"
+                                    />
                                 </Button>
                             </div>
                     );

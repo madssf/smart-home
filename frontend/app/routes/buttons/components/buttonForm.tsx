@@ -47,7 +47,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
         <Form className="mb-2" ref={formRef} method="post" action={routes.BUTTONS.ROOT}>
             <input hidden readOnly name="id" value={button?.id}/>
             <div>
-                <Label htmlFor="name" className="font-bold">Name</Label>
+                <Label htmlFor="name">Name</Label>
                 <Input name="name" defaultValue={button?.name}/>
                 {
                     !!errors?.name &&
@@ -59,7 +59,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
             }
             <div className="flex flex-col">
                 <p className="font-bold">Plugs</p>
-                <div className="flex space-x-2">
+                <div className="flex flex-col space-y-3 my-2">
                     {plugs.map((plug) => {
                         return <div
                             key={button?.id + plug.id}
@@ -82,7 +82,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <Label htmlFor="ip" className="font-bold">IP address</Label>
+                <Label htmlFor="ip">IP address</Label>
                 <Input name="ip" defaultValue={button?.ip}/>
                 {
                     !!errors?.ip &&
@@ -90,7 +90,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <Label htmlFor="username" className="font-bold">Username</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input name="username" defaultValue={button?.username}/>
                 {
                     !!errors?.username &&
@@ -98,14 +98,14 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             <div>
-                <Label htmlFor="password" className="font-bold">Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input name="password" defaultValue={button?.password}/>
                 {
                     !!errors?.password &&
                     <p color="tomato">{errors.password}</p>
                 }
             </div>
-            <div className="mt-1">
+            <div className="mt-3">
                 <Button className="mr-1" type="submit" name="intent" value={isNew ? 'create' : 'update'}
                         disabled={isCreating || isUpdating}>{isNew ? "Add" : "Update"}</Button>
                 {
