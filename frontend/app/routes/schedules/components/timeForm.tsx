@@ -1,4 +1,3 @@
-import React from 'react';
 import type {TimeWindow} from "~/routes/schedules/types";
 import {Button} from "~/components/ui/button";
 import {Input} from "~/components/ui/input";
