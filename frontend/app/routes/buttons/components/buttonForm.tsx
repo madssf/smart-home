@@ -55,7 +55,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 }
             </div>
             {button?.id &&
-                <p className="text-sm text-gray-400">{button.id}</p>
+                <pre className="ml-1 text-xs text-gray-500 dark:text-gray-200 my-2">{button.id}</pre>
             }
             <div className="flex flex-col">
                 <p className="font-bold">Plugs</p>
