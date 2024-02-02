@@ -101,7 +101,7 @@ const PlugForm = ({plug, rooms}: PlugFormProps) => {
                     <p color="tomato">{errors.password}</p>
                 }
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-row gap-2 items-center my-2">
                 <label className="font-bold" htmlFor="scheduled">Scheduled</label>
                 <Checkbox
                     id="scheduled"

@@ -9,7 +9,7 @@ import {validateNonEmptyString} from "~/utils/validation";
 import {createTempSensor, deleteTempSensor, getTempSensors} from "~/routes/temp_sensors/temp_sensors.server";
 import type {FormErrors} from "~/utils/types";
 import {useLoaderData} from "@remix-run/react";
-import React, {useState} from "react";
+import {useState} from "react";
 import TempSensorForm from "~/routes/temp_sensors/components/tempSensorForm";
 import {Button} from "~/components/ui/button";
 

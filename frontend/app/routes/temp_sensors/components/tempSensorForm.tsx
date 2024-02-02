@@ -66,7 +66,7 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                             {
                                 sensor.battery_level !== null &&
                                 <Badge
-                                    className="text-left w-16"
+                                    className="text-left"
                                 >
                                     {`${formatNumber(sensor.battery_level, 0, 0)} %`}
                                 </Badge>
@@ -81,7 +81,7 @@ const TempSensorForm = ({rooms, sensor}: TempSensorFormProps) => {
                     sensor === undefined ?
                         <>
                             <RadioGroup name="room_id">
-                                <div className="flex flex-row">
+                                <div className="flex flex-col">
                                     {rooms.map((room) => {
                                         return <div className="flex items-center space-x-2" key={room.id}>
                                             <RadioGroupItem

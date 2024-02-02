@@ -9,6 +9,7 @@ import {Input} from "~/components/ui/input";
 import {Checkbox} from "~/components/ui/checkbox";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
+import {Label} from "~/components/ui/label";
 
 export interface ButtonFormProps {
     button?: ButtonType
@@ -46,7 +47,7 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
         <Form className="mb-2" ref={formRef} method="post" action={routes.BUTTONS.ROOT}>
             <input hidden readOnly name="id" value={button?.id}/>
             <div>
-                <label className="font-bold">Name</label>
+                <label htmlFor="name" className="font-bold">Name</label>
                 <Input name="name" defaultValue={button?.name}/>
                 {
                     !!errors?.name &&
@@ -57,18 +58,22 @@ const ButtonForm = ({button, plugs}: ButtonFormProps) => {
                 <p className="text-sm text-gray-400">{button.id}</p>
             }
             <div className="flex flex-col">
-                <label className="font-bold">Plugs</label>
-                <div className="flex">
+                <p className="font-bold">Plugs</p>
+                <div className="flex space-x-2">
                     {plugs.map((plug) => {
-                        return <Checkbox
+                        return <div
                             key={button?.id + plug.id}
-                            className="mr-1"
-                            id={plug.id}
-                            name="plug_id"
-                            value={plug.id}
-                            defaultChecked={button?.plug_ids.includes(plug.id)}>
-                            {plug.name}
-                        </Checkbox>;
+                            className="flex flex-row space-x-1"
+                        >
+                            <Checkbox
+                                className="mr-1"
+                                id={plug.id}
+                                name="plug_id"
+                                value={plug.id}
+                                defaultChecked={button?.plug_ids.includes(plug.id)}>
+                            </Checkbox>
+                            <Label htmlFor={plug.id}>{plug.name}</Label>
+                        </div>;
                     })}
                 </div>
                 {

@@ -16,14 +16,14 @@ const TimeForm = ({window, handleRemove, handleAdd}: TimeFormProps) => {
                 <input className="w-20" type='time' name="from" defaultValue={window[0].slice(0, 5)}/>
                 <label className="ml-2 mr-1">To</label>
                 <input className="w-20" type='time' name="to" defaultValue={window[1].slice(0, 5)}/>
-                <Button className="mx-1" size="sm" variant="outline" type="button" onClick={() => {
+                <Button className="mx-1 w-8" size="sm" variant="outline" type="button" onClick={() => {
                     handleRemove();
                 }}>
                     ❌
                 </Button>
                 {
                     handleAdd !== undefined &&
-                    <Button aria-label='Add time window' className="mx-1" size="sm" variant="outline" type="button" onClick={() => {
+                    <Button aria-label='Add time window' className="mx-1 w-8" size="sm" variant="outline" type="button" onClick={() => {
                         handleAdd();
                     }
                     }>

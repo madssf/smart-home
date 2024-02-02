@@ -40,30 +40,40 @@ const RoomForm = ({room}: RoomFormProps) => {
 
     return (
         <Form className="mb-2" ref={formRef} method="post" action={routes.ROOMS.ROOT}>
-            <input hidden readOnly name="id" value={room?.id}/>
-            <div>
-                <label className="font-bold" htmlFor="name">Name</label>
-                <Input name="name" defaultValue={room?.name}/>
-                {
-                    !!errors?.name &&
-                    <p color="tomato">{errors.name}</p>
-                }
-            </div>
-            {room?.id &&
-                <p className="text-sm text-gray-400">{room.id}</p>
-            }
-            <div className="mt-1">
-                <label className="font-bold" htmlFor="min_temp">Min temp</label>
+            <div
+                className="flex flex-row gap-1"
+            >
+                <input hidden readOnly name="id" value={room?.id}/>
                 <div>
-                    <Input
-                        type="number"
-                        min="1"
-                        max="30"
-                        step="1"
-                        name="min_temp"
-                        defaultValue={room?.min_temp ?? undefined}
-                    />
-                    <p>°C</p>
+                    <label className="font-bold" htmlFor="name">Name</label>
+                    <Input name="name" defaultValue={room?.name}/>
+                    {
+                        !!errors?.name &&
+                        <p color="tomato">{errors.name}</p>
+                    }
+                    {room?.id &&
+                        <p className="text-xs text-gray-500 dark:text-gray-200">{room.id}</p>
+                    }
+                </div>
+                <div>
+                    <label className="font-bold" htmlFor="min_temp">Min temp</label>
+                    <div
+                        className="flex items-center"
+                    >
+                        <Input
+                            type="number"
+                            min="1"
+                            max="100"
+                            step="1"
+                            name="min_temp"
+                            defaultValue={room?.min_temp ?? undefined}
+                        />
+                        <span
+                            className="ml-2 text-gray-600 dark:text-gray-400"
+                        >
+                            °C
+                        </span>
+                    </div>
                 </div>
             </div>
             <div className="mt-1">

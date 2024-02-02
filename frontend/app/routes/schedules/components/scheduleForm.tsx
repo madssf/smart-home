@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import type {Schedule, TimeWindow} from "~/routes/schedules/types";
-import {WEEKDAYS} from "~/routes/schedules/types";
+import {getWeekdayName, WEEKDAYS} from "~/routes/schedules/types";
 import TimeForm from "~/routes/schedules/components/timeForm";
 import {routes} from "~/routes";
 import type {ScheduleFormErrors} from "~/routes/schedules";
@@ -73,13 +73,13 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
         setHoursList((prev) => prev.concat([defaultTimeWindow]));
     };
 
-    const renderPriceLevelMenu = () => {
+    const AddPriceLevelMenu = () => {
         return <DropdownMenu>
             <DropdownMenuTrigger
                 aria-label='Add price level'
                 asChild
             >
-                <Button className="w-32">Add price level</Button>
+                <Button>Add price level</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 {
@@ -105,9 +105,9 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
     };
 
     return (
-        <Form className="mb-2" ref={formRef} method="post" action={routes.SCHEDULES.ROOT} reloadDocument>
+        <Form className="mb-2 flex flex-col gap-4" ref={formRef} method="post" action={routes.SCHEDULES.ROOT} reloadDocument>
             <input hidden readOnly name="id" value={schedule?.id}/>
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-2">
                 <p className="font-bold" >Rooms</p>
                 <div className="flex space-x-2">
                     {rooms.map((room) => {
@@ -132,9 +132,9 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                     <p color="tomato">{errors.room_ids}</p>
                 }
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-2">
                 <p className="font-bold">Weekdays</p>
-                <div className="flex space-x-2">
+                <div className="flex flex-col space-y-2">
                 {WEEKDAYS.map((day) => {
                     return <div
                         key={day}
@@ -147,7 +147,7 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                                 value={day}
                                 defaultChecked={schedule?.days.map(str => str.toUpperCase()).includes(day.toUpperCase())}
                             />
-                        <Label htmlFor={day}>{capitalizeAndRemoveUnderscore(day)}</Label>
+                        <Label htmlFor={day}>{getWeekdayName(day)}</Label>
                     </div>;
                 })}
                 </div>
@@ -181,47 +181,51 @@ const ScheduleForm = ({schedule, rooms}: ScheduleFormProps) => {
                     <p color="tomato">{errors.time_windows}</p>
                 }
             </div>
-            <div>
+            <div
+                className="mb-4"
+            >
                 <p className="font-bold">Temperature by price level</p>
-                <div className="ml-2 mb-1">
+                <div className="flex flex-col gap-2 ml-2 mb-1">
                 {
-                    sortedPriceLevels(activePriceLevels).map((price_level, i) => {
+                    sortedPriceLevels(activePriceLevels).map((price_level) => {
                         return (
-                            <div key={price_level} className="grid grid-cols-[80px_120px_40px_30px] items-center">
+                            <div key={price_level} className="grid grid-cols-[100px_100px_40px_30px] items-center">
                                 <p className="text-sm">{formatPriceLevel(price_level)}</p>
-                                <div>
+                                <div
+                                    className="flex items-center"
+                                >
                                     <Input
                                         style={{width: "70px"}}
                                         type="number"
                                         min="1"
-                                        max="30"
+                                        max="100"
                                         step="1"
                                         name={`temp_${price_level}`}
                                         defaultValue={schedule?.temps[price_level]}
                                     />
-                                    <p>°C</p>
+                                    <span
+                                        className="ml-2 text-gray-600 dark:text-gray-400"
+                                    >
+                                        °C
+                                    </span>
                                 </div>
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     type="button"
-                                    className="mx-1"
+                                    className="mx-1 w-8"
                                     onClick={() => setActivePriceLevels((prev) => prev.filter(p => p !== price_level))}
                                 >
                                     ❌
                                 </Button>
-                                {
-                                    i === activePriceLevels.length - 1 &&
-                                        renderPriceLevelMenu()
-                                }
                             </div>
-                        );
+                    );
                     })
                 }
                 {
-                    activePriceLevels.length === 0 &&
+                    activePriceLevels.length < Object.keys(PriceLevel).length &&
                         <div>
-                            {renderPriceLevelMenu()}
+                            <AddPriceLevelMenu />
                         </div>
                 }
                 </div>

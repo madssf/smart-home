@@ -73,34 +73,44 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
             </div>
             {(tempAction === undefined || tempAction.action === ActionType.ON) &&
                 <div className="my-2">
-                    <div className="flex flex-row">
+                    <div
+                        className="flex items-center"
+                    >
                         <Input
                             style={{width: "70px"}}
                             type="number"
                             min="1"
-                            max="30"
+                            max="100"
                             step="1"
                             name={"temp"}
                             defaultValue={tempAction?.temp ?? undefined}
                         />
-                        <p>°C</p>
+                        <span
+                            className="ml-2 text-gray-600 dark:text-gray-400"
+                        >
+                            °C
+                        </span>
                     </div>
                 </div>
             }
 
             <div className="flex flex-col">
-                <label className="font-bold">Rooms</label>
-                <div className="flex">
+                <p className="font-bold">Rooms</p>
+                <div className="flex space-x-2">
                     {rooms.map((room) => {
-                        return <Checkbox
+                        return <div
                             key={tempAction?.id + room.id}
+                            className="flex flex-row space-x-"
+                        >
+                        <Checkbox
                             className="mr-1"
                             id={room.id}
                             name="room_ids"
                             value={room.id}
                             defaultChecked={tempAction?.room_ids.includes(room.id)}>
-                            {capitalizeAndRemoveUnderscore(room.name)}
-                        </Checkbox>;
+                        </Checkbox>
+                        <Label htmlFor={room.id}>{capitalizeAndRemoveUnderscore(room.name)}</Label>
+                        </div>
                     })}
                 </div>
                 {

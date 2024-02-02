@@ -74,16 +74,16 @@ const FrontPageRoom = ({room}: { room: EnrichedRoomData }) => {
                                             variant={
                                                 plugStatus.is_on === null || plugStatus.power === null ?
                                                     'destructive' :
-                                                    plugStatus.is_on ? 'default' : 'secondary'
+                                                    plugStatus.is_on ? 'default' : 'outline'
                                             }
                                         >
                                             {
                                                 plugStatus.is_on === null || plugStatus.power === null ?
-                                                    'ERROR'
+                                                    'Error'
                                                     :
                                                     plugStatus.is_on ?
                                                         `${formatNumber(plugStatus.power, 1, 1)} W`
-                                                        : 'OFF'
+                                                        : 'Off'
                                             }
                                         </Badge>
                                     </div>
