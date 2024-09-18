@@ -97,11 +97,11 @@ const TempActionForm = ({tempAction, rooms}: TempActionFormProps) => {
 
             <div className="flex flex-col">
                 <p className="font-bold">Rooms</p>
-                <div className="flex space-x-2">
+                <div className="flex flex-col space-y-2 my-2">
                     {rooms.map((room) => {
                         return <div
                             key={tempAction?.id + room.id}
-                            className="flex flex-row space-x-"
+                            className="flex flex-row space-x-1"
                         >
                         <Checkbox
                             className="mr-1"

@@ -10,6 +10,7 @@ import {Form, useActionData, useLoaderData} from "@remix-run/react";
 import {Input} from "~/components/ui/input";
 import {Button} from "~/components/ui/button";
 import {useNavigation} from "react-router";
+import {Label} from "~/components/ui/label";
 
 export interface SettingsProps {
     max_consumption: number | null
@@ -78,8 +79,10 @@ const Notifications = () => {
         <div>
             <h1 className="pb-4">Notifications</h1>
             <Form className="mb-2" method="post" action={routes.NOTIFICATIONS.ROOT}>
-                <p className="font-bold">Max consumption</p>
-                <div>
+                <Label htmlFor="max_consumption">Max consumption</Label>
+                <div
+                    className="flex items-center"
+                >
                     <Input
                         type="number"
                         style={{maxWidth: "150px"}}
@@ -89,14 +92,20 @@ const Notifications = () => {
                         name="max_consumption"
                         defaultValue={settings?.max_consumption ?? undefined}
                     />
-                    <p>W</p>
+                    <span
+                        className="ml-2 text-gray-600 dark:text-gray-400"
+                    >
+                        Watt
+                    </span>
                 </div>
                 {
                     !!actionData?.max_consumption &&
                     <p color="tomato">{actionData?.max_consumption}</p>
                 }
-                <p className="font-bold">Max consumption timeout</p>
-                <div>
+                <Label htmlFor="max_consumption_timeout_minutes">Max consumption timeout</Label>
+                <div
+                    className="flex items-center"
+                >
                     <Input
                         type="number"
                         style={{maxWidth: "150px"}}
@@ -106,13 +115,17 @@ const Notifications = () => {
                         name="max_consumption_timeout_minutes"
                         defaultValue={settings?.max_consumption_timeout_minutes ?? undefined}
                     />
-                    <p>minutes</p>
+                    <span
+                        className="ml-2 text-gray-600 dark:text-gray-400"
+                    >
+                        minutes
+                    </span>
                 </div>
                 {
                     !!actionData?.max_consumption_timeout_minutes &&
                     <p color="tomato">{actionData?.max_consumption_timeout_minutes}</p>
                 }
-                <p className="font-bold">NTFY topic</p>
+                <Label htmlFor="ntfy_topic">NTFY topic</Label>
                 <Input name="ntfy_topic" defaultValue={settings?.ntfy_topic ?? undefined}/>
                 {
                     !!actionData?.ntfy_topic &&

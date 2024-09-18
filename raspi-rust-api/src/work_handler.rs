@@ -106,7 +106,7 @@ impl WorkHandler {
                     WorkMessage::BUTTON(button_id, action, attempt) => {
                         match self.button_handler(&button_id, &action).await {
                             Ok(_) => {
-                                debug!("Button work handled.")
+                                info!("Button work handled.")
                             }
                             Err(e) => {
                                 error!("Button work failed, error: {}", e);
